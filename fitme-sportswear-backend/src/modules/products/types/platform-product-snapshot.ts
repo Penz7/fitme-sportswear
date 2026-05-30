@@ -10,6 +10,7 @@ export interface PlatformProductSnapshot {
   remain: number | null;
   retailPrice: number | null;
   warehouseId: string | null;
+  warehouseCount: number | null;
 }
 
 export interface ProductMappingCandidate {

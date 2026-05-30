@@ -34,7 +34,13 @@ export class ProductSnapshotService {
       mapSapoProductSnapshot(product),
     );
 
+    const duplicateSkus = this.findDuplicateSkus(snapshots);
+
     for (const snapshot of snapshots) {
+      if (duplicateSkus.has(snapshot.sku)) {
+        continue;
+      }
+
       const data = this.toSapoData(snapshot);
       await this.prisma.sapoProduct.upsert({
         where: { sku: snapshot.sku },
@@ -54,7 +60,13 @@ export class ProductSnapshotService {
         (snapshot): snapshot is PlatformProductSnapshot => Boolean(snapshot),
       );
 
+    const duplicateSkus = this.findDuplicateSkus(snapshots);
+
     for (const snapshot of snapshots) {
+      if (duplicateSkus.has(snapshot.sku)) {
+        continue;
+      }
+
       const data = this.toPancakeData(snapshot);
       await this.prisma.pancakeProduct.upsert({
         where: { sku: snapshot.sku },
@@ -72,7 +84,13 @@ export class ProductSnapshotService {
       mapShopifyProductSnapshots(product),
     );
 
+    const duplicateSkus = this.findDuplicateSkus(snapshots);
+
     for (const snapshot of snapshots) {
+      if (duplicateSkus.has(snapshot.sku)) {
+        continue;
+      }
+
       const data = this.toShopifyData(snapshot);
       await this.prisma.shopifyProduct.upsert({
         where: { sku: snapshot.sku },
@@ -82,6 +100,20 @@ export class ProductSnapshotService {
     }
 
     return snapshots;
+  }
+
+  private findDuplicateSkus(snapshots: PlatformProductSnapshot[]): Set<string> {
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+
+    for (const snapshot of snapshots) {
+      if (seen.has(snapshot.sku)) {
+        duplicates.add(snapshot.sku);
+      }
+      seen.add(snapshot.sku);
+    }
+
+    return duplicates;
   }
 
   private toSapoData(

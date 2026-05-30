@@ -43,6 +43,17 @@ export class ProductMatchingService {
       };
     }
 
+    if (pancake && pancake.warehouseCount !== null && pancake.warehouseCount > 1) {
+      return {
+        sku,
+        sapo,
+        pancake,
+        shopify,
+        status: 'conflict',
+        conflictReason: 'Pancake SKU has multiple warehouses',
+      };
+    }
+
     if (!sapo) {
       return {
         sku,

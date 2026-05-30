@@ -81,6 +81,7 @@ export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProdu
         remain: sumValues(variant.inventories, (inventory) => inventory.onHand),
         retailPrice: variant.variantRetailPrice ?? null,
         warehouseId: null,
+        warehouseCount: null,
       };
     })
     .filter((snapshot): snapshot is PlatformProductSnapshot => snapshot !== null);
@@ -103,6 +104,7 @@ export const mapPancakeProductSnapshot = (product: PancakeProductInput): Platfor
     remain: sumValues(warehouses, (warehouse) => warehouse.actualRemainQuantity),
     retailPrice: toNullableNumber(product.retailPrice),
     warehouseId: warehouses[0]?.warehouseId ?? null,
+    warehouseCount: warehouses.length,
   };
 };
 
@@ -124,6 +126,7 @@ export const mapShopifyProductSnapshots = (product: ShopifyProductInput): Platfo
         remain: variant.inventoryQuantity ?? variant.available ?? null,
         retailPrice: toNullableNumber(variant.price),
         warehouseId: null,
+        warehouseCount: null,
       };
     })
     .filter((snapshot): snapshot is PlatformProductSnapshot => snapshot !== null);

@@ -21,7 +21,7 @@ describe('product snapshot mapper', () => {
         },
       ],
     });
-    expect(result).toEqual([{ platform: 'sapo', sku: 'SKU-1', productId: '10', variantId: '20', name: 'Áo chạy bộ', available: 6, remain: 8, retailPrice: 150000, warehouseId: null }]);
+    expect(result).toEqual([{ platform: 'sapo', sku: 'SKU-1', productId: '10', variantId: '20', name: 'Áo chạy bộ', available: 6, remain: 8, retailPrice: 150000, warehouseId: null, warehouseCount: null }]);
     expect(result[0]?.productId).toBe('10');
     expect(result[0]?.variantId).toBe('20');
   });
@@ -34,7 +34,7 @@ describe('product snapshot mapper', () => {
         { warehouseId: 'w-2', remainQuantity: 3, actualRemainQuantity: 5 },
       ],
     });
-    expect(result).toEqual({ platform: 'pancake', sku: 'SKU-2', productId: 'p-1', variantId: 'v-1', name: 'Quần tập', available: 10, remain: 14, retailPrice: 200000, warehouseId: 'w-1' });
+    expect(result).toEqual({ platform: 'pancake', sku: 'SKU-2', productId: 'p-1', variantId: 'v-1', name: 'Quần tập', available: 10, remain: 14, retailPrice: 200000, warehouseId: 'w-1', warehouseCount: 2 });
   });
 
   it('maps Shopify variants with SKU', () => {
@@ -42,7 +42,7 @@ describe('product snapshot mapper', () => {
       id: 'shop-product-1', title: 'Giày chạy',
       variants: [{ id: 'variant-1', sku: 'SKU-3', title: 'Size 40', available: 11, inventoryQuantity: 12, price: '350000' }],
     });
-    expect(result).toEqual([{ platform: 'shopify', sku: 'SKU-3', productId: 'shop-product-1', variantId: 'variant-1', name: 'Giày chạy - Size 40', available: 11, remain: 12, retailPrice: 350000, warehouseId: null }]);
+    expect(result).toEqual([{ platform: 'shopify', sku: 'SKU-3', productId: 'shop-product-1', variantId: 'variant-1', name: 'Giày chạy - Size 40', available: 11, remain: 12, retailPrice: 350000, warehouseId: null, warehouseCount: null }]);
   });
 
   it('falls back Shopify available to inventoryQuantity when available is missing', () => {

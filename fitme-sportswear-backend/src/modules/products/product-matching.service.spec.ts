@@ -15,6 +15,7 @@ function snapshot(
     remain: 5,
     retailPrice: 100000,
     warehouseId: platform === 'pancake' ? 'warehouse-1' : null,
+    warehouseCount: platform === 'pancake' ? 1 : null,
   };
 }
 
@@ -60,11 +61,27 @@ describe('ProductMatchingService', () => {
     });
   });
 
-  it('marks SKU without Sapo as partial and does not make it syncable', () => {
-    const result = service.buildMappings([snapshot('shopify', 'SKU-4')]);
+  it('marks Sapo and Pancake multi-warehouse SKU as conflict', () => {
+    const pancakeSnapshot = snapshot('pancake', 'SKU-4');
+    pancakeSnapshot.warehouseCount = 2;
+
+    const result = service.buildMappings([
+      snapshot('sapo', 'SKU-4'),
+      pancakeSnapshot,
+    ]);
 
     expect(result[0]).toMatchObject({
       sku: 'SKU-4',
+      status: 'conflict',
+      conflictReason: 'Pancake SKU has multiple warehouses',
+    });
+  });
+
+  it('marks SKU without Sapo as partial and does not make it syncable', () => {
+    const result = service.buildMappings([snapshot('shopify', 'SKU-5')]);
+
+    expect(result[0]).toMatchObject({
+      sku: 'SKU-5',
       status: 'partial',
       conflictReason: 'Missing Sapo source record',
     });

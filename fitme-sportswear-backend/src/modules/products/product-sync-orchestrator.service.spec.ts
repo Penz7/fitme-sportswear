@@ -18,6 +18,7 @@ describe('ProductSyncOrchestratorService', () => {
       remain: 5,
       retailPrice: 100000,
       warehouseId: null,
+      warehouseCount: null,
     };
     const snapshots = [sapoSnapshot];
     const mapping: ProductMappingCandidate = {
