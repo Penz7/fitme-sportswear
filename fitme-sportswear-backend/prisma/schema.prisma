@@ -72,3 +72,76 @@ model ExternalMapping {
   @@index([targetPlatform, targetId, entityType])
   @@map("external_mappings")
 }
+
+enum ProductMappingStatus {
+  matched
+  partial
+  conflict
+}
+
+model SapoProduct {
+  id          String   @id @default(uuid())
+  sku         String   @unique
+  productId   String?
+  variantId   String?
+  name        String?
+  available   Int?
+  remain      Int?
+  retailPrice Decimal? @db.Decimal(18, 2)
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sapo_products")
+}
+
+model PancakeProduct {
+  id          String   @id @default(uuid())
+  sku         String   @unique
+  productId   String?
+  variantId   String?
+  name        String?
+  available   Int?
+  remain      Int?
+  retailPrice Decimal? @db.Decimal(18, 2)
+  warehouseId String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pancake_products")
+}
+
+model ShopifyProduct {
+  id          String   @id @default(uuid())
+  sku         String   @unique
+  productId   String?
+  variantId   String?
+  name        String?
+  available   BigInt?
+  remain      BigInt?
+  retailPrice Decimal? @db.Decimal(18, 2)
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("shopify_products")
+}
+
+model ProductMapping {
+  id                 String               @id @default(uuid())
+  sku                String               @unique
+  sapoProductId      String?
+  sapoVariantId      String?
+  pancakeProductId   String?
+  pancakeVariantId   String?
+  pancakeWarehouseId String?
+  shopifyProductId   String?
+  shopifyVariantId   String?
+  status             ProductMappingStatus
+  conflictReason     String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@map("product_mappings")
+}
