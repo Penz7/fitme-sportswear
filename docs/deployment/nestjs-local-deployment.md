@@ -1,5 +1,7 @@
 # NestJS Local Deployment Guide
 
+> Cập nhật: backend mới hiện đã có các flow sync chính cho Sapo, Pancake và Shopify. Nếu cần tài liệu triển khai để người non-tech cấu hình Pancake/Shopify và vận hành hệ thống mới, xem `docs/deployment/huong-dan-trien-khai-he-thong-moi-cho-nguoi-dung.md`.
+
 ## Mục đích
 
 Tài liệu này hướng dẫn chạy hệ thống backend mới `fitme-sportswear-backend` trên môi trường local/nội bộ. Tài liệu này thay thế phần triển khai Java `.jar` cho backend mới, nhưng không xóa hoặc chỉnh sửa tài liệu triển khai cũ trong `tai-lieu-trien-khai/`.

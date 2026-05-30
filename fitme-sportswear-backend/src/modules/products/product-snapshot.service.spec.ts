@@ -1,12 +1,16 @@
 import { ProductSnapshotService } from './product-snapshot.service';
 
 describe('ProductSnapshotService', () => {
-  it('returns duplicate Sapo snapshots without upserting duplicate SKUs', async () => {
-    const prisma = {
+  function createPrismaMock() {
+    return {
       sapoProduct: { upsert: jest.fn().mockResolvedValue({}) },
       pancakeProduct: { upsert: jest.fn().mockResolvedValue({}) },
       shopifyProduct: { upsert: jest.fn().mockResolvedValue({}) },
     };
+  }
+
+  it('returns duplicate Sapo snapshots without upserting duplicate SKUs', async () => {
+    const prisma = createPrismaMock();
     const sapoClient = {
       fetchProducts: jest.fn().mockResolvedValue([
         {
@@ -37,5 +41,81 @@ describe('ProductSnapshotService', () => {
       'DUP-SKU',
     ]);
     expect(prisma.sapoProduct.upsert).not.toHaveBeenCalled();
+  });
+
+  it('persists snapshots from real client contract-shaped responses', async () => {
+    const prisma = createPrismaMock();
+    const sapoClient = {
+      fetchProducts: jest.fn().mockResolvedValue([
+        {
+          id: 'sapo-product-1',
+          name: 'Sapo shirt',
+          variants: [
+            {
+              id: 'sapo-variant-1',
+              sku: 'SKU-REAL-1',
+              variantRetailPrice: 100000,
+              inventories: [{ available: 5, onHand: 6 }],
+            },
+          ],
+        },
+      ]),
+    };
+    const pancakeClient = {
+      fetchProducts: jest.fn().mockResolvedValue([
+        {
+          id: 'pancake-variant-1',
+          productId: 'pancake-product-1',
+          displayId: 'SKU-REAL-1',
+          product: { name: 'Pancake shirt' },
+          retailPrice: 100000,
+          variationsWarehouses: [
+            {
+              warehouseId: 'warehouse-1',
+              remainQuantity: 5,
+              actualRemainQuantity: 6,
+            },
+          ],
+        },
+      ]),
+    };
+    const shopifyClient = {
+      fetchProducts: jest.fn().mockResolvedValue([
+        {
+          id: 'shopify-product-1',
+          title: 'Shopify shirt',
+          variants: [
+            {
+              id: 'shopify-variant-1',
+              sku: 'SKU-REAL-1',
+              title: 'Default Title',
+              available: 5,
+              inventoryQuantity: 6,
+              price: 100000,
+            },
+          ],
+        },
+      ]),
+    };
+    const service = new ProductSnapshotService(
+      prisma as any,
+      sapoClient as any,
+      pancakeClient as any,
+      shopifyClient as any,
+    );
+
+    const snapshots = await service.refreshAllSnapshots();
+
+    expect(snapshots.map((snapshot) => snapshot.platform)).toEqual([
+      'sapo',
+      'pancake',
+      'shopify',
+    ]);
+    expect(snapshots.every((snapshot) => snapshot.sku === 'SKU-REAL-1')).toBe(
+      true,
+    );
+    expect(prisma.sapoProduct.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.pancakeProduct.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.shopifyProduct.upsert).toHaveBeenCalledTimes(1);
   });
 });

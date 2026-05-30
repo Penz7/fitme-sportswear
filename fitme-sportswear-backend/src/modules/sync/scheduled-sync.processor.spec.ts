@@ -1,0 +1,89 @@
+import { ScheduledSyncProcessor } from './scheduled-sync.processor';
+
+describe('ScheduledSyncProcessor', () => {
+  function createProcessor() {
+    const syncService = {
+      createProductSync: jest.fn().mockResolvedValue({ id: 'product-run' }),
+      createAddressMappingSync: jest.fn().mockResolvedValue({ id: 'address-run' }),
+      createSapoToPancakeOrderBulkSync: jest
+        .fn()
+        .mockResolvedValue({ id: 'order-run' }),
+      createSapoTopOrderSync: jest.fn().mockResolvedValue({ id: 'top-order-run' }),
+      createSapoLogSync: jest.fn().mockResolvedValue({ id: 'log-run' }),
+    };
+
+    return {
+      syncService,
+      processor: new ScheduledSyncProcessor(syncService as any),
+    };
+  }
+
+  it('creates product sync run for product schedule triggers', async () => {
+    const { processor, syncService } = createProcessor();
+
+    await processor.process({
+      data: { syncType: 'product-inventory-sync' },
+    } as any);
+
+    expect(syncService.createProductSync).toHaveBeenCalledWith();
+  });
+
+  it('creates address mapping sync run for address schedule triggers', async () => {
+    const { processor, syncService } = createProcessor();
+
+    await processor.process({
+      data: { syncType: 'address-mapping-sync' },
+    } as any);
+
+    expect(syncService.createAddressMappingSync).toHaveBeenCalledWith();
+  });
+
+  it('creates Sapo order bulk sync run with filters for order schedule triggers', async () => {
+    const { processor, syncService } = createProcessor();
+
+    await processor.process({
+      data: {
+        syncType: 'sapo-to-pancake-order-sync',
+        filters: { status: 'finalized', limit: 25 },
+      },
+    } as any);
+
+    expect(syncService.createSapoToPancakeOrderBulkSync).toHaveBeenCalledWith({
+      status: 'finalized',
+      limit: 25,
+    });
+  });
+
+  it('creates Java-style Sapo top-order sync run for top-order schedule triggers', async () => {
+    const { processor, syncService } = createProcessor();
+
+    await processor.process({
+      data: {
+        syncType: 'sapo-top-order-sync',
+        topOrder: { limit: 25 },
+      },
+    } as any);
+
+    expect(syncService.createSapoTopOrderSync).toHaveBeenCalledWith({
+      limit: 25,
+    });
+  });
+
+  it('creates Sapo log sync run for log schedule triggers', async () => {
+    const { processor, syncService } = createProcessor();
+
+    await processor.process({
+      data: { syncType: 'sapo-log-sync' },
+    } as any);
+
+    expect(syncService.createSapoLogSync).toHaveBeenCalledWith();
+  });
+
+  it('fails fast for unsupported scheduled sync type', async () => {
+    const { processor } = createProcessor();
+
+    await expect(
+      processor.process({ data: { syncType: 'unknown-sync' } } as any),
+    ).rejects.toThrow('Unsupported scheduled sync type: unknown-sync');
+  });
+});

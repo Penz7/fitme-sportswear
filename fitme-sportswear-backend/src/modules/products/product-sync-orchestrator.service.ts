@@ -48,6 +48,8 @@ export class ProductSyncOrchestratorService {
             conflict: counts.conflict,
             updatedPancake: syncResult.updatedPancake,
             updatedShopify: syncResult.updatedShopify,
+            createdPancake: syncResult.createdPancake,
+            createdShopify: syncResult.createdShopify,
             errors: syncResult.errors,
           } as unknown as Prisma.InputJsonObject,
         },

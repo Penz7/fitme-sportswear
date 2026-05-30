@@ -145,3 +145,79 @@ model ProductMapping {
 
   @@map("product_mappings")
 }
+
+model OrderMapping {
+  id                       String   @id @default(uuid())
+  sapoOrderId              String?
+  pancakeOrderId           String?
+  shopifyOrderId           String?
+  pancakeStatus            Int?
+  pancakeStatusDescription String?
+  shopifyStatus            String?
+  sapoStatus               String?
+  sapoPackedStatus         String?
+  sapoFulfillmentStatus    String?
+  sapoReceivedStatus       String?
+  sapoPaymentStatus        String?
+  sapoReturnStatus         String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@unique([pancakeOrderId])
+  @@unique([shopifyOrderId])
+  @@index([sapoOrderId])
+  @@map("order_mappings")
+}
+
+model SapoOrderTracking {
+  id         String   @id @default(uuid())
+  type       String   @unique
+  orderIds   Json
+  lastUpdate DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("sapo_order_tracking")
+}
+
+model ProvinceMapping {
+  id         Int     @id @default(autoincrement())
+  sapoId     Int?    @map("sapo_id")
+  sapoName   String? @map("sapo_name")
+  pancakeId  Int?    @map("pancake_id")
+  pancakeName String? @map("pancake_name")
+  similarity Float?
+
+  @@index([pancakeId])
+  @@map("province_mapping")
+}
+
+model DistrictMapping {
+  id          Int     @id @default(autoincrement())
+  sapoId      Int?    @map("sapo_id")
+  sapoName    String? @map("sapo_name")
+  sapoCityId  Int?    @map("sapo_cityid")
+  sapoCity    String? @map("sapo_city")
+  pancakeId   Int?    @map("pancake_id")
+  pancakeName String? @map("pancake_name")
+  similarity  Float?
+
+  @@index([pancakeId])
+  @@map("district_mapping")
+}
+
+model WardMapping {
+  id             Int     @id @default(autoincrement())
+  sapoId         Int?    @map("sapo_id")
+  sapoName       String? @map("sapo_name")
+  sapoDistrictId Int?    @map("sapo_districtid")
+  sapoDistrict   String? @map("sapo_district")
+  sapoCityId     Int?    @map("sapo_cityid")
+  sapoCity       String? @map("sapo_city")
+  pancakeId      Int?    @map("pancake_id")
+  pancakeName    String? @map("pancake_name")
+  similarity     Float?
+
+  @@index([pancakeId])
+  @@map("ward_mapping")
+}
