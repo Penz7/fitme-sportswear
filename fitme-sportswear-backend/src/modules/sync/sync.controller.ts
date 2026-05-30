@@ -15,4 +15,14 @@ export class SyncController {
   getTestSync(@Param('id') id: string) {
     return this.syncService.getTestSync(id);
   }
+
+  @Post('products')
+  createProductSync() {
+    return this.syncService.createProductSync();
+  }
+
+  @Get('products/:id')
+  getProductSync(@Param('id') id: string) {
+    return this.syncService.getProductSync(id);
+  }
 }
