@@ -1,0 +1,40 @@
+<h2>Thiết kế đã chọn: NestJS Modular Monolith + BullMQ workers</h2>
+<p class="subtitle">Một source mới <strong>fitme-sportswear-backend/</strong>, chạy local nội bộ, DB riêng hoàn toàn, Redis queue để tăng tốc sync.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Runtime local</div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;text-align:center">
+      <div style="border:2px solid #2563eb;border-radius:10px;padding:12px;background:#eff6ff">
+        <h3>api</h3>
+        <p>Health, config, test endpoints, webhook receiver</p>
+      </div>
+      <div style="border:2px solid #16a34a;border-radius:10px;padding:12px;background:#f0fdf4">
+        <h3>worker</h3>
+        <p>BullMQ processors cho sync jobs</p>
+      </div>
+      <div style="border:2px solid #f97316;border-radius:10px;padding:12px;background:#fff7ed">
+        <h3>infra local</h3>
+        <p>PostgreSQL riêng + Redis</p>
+      </div>
+    </div>
+    <div style="margin:22px 0;text-align:center;font-weight:700">↓</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
+      <div class="placeholder">health<br/>config</div>
+      <div class="placeholder">queue<br/>database</div>
+      <div class="placeholder">sapo<br/>pancake<br/>shopify</div>
+      <div class="placeholder">sync<br/>webhook</div>
+    </div>
+    <div style="margin:22px 0;text-align:center;font-weight:700">↓ external APIs</div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <span class="mock-button">Sapo</span>
+      <span class="mock-button">Pancake</span>
+      <span class="mock-button">Shopify</span>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros"><h4>Vì sao tăng tốc sync</h4><ul><li>Webhook/API chỉ enqueue job nhanh</li><li>Worker xử lý song song theo queue</li><li>Retry/backoff/idempotency tránh mất dữ liệu</li><li>Connector tách riêng giúp sửa từng nền tảng nhanh</li></ul></div>
+  <div class="cons"><h4>Điểm cần kiểm soát</h4><ul><li>Rate limit API ngoài</li><li>Deduplicate webhook/job</li><li>Quan sát lỗi job local</li><li>Không migrate nghiệp vụ khi nền vận hành chưa ổn</li></ul></div>
+</div>

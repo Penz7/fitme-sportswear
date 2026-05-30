@@ -1,0 +1,257 @@
+order[error]:
+order[key]: form-d0ba-30f2-b5fa-fe68-60e9-0598-cc8d
+order[saved]: false
+order[remainPrice]: 0
+order[assigning_seller][fb_id]: 509473979448215
+order[assigning_seller][name]: Nguyễn Văn Hưởng
+order[assigning_seller_id]: bdeafeed-ce03-4349-acc6-cf00780df8d9
+order[bill_full_name]: Nguyen Van A
+order[bill_phone_number]: 0964210296
+order[bill_email]: nguyenvananh@gmail.com
+order[customer_birthday]: 2000-03-01
+order[counter]: 1
+order[customer][id]: false
+order[customer][name]:
+order[discount]: 0
+order[dont_sync_with_snappy]: true
+order[is_send_to_snappy]: false
+order[is_send_to_grab]: false
+order[service_grab]: SAME_DAY
+order[coupon_code_grab]:
+order[is_send_to_ghtk]: false
+order[is_free_ship_ghtk]: true
+order[is_fly_ghtk]: false
+order[ghtk_post]: false
+order[ghtk_tags]: false
+order[essential_ghtk]: false
+order[ghtk_allow_view_goods]: false
+order[ghtk_original_box]: false
+order[ghtk_partial_delivery_select_product]: false
+order[ghtk_partial_delivery_change_return_goods]: false
+order[ghtk_heavy_goods]: false
+order[ghtk_co_checking]: false
+order[ghtk_fee_order_return]: 0
+order[is_use_xfast]: false
+order[xfast]: 2
+order[deliver_work_shift]: 0
+order[pick_work_shift]: 0
+order[time_send_ghtk]:
+order[is_send_to_hola]: false
+order[is_send_to_pfg]: false
+order[is_free_ship_hola]: true
+order[hola_post]: false
+order[is_send_to_ghn]: false
+order[insurance_value]: false
+order[is_free_ship_ghn]: false
+order[is_save_quick_product]: false
+order[is_reward_point]: true
+order[is_customer_level]: false
+order[use_field_discount_by_customer_level]: true
+order[partial_return_ghn]: false
+order[extra_services_ghn]: false
+order[coupon_code_ghn]:
+order[insurance_fee_ghn]: 0
+order[note_code_ghn]:
+order[pick_up_ghn]:
+order[cd_ghn]: 10
+order[cr_ghn]: 10
+order[cc_ghn]: 5
+order[fee_order_return_ghn]: 0
+order[change_partner]: false
+order[is_send_to_vtp]: false
+order[is_free_ship_vtp]: false
+order[time_send_vtp]: 28/03/2025 12:54:00
+order[service_vtp]:
+order[insurance_fee_vtp]: 0
+order[extra_money_vtp]: 0
+order[extraServices]:
+order[note_vtp]:
+order[voucher_vtp]:
+order[cd_vtp]: 0
+order[cr_vtp]: 0
+order[cc_vtp]: 0
+order[is_send_to_ghtc]: false
+order[service_ghtc]: SCOD
+order[order_view_ghtc]: 2
+order[order_type_ghtc]: 0
+order[drop_off_ghtc]: 0
+order[is_send_to_yto_phi]: false
+order[is_send_to_njv_thai]: false
+order[is_send_to_ems]: false
+order[is_free_ship_ems]: false
+order[is_fragile_ems]: false
+order[is_for_check_ems]: false
+order[service_ems]: 1
+order[is_send_to_vnpost]: false
+order[is_free_ship_vnpost]: true
+order[flag_config_vnpost]: false
+order[service_vnp]: CV98
+order[service_spl]:
+order[is_drop_off]: false
+order[is_free_ship_spl]: false
+order[is_send_to_vpx]: false
+order[pick_up_account]:
+order[is_send_to_aha]: false
+order[drop_off_aha]: false
+order[is_free_ship_aha]: true
+order[service_aha]: EXPRESS
+order[payment_aha]: CASH
+order[voucher_aha]:
+order[is_free_ship_shippo]: false
+order[is_send_to_shippo]: false
+order[is_send_to_zto]: false
+order[payment_zto]: 1
+order[payment_jnt]: PP_CASH
+order[insurance_services_jnt]: true
+order[is_drop_off_jnt]: false
+order[signpart_jnt]: 0
+order[is_send_to_jnt]: false
+order[is_send_to_bya]: false
+order[payment_bya]: SENDER
+order[package_bya]: 225
+order[is_send_to_best]: false
+order[journey_type_best]: 1
+order[service_best]: 12490
+order[is_send_to_vnpost_v2]: false
+order[is_free_ship_vnpost_v2]: true
+order[is_drop_off_vnpost_v2]: false
+order[fee_order_return_vnpost_v2]: 0
+order[service_vnpost_v2]: BK
+order[insurance_fee_best]: 0
+order[is_send_to_supership]: false
+order[is_free_ship_supership]: true
+order[is_order_return_supership]: false
+order[is_send_to_247]: false
+order[is_send_to_ghsv]: false
+order[is_free_ship_ghsv]: false
+order[note_ghsv]: 1
+order[service_njv]: Express
+order[note_njv]: 2
+order[is_drop_off_njv]: false
+order[is_send_to_njv]: false
+order[show_product_247]: true
+order[service_247]:
+order[note_supership]: 1
+order[is_send_to_ntx]: false
+order[is_send_to_spx]: false
+order[is_free_ship_spx]: true
+order[allow_mutual_check_spx]: false
+order[spx_post]: false
+order[fee_order_return_spx]: 0
+order[payment_ntx]: NGTTN
+order[is_deduct_cod_ntx]: false
+order[service_ntx]: 2
+order[change_status_shipped]: false
+order[is_free_shipping]: true
+order[is_calculation_tax]: false
+order[return_fee]: false
+order[is_locked]: false
+order[is_removed]: false
+order[items][0][key]: 0bcc-a202-8960-cfdd-3ae3-c552-b0b8
+order[items][0][one_time_product]: false
+order[items][0][quantity]: 10
+order[items][0][returned_quantity]: 1
+order[items][0][product_id]: 609fc265-983f-4379-8046-48c2f6a57065
+order[items][0][variation_id]: edcf7ea2-3296-43c7-ba9e-c8b3b60beaf5
+order[items][0][variation_info][id]: TEST_CODE_SAMPLE
+order[items][0][variation_info][custom_id]: TEST_CODE_SAMPLE
+order[items][0][variation_info][product_id]: TEST_CODE
+order[items][0][variation_info][detail]:
+order[items][0][variation_info][name]: TEST_NAME
+order[items][0][variation_info][retail_price]: 1000
+order[items][0][variation_info][retail_price_currency_original]: 1000
+order[items][0][variation_info][retail_price_wholesale_original]: 1000
+order[items][0][variation_info][wholesale_price]: 0
+order[items][0][variation_info][is_locked]: false
+order[items][0][variation_info][weight]: 0
+order[items][0][variation_info][last_imported_price]: 0
+order[items][0][variation_info][price_at_counter]: 0
+order[items][0][variation_info][type]: product
+order[items][0][variation_info][limit_quantity_to_warn]: 0
+order[items][0][variation_info][is_composite]: false
+order[items][0][discount_each_product]: 0
+order[items][0][is_discount_percent]: false
+order[items][0][is_composite]: false
+order[items][0][limit_quantity_to_warn]: 0
+order[items][0][warning_by_variation]: false
+order[items][0][has_change_quantity]: true
+order[items][0][returned_count]: 0
+order[items][0][separate_count]: 0
+order[note]: AUTO_SAPO_API
+order[note_print]:
+order[prepaid]: 0
+order[prepaid_by_point][point]: 0
+order[prepaid_by_point][money]: 0
+order[amount_owed]: 0
+order[received_at_shop]: false
+order[service]:
+order[shipping_address][address]:
+order[shipping_address][full_name]:
+order[shipping_address][phone_number]:
+order[shipping_fee]: 0
+order[shop_customer_address_id]:
+order[shop_id]: 1290216695
+order[status]: 0
+order[warehouse_id]: fac0018d-348c-43a4-8d86-c2fb175b4fee
+order[transfer_money]: 0
+order[charged_by_card]: 0
+order[charged_by_momo]: 0
+order[charged_by_vnpay]: 0
+order[charged_by_onepay]: 0
+order[charged_by_kredivo]: 0
+order[charged_by_fundiin]: 0
+order[charged_by_qrpay]: 0
+order[return_money]: 0
+order[return_transfer_money]: 0
+order[cash]: 0
+order[partner][extend_update]:
+order[duplicated_phone]: false
+order[duplicated_customer]: false
+order[partner_fee]: 0
+order[change_inserted_at]: false
+order[duplicated_customer_date]: undefined
+order[duplicated_order_display_id]: undefined
+order[phone_duplicated_order_display_id]: undefined
+order[payment_from_customers_exchange_order]: 0
+order[payment_from_customers_order_returned]: 0
+order[no_discount_to_wholesale]: false
+order[bad_report_info][available_for_report][0]: +84964210296
+order[noteType]: internal
+order[is_first_order_in_month]: false
+order[is_first_buyer]: true
+order[referral_amount_discount]: 0
+order[updating_combo]: false
+order[length_best]: 0
+order[width_best]: 0
+order[height_best]: 0
+order[is_free_ship_lzl]: true
+order[dangerous_goods_lzl]: false
+order[service_lzl]: standard
+order[package_type_lzl]: Sales_order
+order[payment_method_lzl]: COD
+order[insurance_amount_lzl]: 0
+order[sender_email_lzl]:
+order[additional_info][invoice_tax_calculation_method]: 0
+order[surcharge]: 0
+order[courier_iship]: undefined
+order[category_iship]: 4
+order[is_send_to_pancake_ffm]: false
+order[is_send_to_gip]: false
+order[is_send_to_afg]: false
+order[is_send_to_msx]: false
+order[is_send_to_afg_malay]: false
+order[is_send_to_afg_indo]: false
+order[is_send_to_afg_sing]: false
+order[is_send_to_lyn_malay]: false
+order[is_send_to_afg_thai]: false
+order[old_order_currency]: undefined
+order[typeConversation]: all
+order[is_send_to_lzl]: false
+order[is_send_to_hoko]: false
+order[is_send_to_swayp]: false
+order[is_send_to_gtc]: false
+order[is_send_to_dhl_malay]: false
+order[is_send_to_iship]: false
+order[load_duplicated]: false
+order[phone_returned_display_id]: undefined
+order[duplicated_customer_order_id]: undefined

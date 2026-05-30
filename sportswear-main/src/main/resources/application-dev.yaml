@@ -1,0 +1,30 @@
+spring:
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      minimum-idle: 5                # Minimum number of idle connections in the pool
+      maximum-pool-size: 20           # Maximum number of connections in the pool
+      idle-timeout: 60000             # Time in milliseconds before an idle connection is removed
+      max-lifetime: 1800000           # Maximum lifetime of a connection in the pool
+      connection-timeout: 30000       # Maximum time to wait for a connection from the pool
+      validation-timeout: 5000        # Time to wait for validation of a connection
+      leak-detection-threshold: 600000 # Time in milliseconds to detect a connection leak
+      connection-test-query: SELECT 1
+app:
+  config:
+    pancake:
+      api-key: ${PANCAKE_API_KEY}
+    shopify:
+      access-token: ${SHOPIFY_ACCESS_TOKEN}
+      subdomain: ${SHOPIFY_SUBDOMAIN}
+      webhook-secret: ${SHOPIFY_WEBHOOK_SECRET}
+    sapo:
+      phone-number: ${SAPO_PHONE_NUMBER}
+      password: ${SAPO_PASSWORD}
+      client-id: ${SAPO_CLIENT_ID}
+      shop-domain: ${SAPO_SHOP_DOMAIN}
+#docker run -d  --name my_postgres -e POSTGRES_USER=myuser  -e POSTGRES_PASSWORD=mypassword -e POSTGRES_DB=mydatabase  -p 5432:5432  postgres:16

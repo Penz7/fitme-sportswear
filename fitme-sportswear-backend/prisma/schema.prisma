@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SyncStatus {
+  queued
+  running
+  succeeded
+  failed
+}
+
+enum SourcePlatform {
+  sapo
+  pancake
+  shopify
+  internal
+}
+
+model SyncRun {
+  id           String     @id @default(uuid())
+  syncType     String
+  status       SyncStatus @default(queued)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  errorMessage String?
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("sync_runs")
+}
+
+model WebhookEvent {
+  id              String         @id @default(uuid())
+  sourcePlatform  SourcePlatform
+  eventType       String
+  externalEventId String?
+  payload         Json
+  receivedAt      DateTime       @default(now())
+  processedAt     DateTime?
+  status          SyncStatus     @default(queued)
+
+  @@map("webhook_events")
+}
+
+model IdempotencyKey {
+  id        String   @id @default(uuid())
+  key       String
+  scope     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([key, scope])
+  @@map("idempotency_keys")
+}
+
+model ExternalMapping {
+  id             String         @id @default(uuid())
+  sourcePlatform SourcePlatform
+  sourceId       String
+  targetPlatform SourcePlatform
+  targetId       String
+  entityType     String
+  createdAt      DateTime       @default(now())
+
+  @@index([sourcePlatform, sourceId, entityType])
+  @@index([targetPlatform, targetId, entityType])
+  @@map("external_mappings")
+}

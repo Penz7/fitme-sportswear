@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: sportswear-app:dev
+    ports:
+      - "8081:8080"
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      SPRING_PROFILES_ACTIVE: dev
+    volumes:
+      - ./src:/app/src
+      - ./pom.xml:/app/pom.xml
+      - ./logs:/app/logs
+      - ./build:/app/target

@@ -1,0 +1,41 @@
+<h2>Mô hình migration đề xuất: NestJS source mới ở root, chuyển từng luồng</h2>
+<p class="subtitle">Java Spring Boot hiện tại tiếp tục chạy trong khi NestJS nhận dần các nghiệp vụ đã migrate.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Root project sau migration từng bước</div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start">
+      <div style="border:1px solid #d1d5db;border-radius:10px;padding:14px;background:#f9fafb">
+        <h3 style="margin-top:0">sportswear-main/</h3>
+        <div class="placeholder">src/main/java/...<br/>Spring Boot legacy</div>
+        <ul>
+          <li>Giữ các luồng chưa migrate</li>
+          <li>Đối chiếu behavior hiện tại</li>
+          <li>Tắt dần theo từng module</li>
+        </ul>
+      </div>
+      <div style="border:2px solid #2563eb;border-radius:10px;padding:14px;background:#eff6ff">
+        <h3 style="margin-top:0">sportswear-api/ hoặc apps/api/</h3>
+        <div class="placeholder">NestJS + TypeScript<br/>source mới ở root</div>
+        <ul>
+          <li>Webhook controllers mới</li>
+          <li>Sync jobs theo module</li>
+          <li>Typed clients cho Sapo/Pancake/Shopify</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:20px;text-align:center;font-weight:600">PostgreSQL hiện tại + bảng mapping/idempotency dùng chung trong giai đoạn song song</div>
+    <div style="display:flex;justify-content:center;margin-top:12px;gap:10px;flex-wrap:wrap">
+      <span class="mock-button">Product sync</span>
+      <span class="mock-button">Order sync</span>
+      <span class="mock-button">Webhook</span>
+      <span class="mock-button">Customer</span>
+      <span class="mock-button">Fulfillment</span>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros"><h4>Lợi ích</h4><ul><li>Không cần rewrite toàn bộ một lần</li><li>Mỗi luồng có thể test/cutover riêng</li><li>Giảm rủi ro mất đồng bộ đơn hàng</li></ul></div>
+  <div class="cons"><h4>Chi phí</h4><ul><li>Cần cơ chế route/cutover rõ</li><li>Một thời gian phải vận hành song song Java và NestJS</li><li>Cần checklist parity theo từng luồng</li></ul></div>
+</div>

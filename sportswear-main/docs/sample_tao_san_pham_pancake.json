@@ -1,0 +1,33 @@
+{
+  "product": {
+    "name": "Ao so mi nam",
+    "category_ids": [1290021044, 201250699],
+    "note_product": "Ghi chú sản phẩm",
+    "product_attributes": [{"name": "Màu", "values": ["Đen", "Trắng", "Đỏ"]}, {"name": "Size", "values": ["S", "M", "L"]}],
+    "tags": [193, 51],
+    "variations": [
+      {
+        "fields": [{"name": "Màu", "value": "Trắng"}, {"name": "Size", "value": "M"}],
+        "images": ["https://statics.pancake.vn/user-content.pancake.vn/2021/8/5/fccd6.jpg"],
+        "last_imported_price": 30000,
+        "retail_price": 140000,
+        "price_at_counter": 123000,
+        "weight": 0,
+        "barcode": "BARCODE123",
+        "custom_id": "VCUSTOMID",
+        "is_hidden": false
+      }
+    ],
+    "weight": 1,
+    "custom_id": "PCUSTOMID",
+    "is_published": true,
+    "variations_warehouses": [
+      {
+        "remain_quantity": 10,
+        "warehouse_id": "c52e67ad-d9d0-4276-abe4-e0c9f1f7d2da",
+        "batch_position": "lô 1",
+        "shelf_position": "1.2"
+      }
+    ]
+  }
+}

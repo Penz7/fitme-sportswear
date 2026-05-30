@@ -1,0 +1,221 @@
+{
+  "data": [
+    {
+      "barcode": "FM-QDTT01-DE-S",
+      "display_id": "FM-QDTT01-DE-S",
+      "hidden": null,
+      "locked": null,
+      "sell_negative_variation": null,
+      "fields": [
+        {
+          "name": "SIZE",
+          "value": "S"
+        },
+        {
+          "name": "MÀU SẮC",
+          "value": "Đen"
+        }
+      ],
+      "id": "0d7f1488-590e-4c97-8501-c54daacede12",
+      "images": [
+        "https://content.pancake.vn/2-25/2025/1/20/193b4c55d3aa196ed59804561438c24dcede033f_thumb.jpg"
+      ],
+      "inserted_at": "2024-12-16T09:21:02.682048",
+      "last_imported_price": 0,
+      "price_at_counter": 0,
+      "product_id": "9ca6d553-5abb-4dda-b910-d158cb5ff79c",
+      "product": {
+        "name": "Quần legging tập gym yoga nữ Fitme Flow cạp cao nâng mông co giãn thoáng khí túi ẩn Theta - QDTT",
+        "category_ids": null,
+        "note_product": "undefined",
+        "product_attributes": null,
+        "tags": null,
+        "variations": null,
+        "weight": 0,
+        "custom_id": null,
+        "variations_warehouses": null,
+        "published": false
+      },
+      "remain_quantity": 2,
+      "retail_price": 259000,
+      "total_purchase_price": 0,
+      "variations_warehouses": [
+        {
+          "remain_quantity": 2,
+          "warehouse_id": "fac0018d-348c-43a4-8d86-c2fb175b4fee",
+          "actual_remain_quantity": 2,
+          "pending_quantity": 0,
+          "returning_quantity": 0,
+          "total_quantity": 2,
+          "batch_position": null,
+          "shelf_position": null
+        }
+      ],
+      "wholesale_price": []
+    },
+    {
+      "barcode": "FM-QDTT01-DE-M",
+      "display_id": "FM-QDTT01-DE-M",
+      "hidden": null,
+      "locked": null,
+      "sell_negative_variation": null,
+      "fields": [
+        {
+          "name": "SIZE",
+          "value": "M"
+        },
+        {
+          "name": "MÀU SẮC",
+          "value": "Đen"
+        }
+      ],
+      "id": "a1534e4b-3409-4c54-8070-74112233ce09",
+      "images": [
+        "https://content.pancake.vn/2-25/2025/1/20/193b4c55d3aa196ed59804561438c24dcede033f_thumb.jpg"
+      ],
+      "inserted_at": "2024-12-16T09:21:02.708914",
+      "last_imported_price": 0,
+      "price_at_counter": 0,
+      "product_id": "9ca6d553-5abb-4dda-b910-d158cb5ff79c",
+      "product": {
+        "name": "Quần legging tập gym yoga nữ Fitme Flow cạp cao nâng mông co giãn thoáng khí túi ẩn Theta - QDTT",
+        "category_ids": null,
+        "note_product": "undefined",
+        "product_attributes": null,
+        "tags": null,
+        "variations": null,
+        "weight": 0,
+        "custom_id": null,
+        "variations_warehouses": null,
+        "published": false
+      },
+      "remain_quantity": 1,
+      "retail_price": 259000,
+      "total_purchase_price": 0,
+      "variations_warehouses": [
+        {
+          "remain_quantity": 1,
+          "warehouse_id": "fac0018d-348c-43a4-8d86-c2fb175b4fee",
+          "actual_remain_quantity": 1,
+          "pending_quantity": 0,
+          "returning_quantity": 0,
+          "total_quantity": 2,
+          "batch_position": null,
+          "shelf_position": null
+        }
+      ],
+      "wholesale_price": []
+    },
+    {
+      "barcode": "FM-QDTT01-DE-L",
+      "display_id": "FM-QDTT01-DE-L",
+      "hidden": null,
+      "locked": null,
+      "sell_negative_variation": null,
+      "fields": [
+        {
+          "name": "SIZE",
+          "value": "L"
+        },
+        {
+          "name": "MÀU SẮC",
+          "value": "Đen"
+        }
+      ],
+      "id": "fb2c9395-9934-45c0-b157-b36d263d2872",
+      "images": [
+        "https://content.pancake.vn/2-25/2025/1/20/193b4c55d3aa196ed59804561438c24dcede033f_thumb.jpg"
+      ],
+      "inserted_at": "2024-12-16T09:21:02.740224",
+      "last_imported_price": 0,
+      "price_at_counter": 0,
+      "product_id": "9ca6d553-5abb-4dda-b910-d158cb5ff79c",
+      "product": {
+        "name": "Quần legging tập gym yoga nữ Fitme Flow cạp cao nâng mông co giãn thoáng khí túi ẩn Theta - QDTT",
+        "category_ids": null,
+        "note_product": "undefined",
+        "product_attributes": null,
+        "tags": null,
+        "variations": null,
+        "weight": 0,
+        "custom_id": null,
+        "variations_warehouses": null,
+        "published": false
+      },
+      "remain_quantity": 2,
+      "retail_price": 259000,
+      "total_purchase_price": 0,
+      "variations_warehouses": [
+        {
+          "remain_quantity": 2,
+          "warehouse_id": "fac0018d-348c-43a4-8d86-c2fb175b4fee",
+          "actual_remain_quantity": 2,
+          "pending_quantity": 0,
+          "returning_quantity": 0,
+          "total_quantity": 3,
+          "batch_position": null,
+          "shelf_position": null
+        }
+      ],
+      "wholesale_price": []
+    },
+    {
+      "barcode": "FM-QDTT01-DE-XL",
+      "display_id": "FM-QDTT01-DE-XL",
+      "hidden": null,
+      "locked": null,
+      "sell_negative_variation": null,
+      "fields": [
+        {
+          "name": "SIZE",
+          "value": "XL"
+        },
+        {
+          "name": "MÀU SẮC",
+          "value": "Đen"
+        }
+      ],
+      "id": "ad02dc3f-8985-45db-b79e-964a2ab82e9d",
+      "images": [
+        "https://content.pancake.vn/2-25/2025/1/20/193b4c55d3aa196ed59804561438c24dcede033f_thumb.jpg"
+      ],
+      "inserted_at": "2024-12-16T09:21:02.774095",
+      "last_imported_price": 0,
+      "price_at_counter": 0,
+      "product_id": "9ca6d553-5abb-4dda-b910-d158cb5ff79c",
+      "product": {
+        "name": "Quần legging tập gym yoga nữ Fitme Flow cạp cao nâng mông co giãn thoáng khí túi ẩn Theta - QDTT",
+        "category_ids": null,
+        "note_product": "undefined",
+        "product_attributes": null,
+        "tags": null,
+        "variations": null,
+        "weight": 0,
+        "custom_id": null,
+        "variations_warehouses": null,
+        "published": false
+      },
+      "remain_quantity": 0,
+      "retail_price": 259000,
+      "total_purchase_price": 0,
+      "variations_warehouses": [
+        {
+          "remain_quantity": 0,
+          "warehouse_id": "fac0018d-348c-43a4-8d86-c2fb175b4fee",
+          "actual_remain_quantity": 1,
+          "pending_quantity": 0,
+          "returning_quantity": 0,
+          "total_quantity": 1,
+          "batch_position": null,
+          "shelf_position": null
+        }
+      ],
+      "wholesale_price": []
+    }
+  ],
+  "page_number": 1,
+  "page_size": 20,
+  "success": true,
+  "total_entries": 4,
+  "total_pages": 1
+}

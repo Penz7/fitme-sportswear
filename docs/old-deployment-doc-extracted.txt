@@ -1,0 +1,55 @@
+.lst-kix_g2djaps997je-8>li:before{content:"+ "}.lst-kix_g2djaps997je-7>li:before{content:"+ "}ul.lst-kix_list_1-3{list-style-type:none}ul.lst-kix_list_1-4{list-style-type:none}ul.lst-kix_list_1-1{list-style-type:none}ul.lst-kix_list_1-2{list-style-type:none}ul.lst-kix_list_1-7{list-style-type:none}ul.lst-kix_list_1-8{list-style-type:none}ul.lst-kix_list_1-5{list-style-type:none}ul.lst-kix_list_1-6{list-style-type:none}.lst-kix_fhn14wnfk1q6-4>li:before{content:"+ "}.lst-kix_fhn14wnfk1q6-3>li:before{content:"+ "}ul.lst-kix_fhn14wnfk1q6-1{list-style-type:none}ul.lst-kix_fhn14wnfk1q6-0{list-style-type:none}ul.lst-kix_kfrbfufyggwy-0{list-style-type:none}ul.lst-kix_fhn14wnfk1q6-3{list-style-type:none}ul.lst-kix_kfrbfufyggwy-1{list-style-type:none}ul.lst-kix_fhn14wnfk1q6-2{list-style-type:none}.lst-kix_fhn14wnfk1q6-5>li:before{content:"+ "}ul.lst-kix_fhn14wnfk1q6-5{list-style-type:none}ul.lst-kix_fhn14wnfk1q6-4{list-style-type:none}.lst-kix_fhn14wnfk1q6-6>li:before{content:"+ "}.lst-kix_fhn14wnfk1q6-8>li:before{content:"+ "}.lst-kix_fhn14wnfk1q6-7>li:before{content:"+ "}ul.lst-kix_kfrbfufyggwy-4{list-style-type:none}ul.lst-kix_fhn14wnfk1q6-7{list-style-type:none}ul.lst-kix_kfrbfufyggwy-5{list-style-type:none}ul.lst-kix_fhn14wnfk1q6-6{list-style-type:none}ul.lst-kix_kfrbfufyggwy-2{list-style-type:none}ul.lst-kix_kfrbfufyggwy-3{list-style-type:none}ul.lst-kix_fhn14wnfk1q6-8{list-style-type:none}ul.lst-kix_kfrbfufyggwy-8{list-style-type:none}.lst-kix_kfrbfufyggwy-0>li:before{content:"+ "}ul.lst-kix_kfrbfufyggwy-6{list-style-type:none}ul.lst-kix_kfrbfufyggwy-7{list-style-type:none}ol.lst-kix_list_1-0.start{counter-reset:lst-ctn-kix_list_1-0 0}.lst-kix_kfrbfufyggwy-1>li:before{content:"+ "}ul.lst-kix_41tw9iv8a9uu-2{list-style-type:none}ul.lst-kix_g2djaps997je-0{list-style-type:none}.lst-kix_kfrbfufyggwy-2>li:before{content:"+ "}.lst-kix_kfrbfufyggwy-3>li:before{content:"+ "}ul.lst-kix_41tw9iv8a9uu-1{list-style-type:none}ul.lst-kix_g2djaps997je-1{list-style-type:none}ul.lst-kix_41tw9iv8a9uu-0{list-style-type:none}ul.lst-kix_41tw9iv8a9uu-6{list-style-type:none}.lst-kix_kfrbfufyggwy-4>li:before{content:"+ "}ul.lst-kix_41tw9iv8a9uu-5{list-style-type:none}ul.lst-kix_41tw9iv8a9uu-4{list-style-type:none}ul.lst-kix_41tw9iv8a9uu-3{list-style-type:none}.lst-kix_vkt8k13rn1p1-7>li:before{content:"- "}.lst-kix_kfrbfufyggwy-6>li:before{content:"+ "}.lst-kix_kfrbfufyggwy-7>li:before{content:"+ "}ul.lst-kix_41tw9iv8a9uu-8{list-style-type:none}ul.lst-kix_41tw9iv8a9uu-7{list-style-type:none}.lst-kix_vkt8k13rn1p1-5>li:before{content:"- "}.lst-kix_kfrbfufyggwy-5>li:before{content:"+ "}.lst-kix_vkt8k13rn1p1-4>li:before{content:"- "}.lst-kix_vkt8k13rn1p1-8>li:before{content:"- "}.lst-kix_kfrbfufyggwy-8>li:before{content:"+ "}.lst-kix_vkt8k13rn1p1-6>li:before{content:"- "}.lst-kix_drhkbdzoqdl-7>li:before{content:"- "}.lst-kix_vkt8k13rn1p1-1>li:before{content:"- "}ol.lst-kix_list_1-0{list-style-type:none}.lst-kix_drhkbdzoqdl-8>li:before{content:"- "}.lst-kix_vkt8k13rn1p1-0>li:before{content:"- "}.lst-kix_drhkbdzoqdl-4>li:before{content:"- "}ul.lst-kix_drhkbdzoqdl-0{list-style-type:none}.lst-kix_vkt8k13rn1p1-3>li:before{content:"- "}ul.lst-kix_drhkbdzoqdl-1{list-style-type:none}ul.lst-kix_drhkbdzoqdl-2{list-style-type:none}.lst-kix_drhkbdzoqdl-3>li:before{content:"- "}ul.lst-kix_drhkbdzoqdl-3{list-style-type:none}ul.lst-kix_drhkbdzoqdl-4{list-style-type:none}ul.lst-kix_drhkbdzoqdl-5{list-style-type:none}ul.lst-kix_drhkbdzoqdl-6{list-style-type:none}.lst-kix_vkt8k13rn1p1-2>li:before{content:"- "}.lst-kix_drhkbdzoqdl-2>li:before{content:"- "}ul.lst-kix_drhkbdzoqdl-7{list-style-type:none}ul.lst-kix_g2djaps997je-8{list-style-type:none}ul.lst-kix_g2djaps997je-6{list-style-type:none}.lst-kix_drhkbdzoqdl-1>li:before{content:"- "}ul.lst-kix_g2djaps997je-7{list-style-type:none}ul.lst-kix_g2djaps997je-4{list-style-type:none}ul.lst-kix_g2djaps997je-5{list-style-type:none}ul.lst-kix_g2djaps997je-2{list-style-type:none}.lst-kix_drhkbdzoqdl-0>li:before{content:"- "}ul.lst-kix_g2djaps997je-3{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-7{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-8{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-5{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-6{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-3{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-4{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-1{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-2{list-style-type:none}ul.lst-kix_vkt8k13rn1p1-0{list-style-type:none}ul.lst-kix_drhkbdzoqdl-8{list-style-type:none}.lst-kix_drhkbdzoqdl-5>li:before{content:"- "}.lst-kix_drhkbdzoqdl-6>li:before{content:"- "}.lst-kix_41tw9iv8a9uu-5>li:before{content:"- "}.lst-kix_fhn14wnfk1q6-2>li:before{content:"+ "}.lst-kix_41tw9iv8a9uu-4>li:before{content:"- "}.lst-kix_41tw9iv8a9uu-6>li:before{content:"- "}.lst-kix_41tw9iv8a9uu-3>li:before{content:"- "}.lst-kix_41tw9iv8a9uu-7>li:before{content:"- "}.lst-kix_fhn14wnfk1q6-1>li:before{content:"+ "}.lst-kix_41tw9iv8a9uu-1>li:before{content:"- "}.lst-kix_41tw9iv8a9uu-0>li:before{content:"- "}.lst-kix_41tw9iv8a9uu-2>li:before{content:"- "}.lst-kix_41tw9iv8a9uu-8>li:before{content:"- "}.lst-kix_fhn14wnfk1q6-0>li:before{content:"+ "}.lst-kix_list_1-0>li:before{content:"" counter(lst-ctn-kix_list_1-0,decimal) ". "}.lst-kix_list_1-1>li:before{content:" "}.lst-kix_list_1-2>li:before{content:" "}.lst-kix_g2djaps997je-1>li:before{content:"+ "}.lst-kix_list_1-3>li:before{content:" "}.lst-kix_list_1-4>li:before{content:" "}.lst-kix_g2djaps997je-0>li:before{content:"+ "}.lst-kix_g2djaps997je-2>li:before{content:"+ "}.lst-kix_g2djaps997je-3>li:before{content:"+ "}.lst-kix_list_1-0>li{counter-increment:lst-ctn-kix_list_1-0}.lst-kix_g2djaps997je-5>li:before{content:"+ "}.lst-kix_list_1-7>li:before{content:" "}.lst-kix_g2djaps997je-4>li:before{content:"+ "}.lst-kix_g2djaps997je-6>li:before{content:"+ "}.lst-kix_list_1-5>li:before{content:" "}.lst-kix_list_1-6>li:before{content:" "}li.li-bullet-0:before{margin-left:-18pt;white-space:nowrap;display:inline-block;min-width:18pt}.lst-kix_list_1-8>li:before{content:" "}ol{margin:0;padding:0}table td,table th{padding:0}.c1{padding-top:0pt;padding-bottom:0pt;line-height:1.0;orphans:2;widows:2;text-align:left;height:10pt}.c2{color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:13pt;font-family:"Times New Roman";font-style:normal}.c4{padding-top:0pt;padding-bottom:0pt;line-height:1.0;orphans:2;widows:2;text-align:left}.c11{padding-top:0pt;padding-bottom:0pt;line-height:1.0;orphans:2;widows:2;text-align:center}.c3{color:#000000;text-decoration:none;vertical-align:baseline;font-style:normal}.c7{-webkit-text-decoration-skip:none;color:#0000ff;text-decoration:underline;text-decoration-skip-ink:none}.c12{font-size:13pt;font-weight:700;font-family:"Times New Roman"}.c0{font-size:13pt;font-weight:400;font-family:"Times New Roman"}.c9{background-color:#ffffff;max-width:415.3pt;padding:72pt 90pt 72pt 90pt}.c10{margin-left:0pt;list-style-position:inside;text-indent:45pt}.c8{padding:0;margin:0}.c6{color:inherit;text-decoration:inherit}.c5{margin-left:36pt;padding-left:0pt}.c13{text-indent:21pt}.title{padding-top:24pt;color:#000000;font-weight:700;font-size:36pt;padding-bottom:6pt;font-family:"Calibri";line-height:1.0;page-break-after:avoid;orphans:2;widows:2;text-align:left}.subtitle{padding-top:18pt;color:#666666;font-size:24pt;padding-bottom:4pt;font-family:"Georgia";line-height:1.0;page-break-after:avoid;font-style:italic;orphans:2;widows:2;text-align:left}li{color:#000000;font-size:10pt;font-family:"Calibri"}p{margin:0;color:#000000;font-size:10pt;font-family:"Calibri"}h1{padding-top:24pt;color:#000000;font-weight:700;font-size:24pt;padding-bottom:6pt;font-family:"Calibri";line-height:1.0;page-break-after:avoid;orphans:2;widows:2;text-align:left}h2{padding-top:18pt;color:#000000;font-weight:700;font-size:18pt;padding-bottom:4pt;font-family:"Calibri";line-height:1.0;page-break-after:avoid;orphans:2;widows:2;text-align:left}h3{padding-top:14pt;color:#000000;font-weight:700;font-size:14pt;padding-bottom:4pt;font-family:"Calibri";line-height:1.0;page-break-after:avoid;orphans:2;widows:2;text-align:left}h4{padding-top:12pt;color:#000000;font-weight:700;font-size:12pt;padding-bottom:2pt;font-family:"Calibri";line-height:1.0;page-break-after:avoid;orphans:2;widows:2;text-align:left}h5{padding-top:11pt;color:#000000;font-weight:700;font-size:11pt;padding-bottom:2pt;font-family:"Calibri";line-height:1.0;page-break-after:avoid;orphans:2;widows:2;text-align:left}h6{padding-top:10pt;color:#000000;font-weight:700;font-size:10pt;padding-bottom:2pt;font-family:"Calibri";line-height:1.0;page-break-after:avoid;orphans:2;widows:2;text-align:left}
+Tài liệu phân tích kỹ thuật và triển khai
+Luồng đồng bộ Sapo - Pancake
++ Trên pancake cấu hình api_key và webhook ở chức năng cấu hình:
+Trong đó, url webhook là địa chỉ server chạy service:
+http://ip:port/
+webhook
++ Trên sapo: Sử dụng user/pass có full quyền của hệ thống
+Luồng đồng bộ đơn hàng
+Trạng thái SAPO:
+Đặt hàng, Duyệt, Đóng gói -> Chỉ thay đổi số có thể bán
+Xuất kho, Hoàn thành -> Thay đổi số tồn
+Hủy đơn -> Thay đổi số tồn + số có thể bán
+Danh sách + Nhập hàng -> Nếu thay đổi -> thay đổi
+Trạng thái pancake:
++ Mới,
+Chờ hàng
+, Ưu tiên xuất đơn, Đã xác nhận, Đang đóng hàng -> Chỉ thay đổi số có thể bản
+Chờ chuyển hàng, Đã gửi hàng, Đã nhận, Đã thu tiền -> Thay đổi số tồn
+Đã hoàn toàn bộ, Đã hủy -> Thay đổi số tồn + Số có thể bán
+Hồng Cẩm:
+Trạng thái Pancake: Đã xác nhận —> Trạng thái Sapo: Đẩy qua hãng vận chuyển ( ViettelPost: Cam kết sản lượng 07)
+Trạng thái Pancake: Chờ hàng —> Trạng thái Sapo: Chờ duyệt
+Note: Đơn tạo trên pancake tất cả đều đẩy qua bên vận chuyển ViettelPost
+Note: Có cách nào để tạo đơn trên pancake chọn bên vận chuyển ⇔ auto chọn tại Sapo không ạ?
+Xuất kho, Hoàn thành -> Thay đổi số tồn
+Luồng đồng bộ tồn kho
+Triển khai
+Trên server Linux/Ubuntu/Centos/Window đều đáp ứng.
++ Bước 1: Cài docker theo trang chủ của Docker:
+https://docs.docker.com/engine/install/ubuntu/
++ Bước 2: Download jdk 21 từ trang chủ của Oracle:
+https://www.oracle.com/java/technologies/downloads/#java21
++ Bước 3: Chạy database
+docker run -d --name my_postgres -e POSTGRES_USER=myuser -e POSTGRES_PASSWORD=mypassword -e POSTGRES_DB=mydatabase -p 5432:5432 postgres:16
++ Bước 4: Cấu hình file application.yaml
+server:
+port: 8081
+spring:
+datasource:
+url: jdbc:postgresql://116.111.210.93:5432/mydatabase
+username: myuser
+password: mypassword
+jpa:
+hibernate:
+ddl-auto: update # Hoặc none + dùng Flyway
+show-sql: true
+properties:
+hibernate:
+format_sql: true
++ Bước 5: Chạy file ứng dụng:
+nohup ./jdk21/bin/java -jar sportswear-0.0.1-SNAPSHOT.jar &
+Ngoài ra, các cấu hình khác sẽ được đưa ra phiên bản release cuối.
+Bổ sung:
+đơn hàng tạo mới ( đã thanh toán) - trạng thái tại pancake phải là Mới tương tự như đơn chưa thanh toán

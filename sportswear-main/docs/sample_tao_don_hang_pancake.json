@@ -1,0 +1,63 @@
+{
+  "bill_full_name": "hoang anh ",
+  "bill_phone_number": "0999999999",
+  "is_free_shipping": false,
+  "received_at_shop": false,
+  "page_id": "256469571178082",
+  "account": 4,
+  "account_name": "facebook321",
+  "assigning_seller_id": "340644fc-314d-450e-a45f-33343678cab6",
+  "items": [
+    {
+      "discount_each_product": 0,
+      "is_bonus_product": false,
+      "is_discount_percent": false,
+      "is_wholesale": false,
+      "one_time_product": false,
+      "quantity": 1,
+      "variation_id": "415040f4-ab63-465e-8699-e9ebfff4c6c7",
+      "product_id": "3487e126-b0d9-4dae-89a9-ee60bef2f4e9",
+      "variation_info": {
+        "detail": null,
+        "fields": null,
+        "display_id": null,
+        "name": "aaaaaa",
+        "product_display_id": null,
+        "retail_price": 100000,
+        "weight": 100
+      }
+    }
+  ],
+  "note": "",
+  "note_print": null,
+  "returned_reason": 1,
+  "warehouse_id": "630744ef-4614-4a70-988c-52e6d78c953c",
+  "shipping_address": {
+    "address": "aaaaa",
+    "commune_id": "2210941",
+    "country_code": null,
+    "district_id": "22109",
+    "full_address": "aaaaa, Xã Bắc Lý, Huyện Hiệp Hòa, Bắc Giang",
+    "full_name": "hoang anh ",
+    "phone_number": "0999999999",
+    "post_code": null,
+    "province_id": "221"
+  },
+  "shipping_fee": 0,
+  "shop_id": 4,
+  "total_discount": 0,
+  "warehouse_info": {
+    "district_id": "10111",
+    "full_address": "kakakaka, Phường Khương Trung, Quận Thanh Xuân, Hà Nội",
+    "name": "snappy",
+    "phone_number": "0999999999",
+    "province_id": "101"
+  },
+  "custom_id": "Ma0001",
+  "activated_promotion_advances": [
+    {
+      "promotion_advance_id": "fb056b32-9cf6-4c5a-92de-0eb94db71121",
+      "is_activated": true
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+curl 'https://pos.pancake.vn/api/v1/shops/1290216695/products/delete_multi?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiJiZGVhZmVlZC1jZTAzLTQzNDktYWNjNi1jZjAwNzgwZGY4ZDkiLCJpYXQiOjE3NDI0NzUzMzIsImZiX25hbWUiOiJOZ3V54buFbiBWxINuIEjGsOG7n25nIiwiZmJfaWQiOiI1MDk0NzM5Nzk0NDgyMTUiLCJleHAiOjE3NTAyNTEzMzJ9.vmL02G2sKgqCDsoqjUZ8WqfxFOJil5n4QVydfyJew2k' \
+-H 'Accept: application/json, text/plain, */*' \
+-H 'Accept-Language: en-GB,en;q=0.9,vi-VN;q=0.8,vi;q=0.7,en-US;q=0.6' \
+-H 'Connection: keep-alive' \
+-H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryPpUHmx30wtVbH2az' \
+-b 'pos_locale=vi; pos_country=VN; token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTmd1eeG7hW4gVsSDbiBIxrDhu59uZyIsInVzZXJJRCI6IjUwOTQ3Mzk3OTQ0ODIxNSIsImFjY2Vzc1Rva2VuIjoiZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKSVV6STFOaUo5LmV5SjFhV1FpT2lKaVpHVmhabVZsWkMxalpUQXpMVFF6TkRrdFlXTmpOaTFqWmpBd056Z3daR1k0WkRraUxDSnBZWFFpT2pFM05ESTBOelV6TXpJc0ltWmlYMjVoYldVaU9pSk9aM1Y1NGJ1RmJpQld4SU51SUVqR3NPRzduMjVuSWl3aVptSmZhV1FpT2lJMU1EazBOek01TnprME5EZ3lNVFVpTENKbGVIQWlPakUzTlRBeU5URXpNeko5LnZtTDAyRzJzS2dxQ0Rzb3FqVVo4V3FmeEZPSmlsNW40UVZ5ZGZ5SmV3MmsiLCJpZCI6IjUwOTQ3Mzk3OTQ0ODIxNSIsInVpZCI6ImJkZWFmZWVkLWNlMDMtNDM0OS1hY2M2LWNmMDA3ODBkZjhkOSIsImlhdCI6MTc0MjQ3NTMzM30.7yF5cwKVKma0AdXM4h9cJOORWHVOZGLPJZ_KiJiWhMg; pos_jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiJiZGVhZmVlZC1jZTAzLTQzNDktYWNjNi1jZjAwNzgwZGY4ZDkiLCJpYXQiOjE3NDI0NzUzMzIsImZiX25hbWUiOiJOZ3V54buFbiBWxINuIEjGsOG7n25nIiwiZmJfaWQiOiI1MDk0NzM5Nzk0NDgyMTUiLCJleHAiOjE3NTAyNTEzMzJ9.vmL02G2sKgqCDsoqjUZ8WqfxFOJil5n4QVydfyJew2k; _ga_VG3LFY1C9R=GS1.1.1742781697.9.1.1742781761.0.0.0; _gid=GA1.2.1019892454.1743046217; _ga=GA1.1.1449136543.1742781760; _ga_5N5FG6VLHC=GS1.1.1743054484.1.1.1743055420.56.0.0' \
+-H 'Origin: https://pos.pancake.vn' \
+-H 'Referer: https://pos.pancake.vn/shop/1290216695/product/management' \
+-H 'Sec-Fetch-Dest: empty' \
+-H 'Sec-Fetch-Mode: cors' \
+-H 'Sec-Fetch-Site: same-origin' \
+-H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36' \
+-H 'sec-ch-ua: "Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"' \
+-H 'sec-ch-ua-mobile: ?0' \
+-H 'sec-ch-ua-platform: "Windows"' \
+--data-raw $'------WebKitFormBoundaryPpUHmx30wtVbH2az\r\nContent-Disposition: form-data; name="product_ids[0]"\r\n\r\n609fc265-983f-4379-8046-48c2f6a57065\r\n------WebKitFormBoundaryPpUHmx30wtVbH2az\r\nContent-Disposition: form-data; name="note"\r\n\r\n\r\n------WebKitFormBoundaryPpUHmx30wtVbH2az--\r\n'

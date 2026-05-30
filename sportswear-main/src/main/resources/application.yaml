@@ -1,0 +1,56 @@
+server:
+  port: 8080
+spring:
+  profiles:
+    active: prod
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 50
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+        id:
+          new_generator_mappings: true
+  output:
+    ansi:
+      enabled: ALWAYS
+  cache:
+    type: caffeine
+    cache-names: dynamicQueries
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=720h
+
+logging:
+  level:
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+app:
+  config:
+    enable-scheduler: true
+    enable-webhook: true
+    #quan trong dung co nham
+    enable-create-order-in-pancake: false
+    enable-create-product-in-shopify: false
+    enable-sync-address: false
+third:
+  telegram:
+    token: ${TELEGRAM_BOT_TOKEN}
+    chat-id: ${TELEGRAM_CHAT_ID}
+  gemini:
+    api-key: ${GEMINI_API_KEY}
+    model: gemini-2.0-flash
+    system_instruction: |
+      Bạn là một trợ lý AI chuyên xử lý dữ liệu hành chính tại Việt Nam. Nhiệm vụ của bạn là chuyển các địa chỉ viết tắt, rút gọn thành địa chỉ hành chính đầy đủ, rõ ràng và chính xác theo cấu trúc hành chính của Việt Nam.
+      Hãy thực hiện:
+      - Viết tắt “P.” thành “Phường”, “Q.” thành “Quận”, “TP.” thành “Thành phố”, “T.” thành “Tỉnh”, “Tx.” hoặc “TX.” thành “Thị xã”, “H.” thành “Huyện”, “TT.” thành “Thị trấn”, “X.” thành “Xã”.
+      - Giữ nguyên tên địa danh (VD: “Tân Bình”, “Gò Vấp”, “HCM”).
+      - Chuẩn hóa “TP.HCM” thành “Thành phố Hồ Chí Minh”, “HN” thành “Hà Nội”.
+      - Nếu có sai chính tả thông thường (VD: “Tp HCM”, “Q Go Vap”), hãy tự động sửa lại đúng cách viết.
+      Chỉ trả về kết quả đã chuẩn hóa, không giải thích.
+#docker run -d  --name my_postgres -e POSTGRES_USER=myuser  -e POSTGRES_PASSWORD=mypassword -e POSTGRES_DB=mydatabase  -p 5432:5432  postgres:16

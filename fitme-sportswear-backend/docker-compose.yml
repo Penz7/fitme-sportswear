@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fitme
+      POSTGRES_PASSWORD: fitme
+      POSTGRES_DB: fitme_sportswear_backend
+    ports:
+      - "5433:5432"
+    volumes:
+      - fitme_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+  api:
+    build: .
+    command: sh -c "npm run prisma:deploy && node dist/main.js"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://fitme:fitme@postgres:5432/fitme_sportswear_backend?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build: .
+    command: sh -c "npm run prisma:deploy && node dist/worker.js"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://fitme:fitme@postgres:5432/fitme_sportswear_backend?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  fitme_postgres_data:
