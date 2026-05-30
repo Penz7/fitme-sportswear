@@ -1,9 +1,12 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ProductsModule } from '../products/products.module';
+import { ProductSyncProcessor } from './processors/product-sync.processor';
 import { TestSyncProcessor } from './processors/test-sync.processor';
+import { ProductSyncProducer } from './producers/product-sync.producer';
 import { TestSyncProducer } from './producers/test-sync.producer';
-import { TEST_SYNC_QUEUE } from './queue.constants';
+import { PRODUCT_SYNC_QUEUE, TEST_SYNC_QUEUE } from './queue.constants';
 
 @Module({
   imports: [
@@ -16,9 +19,10 @@ import { TEST_SYNC_QUEUE } from './queue.constants';
         },
       }),
     }),
-    BullModule.registerQueue({ name: TEST_SYNC_QUEUE }),
+    ProductsModule,
+    BullModule.registerQueue({ name: TEST_SYNC_QUEUE }, { name: PRODUCT_SYNC_QUEUE }),
   ],
-  providers: [TestSyncProducer, TestSyncProcessor],
-  exports: [TestSyncProducer],
+  providers: [TestSyncProducer, TestSyncProcessor, ProductSyncProducer, ProductSyncProcessor],
+  exports: [TestSyncProducer, ProductSyncProducer],
 })
 export class QueueModule {}
