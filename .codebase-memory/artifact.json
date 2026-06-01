@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "7ac0ed932815641ca95e12d7eae4d751fba08f64",
-    "indexed_at": "2026-06-01T08:31:12Z",
+    "commit": "f099ced25f4e7472539696a1783fa63af1cb2a45",
+    "indexed_at": "2026-06-01T08:37:26Z",
     "project": "Users-penz-Documents-GIC-fitme-sportswear",
     "nodes": 9436,
     "edges": 15690,
     "original_size": 22282240,
-    "compressed_size": 2803785,
+    "compressed_size": 2803354,
     "compression_level": 3
 }

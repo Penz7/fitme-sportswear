@@ -1,9 +1,17 @@
 # Conventions
 
-- Backend NestJS code is module-oriented under `src/modules/<domain>` with colocated `*.service.ts`, `*.client.ts`, `*.controller.ts`, `*.module.ts`, and `*.spec.ts` files.
-- Backend TypeScript is strict; `strictPropertyInitialization` is disabled to support Nest/DTO/decorator patterns.
-- Backend persistence is Prisma-first; database table names are explicit via `@@map` and snake_case physical table names.
-- Backend sync entities use lowercase enum values in Prisma (`queued`, `running`, `succeeded`, `failed`; platform names lowercase).
-- Spring app uses package-by-layer under `vn.fitme.sportswear` (`controller`, `service`, `repository`, `mapper`, `processor`, `scheduler`, etc.).
-- Spring config profiles are YAML-based (`application.yaml` plus profile files); default active profile in base config is `prod` unless overridden.
-- Spring uses Lombok and MapStruct annotation processing; prefer generated mapping patterns over hand-written repetitive mapping when extending existing mappers.
+Backend code style:
+- Nest modules/services/controllers per domain under `src/modules/<domain>`.
+- Tests colocated as `*.spec.ts` under `src` and run by Jest rootDir `src`.
+- Config values are loaded from `configuration.ts`, validated in `env.validation.ts`, and read via `ConfigService` with nested keys.
+- Feature flags use boolean parsing patterns that accept booleans or `'true'`/`'false'` strings; defaults should be explicit.
+- External writes should be guarded by exact IDs/codes and narrow idempotency/tolerant-error handling; do not globally suppress integration errors.
+- Security controls should fail closed in production: required webhook secrets/API tokens via Joi validation.
+
+Integration conventions:
+- Shopify webhooks verify raw-body HMAC with `ShopifyHmacService`; Pancake webhooks verify shared secret.
+- Webhook ingestion persists `WebhookEvent`, writes `IdempotencyKey`, and enqueues BullMQ job.
+- Pancake `order_updated` idempotency includes raw payload hash; create/static events keep stable platform/event/external ID key.
+- Product inventory sync is the safe stock authority; direct Sapo-order quantity stock writes are intentionally skipped.
+- Shopify fulfillment should use Fulfillment Orders API, not legacy order fulfillment endpoint.
+- Sapo 422 tolerance must be operation-specific and only for already-applied/idempotent business states.
