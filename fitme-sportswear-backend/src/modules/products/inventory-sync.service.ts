@@ -49,11 +49,11 @@ export class InventorySyncService {
         continue;
       }
 
-      if (mapping.pancake?.variantId) {
+      if (mapping.pancake?.variantId && !this.unchangedPancakeInventory(mapping)) {
         try {
           await this.pancakeClient.updateInventory({
             variantId: mapping.pancake.variantId,
-            warehouseId: mapping.pancake.warehouseId,
+            warehouseId: this.resolvePancakeWarehouseId(mapping.pancake.warehouseId),
             available: mapping.sapo.available,
           });
           await this.prisma.pancakeProduct.update({
@@ -80,9 +80,10 @@ export class InventorySyncService {
             available: mapping.sapo.available,
             retailPrice: mapping.sapo.retailPrice,
           });
+          const warehouseId = this.resolvePancakeWarehouseId(created.warehouseId);
           await this.pancakeClient.updateInventory({
             variantId: created.variantId,
-            warehouseId: created.warehouseId,
+            warehouseId,
             available: mapping.sapo.available,
           });
           await this.prisma.pancakeProduct.upsert({
@@ -95,7 +96,7 @@ export class InventorySyncService {
               available: mapping.sapo.available,
               remain: mapping.sapo.remain,
               retailPrice: mapping.sapo.retailPrice,
-              warehouseId: created.warehouseId,
+              warehouseId,
               updatedBy: 'SAPO',
             },
             update: {
@@ -105,14 +106,14 @@ export class InventorySyncService {
               available: mapping.sapo.available,
               remain: mapping.sapo.remain,
               retailPrice: mapping.sapo.retailPrice,
-              warehouseId: created.warehouseId,
+              warehouseId,
               updatedBy: 'SAPO',
             },
           });
           await this.upsertProductMapping(mapping, {
             pancakeProductId: created.productId,
             pancakeVariantId: created.variantId,
-            pancakeWarehouseId: created.warehouseId,
+            pancakeWarehouseId: warehouseId,
           });
           result.createdPancake += 1;
         } catch (error) {
@@ -122,7 +123,7 @@ export class InventorySyncService {
         }
       }
 
-      if (mapping.shopify?.variantId) {
+      if (mapping.shopify?.variantId && !this.unchangedShopifyInventory(mapping)) {
         try {
           await this.shopifyClient.updateInventoryAndPrice({
             variantId: mapping.shopify.variantId,
@@ -255,6 +256,44 @@ export class InventorySyncService {
         conflictReason: null,
       },
     });
+  }
+
+  private unchangedPancakeInventory(mapping: ProductMappingCandidate): boolean {
+    return this.unchangedTargetInventory(mapping, mapping.pancake);
+  }
+
+  private unchangedShopifyInventory(mapping: ProductMappingCandidate): boolean {
+    return this.unchangedTargetInventory(mapping, mapping.shopify);
+  }
+
+  private unchangedTargetInventory(
+    mapping: ProductMappingCandidate,
+    target: ProductMappingCandidate['pancake'] | ProductMappingCandidate['shopify'],
+  ): boolean {
+    if (!mapping.sapo || !target || !mapping.sapo.sourceUpdatedAt) {
+      return false;
+    }
+
+    const minutesDiff = Math.abs(
+      Date.now() - mapping.sapo.sourceUpdatedAt.getTime(),
+    ) / 60000;
+
+    return (
+      minutesDiff < 10 &&
+      mapping.sapo.available === target.available &&
+      mapping.sapo.retailPrice === target.retailPrice
+    );
+  }
+
+  private resolvePancakeWarehouseId(warehouseId: string | null): string | null {
+    if (warehouseId) {
+      return warehouseId;
+    }
+
+    const fallback = this.configService.get<string | undefined>(
+      'pancake.defaultWarehouseId',
+    );
+    return fallback && fallback.trim() !== '' ? fallback : null;
   }
 
   private createMissingPancakeProducts(): boolean {

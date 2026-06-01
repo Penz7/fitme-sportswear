@@ -184,7 +184,7 @@ describe('ShopifyClient', () => {
     );
   });
 
-  it('updates variant inventory management while preserving existing price', async () => {
+  it('updates variant inventory management and Sapo retail price when needed', async () => {
     fetchMock
       .mockResolvedValueOnce(
         jsonResponse({
@@ -197,17 +197,8 @@ describe('ShopifyClient', () => {
           },
         }),
       )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          variant: {
-            id: 'variant-1',
-            inventory_item_id: 'inventory-item-1',
-            inventory_management: 'shopify',
-            price: '150000',
-            sku: 'SKU-1',
-          },
-        }),
-      )
+      .mockResolvedValueOnce(jsonResponse({ variant: { id: 'variant-1' } }))
+      .mockResolvedValueOnce(jsonResponse({ variant: { id: 'variant-1' } }))
       .mockResolvedValueOnce(jsonResponse({ inventory_level: { available: 7 } }));
 
     await createClient({ 'shopify.locationId': 'location-9' }).updateInventoryAndPrice(
@@ -231,15 +222,50 @@ describe('ShopifyClient', () => {
           variant: {
             id: 'variant-1',
             inventory_management: 'shopify',
-            price: '150000',
+          },
+        }),
+      },
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      'https://fitme.myshopify.com/admin/api/2024-04/variants/variant-1.json',
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': 'shopify-token',
+        },
+        body: JSON.stringify({
+          variant: {
+            id: 'variant-1',
+            price: 999999,
           },
         }),
       },
     );
   });
 
-  it('creates a Shopify fulfillment with tracking information and line items', async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ fulfillment: { id: 'fulfillment-1' } }));
+  it('creates a Shopify fulfillment with Fulfillment Orders API', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          fulfillment_orders: [
+            {
+              id: 'fulfillment-order-1',
+              status: 'open',
+              request_status: 'unsubmitted',
+              line_items: [
+                {
+                  id: 'fulfillment-line-1',
+                  line_item_id: 'line-item-1',
+                  fulfillable_quantity: 2,
+                },
+              ],
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ fulfillment: { id: 'fulfillment-1' } }));
 
     await createClient({ 'shopify.locationId': 'location-9' }).createFulfillment({
       orderId: 'shopify-order-1',
@@ -249,8 +275,14 @@ describe('ShopifyClient', () => {
       lineItems: [{ id: 'line-item-1', quantity: 2 }],
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://fitme.myshopify.com/admin/api/2024-04/orders/shopify-order-1/fulfillments.json',
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://fitme.myshopify.com/admin/api/2024-04/orders/shopify-order-1/fulfillment_orders.json',
+      { headers: { 'X-Shopify-Access-Token': 'shopify-token' } },
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://fitme.myshopify.com/admin/api/2024-04/fulfillments.json',
       {
         method: 'POST',
         headers: {
@@ -259,15 +291,39 @@ describe('ShopifyClient', () => {
         },
         body: JSON.stringify({
           fulfillment: {
-            location_id: 'location-9',
-            tracking_company: 'Viettel',
-            tracking_number: 'VTP123',
+            line_items_by_fulfillment_order: [
+              {
+                fulfillment_order_id: 'fulfillment-order-1',
+                fulfillment_order_line_items: [
+                  { id: 'fulfillment-line-1', quantity: 2 },
+                ],
+              },
+            ],
+            tracking_info: {
+              company: 'Viettel',
+              number: 'VTP123',
+            },
             notify_customer: true,
-            line_items: [{ id: 'line-item-1', quantity: 2 }],
           },
         }),
       },
     );
+  });
+
+  it('treats closed Shopify fulfillment orders as already fulfilled', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ fulfillment_orders: [{ id: 'fulfillment-order-1', status: 'closed' }] }),
+    );
+
+    await createClient().createFulfillment({
+      orderId: 'shopify-order-1',
+      trackingCompany: 'Viettel',
+      trackingNumber: 'VTP123',
+      notifyCustomer: true,
+      lineItems: [{ id: 'line-item-1', quantity: 2 }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('cancels a Shopify order with the Sapo cancellation reason', async () => {

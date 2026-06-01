@@ -45,6 +45,8 @@ export default () => ({
     baseUrl: process.env.PANCAKE_BASE_URL as string,
     apiKey: process.env.PANCAKE_API_KEY as string,
     shopId: process.env.PANCAKE_SHOP_ID as string,
+    webhookSecret: process.env.PANCAKE_WEBHOOK_SECRET,
+    defaultWarehouseId: process.env.PANCAKE_DEFAULT_WAREHOUSE_ID,
   },
   shopify: {
     baseUrl: process.env.SHOPIFY_BASE_URL as string,
@@ -76,7 +78,17 @@ export default () => ({
       trackingCompany: process.env.VIETTELPOST_TRACKING_COMPANY ?? 'Viettel',
     },
   },
+  webhook: {
+    ingestionEnabled: process.env.WEBHOOK_INGESTION_ENABLED !== 'false',
+    pancake: {
+      enabled: process.env.PANCAKE_WEBHOOK_ENABLED !== 'false',
+    },
+    shopify: {
+      enabled: process.env.SHOPIFY_WEBHOOK_ENABLED !== 'false',
+    },
+  },
   sync: {
+    apiToken: process.env.SYNC_API_TOKEN,
     startup: {
       productSyncEnabled: process.env.SYNC_STARTUP_PRODUCT_SYNC_ENABLED === 'true',
     },
@@ -89,6 +101,13 @@ export default () => ({
     orders: {
       updatePancakeInventoryByOrder:
         process.env.SYNC_UPDATE_PANCAKE_INVENTORY_BY_ORDER === 'true',
+    },
+    address: {
+      enabled: process.env.SYNC_ADDRESS_ENABLED !== 'false',
+      minProvinces: Number(process.env.SYNC_ADDRESS_MIN_PROVINCES ?? 1),
+      minDistricts: Number(process.env.SYNC_ADDRESS_MIN_DISTRICTS ?? 1),
+      minWards: Number(process.env.SYNC_ADDRESS_MIN_WARDS ?? 1),
+      maxDistance: Number(process.env.SYNC_ADDRESS_MAX_DISTANCE ?? 0.75),
     },
     scheduler: {
       enabled: process.env.SYNC_SCHEDULER_ENABLED === 'true',

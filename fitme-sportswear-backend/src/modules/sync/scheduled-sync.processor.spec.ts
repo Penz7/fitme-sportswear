@@ -15,11 +15,15 @@ describe('ScheduledSyncProcessor', () => {
     const notifier = {
       sendException: jest.fn().mockResolvedValue(undefined),
     };
+    const lockService = {
+      withLock: jest.fn((_: string, __: number, work: () => Promise<unknown>) => work()),
+    };
 
     return {
       syncService,
       notifier,
-      processor: new ScheduledSyncProcessor(syncService as any, notifier as any),
+      lockService,
+      processor: new ScheduledSyncProcessor(syncService as any, lockService as any, notifier as any),
     };
   }
 

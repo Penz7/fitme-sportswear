@@ -184,6 +184,7 @@ describe('OrderWebhookExecutionService', () => {
     );
     expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1', {
       locationId: '999999',
+      tolerateIdempotent422: true,
     });
     expect(sapoClient.fetchOrder).toHaveBeenCalledWith('sapo-order-1');
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
@@ -221,6 +222,7 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.createOrder).not.toHaveBeenCalled();
     expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('existing-sapo-order-1', {
       locationId: '572310',
+      tolerateIdempotent422: true,
     });
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },
@@ -254,6 +256,7 @@ describe('OrderWebhookExecutionService', () => {
     );
     expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1', {
       locationId: '572310',
+      tolerateIdempotent422: true,
     });
     expect(prisma.orderMapping.upsert).toHaveBeenCalled();
   });
@@ -319,7 +322,7 @@ describe('OrderWebhookExecutionService', () => {
           }),
         }),
       },
-      { locationId: '572310' },
+      { locationId: '572310', tolerateIdempotent422: true },
     );
     const fulfillmentPayload = sapoClient.createFulfillment.mock.calls[0][1];
     expect(JSON.parse(fulfillmentPayload.fulfillment.shipment.detail)).toEqual(
@@ -366,7 +369,7 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.shipFulfillment).toHaveBeenCalledWith(
       'sapo-order-1',
       'fulfillment-1',
-      { locationId: '572310' },
+      { locationId: '572310', tolerateIdempotent422: true },
     );
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },

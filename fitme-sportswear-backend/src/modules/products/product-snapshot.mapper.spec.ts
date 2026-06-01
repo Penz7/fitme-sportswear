@@ -21,7 +21,7 @@ describe('product snapshot mapper', () => {
         },
       ],
     });
-    expect(result).toEqual([{ platform: 'sapo', sku: 'SKU-1', productId: '10', variantId: '20', name: 'Áo chạy bộ', available: 6, remain: 8, retailPrice: 150000, warehouseId: null, warehouseCount: null }]);
+    expect(result).toEqual([{ platform: 'sapo', sku: 'SKU-1', productId: '10', variantId: '20', name: 'Áo chạy bộ', available: 6, remain: 8, retailPrice: 150000, warehouseId: null, warehouseCount: null, sourceUpdatedAt: null }]);
     expect(result[0]?.productId).toBe('10');
     expect(result[0]?.variantId).toBe('20');
   });
@@ -82,6 +82,25 @@ describe('product snapshot mapper', () => {
       { sku: 'SKU-3', retailPrice: null },
       { sku: 'SKU-4', retailPrice: null },
     ]);
+  });
+
+  it('maps Sapo variant external updated timestamp', () => {
+    const result = mapSapoProductSnapshot({
+      id: 10,
+      name: 'Áo chạy bộ',
+      updated_at: '2026-06-01T10:00:00.000Z',
+      variants: [
+        {
+          id: 20,
+          sku: 'SKU-1',
+          variantRetailPrice: 150000,
+          updated_at: '2026-06-01T11:00:00.000Z',
+          inventories: [{ available: 2, onHand: 3 }],
+        },
+      ],
+    });
+
+    expect(result[0]?.sourceUpdatedAt?.toISOString()).toBe('2026-06-01T11:00:00.000Z');
   });
 
   it('drops products without usable SKU', () => {

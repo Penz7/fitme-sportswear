@@ -5,10 +5,18 @@ import { SapoSessionService } from './sapo-session.service';
 export interface SapoProductResponse {
   id: string;
   name: string;
+  updatedAt?: string | null;
+  updated_at?: string | null;
+  modifiedOn?: string | null;
+  modified_on?: string | null;
   variants: Array<{
     id: string;
     sku: string;
     variantRetailPrice: number;
+    updatedAt?: string | null;
+    updated_at?: string | null;
+    modifiedOn?: string | null;
+    modified_on?: string | null;
     inventories: Array<{
       available: number;
       onHand: number;
@@ -53,6 +61,7 @@ export type SapoFulfillmentPayload = Record<string, any>;
 
 export interface SapoRequestOptions {
   locationId?: string | number;
+  tolerateIdempotent422?: boolean;
 }
 
 export interface SapoFreightAmountInput {
@@ -474,10 +483,34 @@ export class SapoClient {
     });
 
     if (!response.ok) {
+      const responseText = await response.text();
+      if (
+        response.status === 422 &&
+        options.tolerateIdempotent422 &&
+        this.isIdempotentSapoError(responseText)
+      ) {
+        return {} as T;
+      }
+
       throw new Error(`${label} failed with status ${response.status}`);
     }
 
     return (await response.json()) as T;
+  }
+
+  private isIdempotentSapoError(body: string): boolean {
+    const normalized = body.toLowerCase();
+    return (
+      normalized.includes('already') ||
+      normalized.includes('not_suitable') ||
+      normalized.includes('not suitable') ||
+      normalized.includes('status.not_suitable') ||
+      normalized.includes('cancelled') ||
+      normalized.includes('canceled') ||
+      normalized.includes('finalized') ||
+      normalized.includes('fulfilled') ||
+      normalized.includes('shipped')
+    );
   }
 
   private apiUrl(path: string): string {

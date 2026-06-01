@@ -130,6 +130,8 @@ SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID={"pancake-warehouse-1":"572310","pancak
 | `PANCAKE_BASE_URL` | Base URL Pancake API. |
 | `PANCAKE_API_KEY` | API key/token Pancake. |
 | `PANCAKE_SHOP_ID` | Shop/page ID Pancake. |
+| `PANCAKE_WEBHOOK_SECRET` | Shared secret bắt buộc cho Pancake webhook (`x-pancake-webhook-secret`). |
+| `PANCAKE_DEFAULT_WAREHOUSE_ID` | Warehouse fallback khi Pancake create/mapping không trả warehouse ID. |
 
 ### Shopify
 
@@ -157,7 +159,12 @@ SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID={"pancake-warehouse-1":"572310","pancak
 | `SYNC_SAPO_LOG_CRON` | Cron đồng bộ log Sapo. |
 | `SYNC_CREATE_MISSING_PANCAKE_PRODUCTS` | Cho phép tạo product thiếu trên Pancake. |
 | `SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS` | Cho phép tạo product thiếu trên Shopify. |
-| `SYNC_UPDATE_PANCAKE_INVENTORY_BY_ORDER` | Cho phép cập nhật tồn kho Pancake theo order. |
+| `SYNC_UPDATE_PANCAKE_INVENTORY_BY_ORDER` | Flag legacy; backend hiện không ghi Pancake stock từ order quantity vì không an toàn. |
+| `SYNC_ADDRESS_ENABLED` | Bật/tắt address mapping sync. |
+| `SYNC_ADDRESS_MIN_PROVINCES` | Số province match tối thiểu trước khi cho phép replace mapping. |
+| `SYNC_ADDRESS_MIN_DISTRICTS` | Số district match tối thiểu trước khi cho phép replace mapping. |
+| `SYNC_ADDRESS_MIN_WARDS` | Số ward match tối thiểu trước khi cho phép replace mapping. |
+| `SYNC_ADDRESS_MAX_DISTANCE` | Ngưỡng distance tối đa để nhận match địa chỉ; thấp hơn nghĩa là match chặt hơn. |
 
 ## Chạy local
 
@@ -330,16 +337,25 @@ http://localhost:3000
 | `POST` | `/sync/sapo-logs` | Trigger đồng bộ Sapo logs. |
 | `POST` | `/sync/shopify-product-cleanup` | Trigger cleanup sản phẩm Shopify. |
 
+Các endpoint `/sync/*` được bảo vệ bằng token vận hành. Gửi một trong hai header:
+
+```text
+Authorization: Bearer <SYNC_API_TOKEN>
+x-sync-api-token: <SYNC_API_TOKEN>
+```
+
 Ví dụ trigger product sync:
 
 ```bash
-curl -X POST http://localhost:3000/sync/products
+curl -X POST http://localhost:3000/sync/products \
+  -H "Authorization: Bearer $SYNC_API_TOKEN"
 ```
 
 Ví dụ trigger một order Sapo → Pancake:
 
 ```bash
 curl -X POST http://localhost:3000/sync/sapo-to-pancake-orders \
+  -H "Authorization: Bearer $SYNC_API_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"sapoOrderId":"123456"}'
 ```
@@ -358,6 +374,12 @@ curl -X POST http://localhost:3000/sync/sapo-to-pancake-orders \
 | `POST` | `/webhooks/shopify/product` | Shopify product webhook mới. |
 | `POST` | `/webhooks/shopify/fulfillment` | Shopify fulfillment webhook mới. |
 
+Pancake webhook bắt buộc gửi shared secret:
+
+```text
+x-pancake-webhook-secret: <PANCAKE_WEBHOOK_SECRET>
+```
+
 Shopify webhook bắt buộc verify header:
 
 ```text
@@ -370,11 +392,21 @@ Secret dùng biến:
 SHOPIFY_WEBHOOK_SECRET
 ```
 
+Có thể tắt side effect webhook mà vẫn trả response ổn định cho provider bằng các kill switch:
+
+```env
+WEBHOOK_INGESTION_ENABLED=false
+PANCAKE_WEBHOOK_ENABLED=false
+SHOPIFY_WEBHOOK_ENABLED=false
+```
+
 Lưu ý hiện tại: Shopify order webhook được xử lý vào luồng order/fulfillment. Shopify product và fulfillment webhook đã có endpoint nhận/verify nhưng đang được ignore có chủ đích; đồng bộ sản phẩm hiện chạy qua manual trigger hoặc scheduler, chưa chạy trực tiếp theo product webhook để tránh tạo queue storm khi Shopify gửi nhiều webhook liên tiếp.
 
 ## Scheduler và worker
 
 Scheduler được điều khiển bằng biến `SYNC_SCHEDULER_ENABLED`.
+
+Worker dùng Redis lock theo từng sync type (`lock:sync:<syncType>`) để tránh chạy chồng cùng một job, đồng thời cho phép các job khác loại chạy song song hơn so với cơ chế global concurrency `1`.
 
 Khuyến nghị triển khai:
 

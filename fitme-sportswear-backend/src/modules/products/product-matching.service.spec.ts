@@ -57,8 +57,11 @@ describe('ProductMatchingService', () => {
     expect(result[0]).toMatchObject({
       sku: 'SKU-3',
       status: 'conflict',
-      conflictReason: 'Duplicate SKU in pancake',
     });
+    expect(result[0].conflictReason).toContain('Duplicate SKU in pancake');
+    expect(result[0].conflictReason).toContain('product=pancake-product');
+    expect(result[0].conflictReason).toContain('variant=pancake-variant');
+    expect(result[0].conflictReason).toContain('warehouse=warehouse-1');
   });
 
   it('marks Sapo and Pancake multi-warehouse SKU as conflict', () => {

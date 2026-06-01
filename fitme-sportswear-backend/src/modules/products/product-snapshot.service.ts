@@ -127,6 +127,7 @@ export class ProductSnapshotService {
       available: snapshot.available,
       remain: snapshot.remain,
       retailPrice: snapshot.retailPrice,
+      sourceUpdatedAt: snapshot.sourceUpdatedAt ?? null,
       updatedBy: 'SAPO',
     };
   }

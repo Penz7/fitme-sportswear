@@ -43,6 +43,7 @@ export class OrderWebhookExecutionService {
             sapoOrderId,
             sapoLocationId,
           );
+          await this.updateShopifyMappingStatus(plan, sapoOrderId, 'NEW');
           break;
         case 'create_sapo_order_if_missing':
           if (!sapoOrderId) {
@@ -52,12 +53,14 @@ export class OrderWebhookExecutionService {
               null,
               sapoLocationId,
             );
+            await this.updateShopifyMappingStatus(plan, sapoOrderId, 'NEW');
           }
           break;
         case 'finalize_sapo_order':
           if (sapoOrderId) {
             await this.sapoClient.finalizeOrder(sapoOrderId, {
               locationId: sapoLocationId,
+              tolerateIdempotent422: true,
             });
             await this.prepaySapoOrderIfNeeded(
               sapoOrderId,
@@ -65,6 +68,7 @@ export class OrderWebhookExecutionService {
               sapoLocationId,
             );
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
+            await this.updateShopifyMappingStatus(plan, sapoOrderId, 'CONFIRMED', sapoOrder);
           }
           break;
         case 'update_sapo_order':
@@ -82,6 +86,7 @@ export class OrderWebhookExecutionService {
               },
               { locationId: sapoLocationId },
             );
+            await this.updateShopifyMappingStatus(plan, sapoOrderId, 'CONFIRMED', sapoOrder);
           }
           break;
         case 'create_sapo_fulfillment':
@@ -96,9 +101,10 @@ export class OrderWebhookExecutionService {
               await this.sapoClient.createFulfillment(
                 sapoOrderId,
                 await this.toSapoFulfillment(orderPayload, sapoOrder),
-                { locationId: sapoLocationId },
+                { locationId: sapoLocationId, tolerateIdempotent422: true },
               );
               sapoOrder = await this.fetchSapoOrder(sapoOrderId);
+              await this.updateShopifyMappingStatus(plan, sapoOrderId, 'PACKING', sapoOrder);
             }
           }
           break;
@@ -109,6 +115,7 @@ export class OrderWebhookExecutionService {
             if (fulfillmentId) {
               await this.sapoClient.shipFulfillment(sapoOrderId, fulfillmentId, {
                 locationId: sapoLocationId,
+                tolerateIdempotent422: true,
               });
             }
           }
@@ -122,7 +129,7 @@ export class OrderWebhookExecutionService {
                 sapoOrderId,
                 fulfillmentId,
                 undefined,
-                { locationId: sapoLocationId },
+                { locationId: sapoLocationId, tolerateIdempotent422: true },
               );
             }
           }
@@ -136,7 +143,7 @@ export class OrderWebhookExecutionService {
                 sapoOrderId,
                 fulfillmentId,
                 undefined,
-                { locationId: sapoLocationId },
+                { locationId: sapoLocationId, tolerateIdempotent422: true },
               );
             }
           }
@@ -145,6 +152,7 @@ export class OrderWebhookExecutionService {
           if (sapoOrderId) {
             await this.sapoClient.cancelOrder(sapoOrderId, {
               locationId: sapoLocationId,
+              tolerateIdempotent422: true,
             });
           }
           break;
@@ -152,6 +160,7 @@ export class OrderWebhookExecutionService {
           if (sapoOrderId && plan.platform === 'shopify') {
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
             await this.createShopifyFulfillment(plan, orderPayload, sapoOrder);
+            await this.updateShopifyMappingStatus(plan, sapoOrderId, 'FULFILLMENT', sapoOrder);
           }
           break;
         case 'upsert_order_mapping':
@@ -186,6 +195,42 @@ export class OrderWebhookExecutionService {
       { locationId: sapoLocationId },
     );
     return this.requiredString(created.order?.id, 'Sapo order id');
+  }
+
+  private async updateShopifyMappingStatus(
+    plan: OrderWebhookProcessingPlan,
+    sapoOrderId: string | null,
+    shopifyStatus: string,
+    sapoOrder: Record<string, any> | null = null,
+  ): Promise<void> {
+    if (plan.platform !== 'shopify' || !plan.externalOrderId) {
+      return;
+    }
+
+    await this.prisma.orderMapping.upsert({
+      where: { shopifyOrderId: plan.externalOrderId },
+      create: {
+        shopifyOrderId: plan.externalOrderId,
+        sapoOrderId,
+        shopifyStatus,
+        sapoStatus: sapoOrder?.status ?? undefined,
+        sapoPackedStatus: sapoOrder?.packed_status ?? undefined,
+        sapoFulfillmentStatus: sapoOrder?.fulfillment_status ?? undefined,
+        sapoReceivedStatus: sapoOrder?.received_status ?? undefined,
+        sapoPaymentStatus: sapoOrder?.payment_status ?? undefined,
+        sapoReturnStatus: sapoOrder?.return_status ?? undefined,
+      },
+      update: {
+        sapoOrderId,
+        shopifyStatus,
+        sapoStatus: sapoOrder?.status ?? undefined,
+        sapoPackedStatus: sapoOrder?.packed_status ?? undefined,
+        sapoFulfillmentStatus: sapoOrder?.fulfillment_status ?? undefined,
+        sapoReceivedStatus: sapoOrder?.received_status ?? undefined,
+        sapoPaymentStatus: sapoOrder?.payment_status ?? undefined,
+        sapoReturnStatus: sapoOrder?.return_status ?? undefined,
+      },
+    } as any);
   }
 
   private async findExistingSapoOrderByCode(
@@ -677,6 +722,11 @@ export class OrderWebhookExecutionService {
 
     const currentSapoOrder =
       sapoOrderId && !sapoOrder ? await this.fetchSapoOrder(sapoOrderId) : sapoOrder;
+    const where =
+      plan.platform === 'shopify'
+        ? { shopifyOrderId: plan.externalOrderId }
+        : { pancakeOrderId: plan.externalOrderId };
+    const existingMapping = await this.prisma.orderMapping.findUnique({ where } as any);
     const data = {
       sapoOrderId,
       pancakeOrderId: plan.platform === 'pancake' ? plan.externalOrderId : undefined,
@@ -684,7 +734,10 @@ export class OrderWebhookExecutionService {
       pancakeStatus: plan.platform === 'pancake' ? plan.statusCode : undefined,
       pancakeStatusDescription:
         plan.platform === 'pancake' ? plan.statusDescription : undefined,
-      shopifyStatus: plan.platform === 'shopify' ? plan.statusDescription : undefined,
+      shopifyStatus:
+        plan.platform === 'shopify'
+          ? existingMapping?.shopifyStatus ?? plan.statusDescription
+          : undefined,
       sapoStatus: currentSapoOrder?.status ?? undefined,
       sapoPackedStatus: currentSapoOrder?.packed_status ?? undefined,
       sapoFulfillmentStatus: currentSapoOrder?.fulfillment_status ?? undefined,
@@ -692,11 +745,6 @@ export class OrderWebhookExecutionService {
       sapoPaymentStatus: currentSapoOrder?.payment_status ?? undefined,
       sapoReturnStatus: currentSapoOrder?.return_status ?? undefined,
     };
-    const where =
-      plan.platform === 'shopify'
-        ? { shopifyOrderId: plan.externalOrderId }
-        : { pancakeOrderId: plan.externalOrderId };
-
     await this.prisma.orderMapping.upsert({
       where,
       create: data,

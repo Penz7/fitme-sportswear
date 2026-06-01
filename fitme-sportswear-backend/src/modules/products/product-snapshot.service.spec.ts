@@ -55,6 +55,7 @@ describe('ProductSnapshotService', () => {
               id: 'sapo-variant-1',
               sku: 'SKU-REAL-1',
               variantRetailPrice: 100000,
+              updated_at: '2026-06-01T10:00:00.000Z',
               inventories: [{ available: 5, onHand: 6 }],
             },
           ],
@@ -114,7 +115,15 @@ describe('ProductSnapshotService', () => {
     expect(snapshots.every((snapshot) => snapshot.sku === 'SKU-REAL-1')).toBe(
       true,
     );
-    expect(prisma.sapoProduct.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.sapoProduct.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-REAL-1' },
+      create: expect.objectContaining({
+        sourceUpdatedAt: new Date('2026-06-01T10:00:00.000Z'),
+      }),
+      update: expect.objectContaining({
+        sourceUpdatedAt: new Date('2026-06-01T10:00:00.000Z'),
+      }),
+    });
     expect(prisma.pancakeProduct.upsert).toHaveBeenCalledTimes(1);
     expect(prisma.shopifyProduct.upsert).toHaveBeenCalledTimes(1);
   });

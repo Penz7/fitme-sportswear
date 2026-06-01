@@ -9,12 +9,20 @@ interface SapoVariantInput {
   id?: string | number | null;
   sku?: string | null;
   variantRetailPrice?: number | null;
+  updatedAt?: string | null;
+  updated_at?: string | null;
+  modifiedOn?: string | null;
+  modified_on?: string | null;
   inventories?: SapoInventoryInput[] | null;
 }
 
 interface SapoProductInput {
   id?: string | number | null;
   name?: string | null;
+  updatedAt?: string | null;
+  updated_at?: string | null;
+  modifiedOn?: string | null;
+  modified_on?: string | null;
   variants?: SapoVariantInput[] | null;
 }
 
@@ -63,6 +71,21 @@ const toNullableNumber = (value: string | number | null | undefined): number | n
 const sumValues = <T>(items: T[] | null | undefined, getValue: (item: T) => number | null | undefined): number =>
   (items ?? []).reduce((sum, item) => sum + (getValue(item) ?? 0), 0);
 
+const toNullableDate = (...values: Array<string | null | undefined>): Date | null => {
+  for (const value of values) {
+    if (!value) {
+      continue;
+    }
+
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  return null;
+};
+
 export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProductSnapshot[] =>
   (product.variants ?? [])
     .map((variant): PlatformProductSnapshot | null => {
@@ -82,6 +105,16 @@ export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProdu
         retailPrice: variant.variantRetailPrice ?? null,
         warehouseId: null,
         warehouseCount: null,
+        sourceUpdatedAt: toNullableDate(
+          variant.updatedAt,
+          variant.updated_at,
+          variant.modifiedOn,
+          variant.modified_on,
+          product.updatedAt,
+          product.updated_at,
+          product.modifiedOn,
+          product.modified_on,
+        ),
       };
     })
     .filter((snapshot): snapshot is PlatformProductSnapshot => snapshot !== null);
