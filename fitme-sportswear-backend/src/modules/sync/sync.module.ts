@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { QueueModule } from '../queue/queue.module';
 import { ProductsModule } from '../products/products.module';
 import { ScheduledSyncProcessor } from './scheduled-sync.processor';
@@ -8,7 +9,7 @@ import { SyncService } from './sync.service';
 import { StartupProductSyncService } from './startup-product-sync.service';
 
 @Module({
-  imports: [QueueModule, ProductsModule],
+  imports: [QueueModule, ProductsModule, NotificationsModule],
   controllers: [SyncController],
   providers: [
     SyncService,

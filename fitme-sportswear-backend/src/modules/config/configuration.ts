@@ -1,3 +1,22 @@
+function parseStringMap(value: string | undefined): Record<string, string> {
+  if (!value) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed).map(([key, mapValue]) => [key, String(mapValue)]),
+    );
+  } catch {
+    return {};
+  }
+}
+
 export default () => ({
   app: {
     env: process.env.APP_ENV ?? 'local',
@@ -16,6 +35,11 @@ export default () => ({
     clientId: process.env.SAPO_CLIENT_ID as string,
     shopDomain: process.env.SAPO_SHOP_DOMAIN as string,
     locationId: process.env.SAPO_LOCATION_ID ?? '572310',
+    locationIdByPancakeWarehouseId: parseStringMap(
+      process.env.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID,
+    ),
+    prepaymentMethodId: Number(process.env.SAPO_PREPAYMENT_METHOD_ID ?? 2575663),
+    prepaymentMethodName: process.env.SAPO_PREPAYMENT_METHOD_NAME ?? 'Chuyen khoan',
   },
   pancake: {
     baseUrl: process.env.PANCAKE_BASE_URL as string,

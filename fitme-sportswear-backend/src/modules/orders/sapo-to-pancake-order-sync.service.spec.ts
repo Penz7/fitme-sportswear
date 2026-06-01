@@ -37,17 +37,26 @@ describe('SapoToPancakeOrderSyncService', () => {
     const configService = {
       get: jest.fn().mockReturnValue(false),
     };
+    const addressMappingService = {
+      resolvePancakeAddressFromSapoText: jest.fn().mockResolvedValue({
+        provinceId: 79,
+        districtId: 784,
+        wardId: 27523,
+      }),
+    };
 
     return {
       prisma,
       pancakeClient,
       mapper,
       configService,
+      addressMappingService,
       service: new SapoToPancakeOrderSyncService(
         prisma as any,
         pancakeClient as any,
         mapper as any,
         configService as any,
+        addressMappingService as any,
       ),
     };
   }
@@ -64,7 +73,11 @@ describe('SapoToPancakeOrderSyncService', () => {
     expect(prisma.orderMapping.findFirst).toHaveBeenCalledWith({
       where: { sapoOrderId: 'sapo-order-1' },
     });
-    expect(mapper.toPancakeOrder).toHaveBeenCalledWith(sapoOrder);
+    expect(mapper.toPancakeOrder).toHaveBeenCalledWith(sapoOrder, {
+      provinceId: 79,
+      districtId: 784,
+      wardId: 27523,
+    });
     expect(pancakeClient.createOrder).toHaveBeenCalledWith(pancakePayload);
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },
@@ -125,7 +138,7 @@ describe('SapoToPancakeOrderSyncService', () => {
     expect(prisma.orderMapping.upsert).not.toHaveBeenCalled();
   });
 
-  it('updates Pancake inventory from Sapo order lines when enabled', async () => {
+  it('does not update Pancake inventory from Sapo order line quantity when enabled', async () => {
     const { service, configService, pancakeClient } = createService();
     configService.get.mockImplementation((key: string) =>
       key === 'sync.orders.updatePancakeInventoryByOrder' ? true : false,
@@ -133,10 +146,6 @@ describe('SapoToPancakeOrderSyncService', () => {
 
     await service.syncSapoOrder(sapoOrder);
 
-    expect(pancakeClient.updateInventory).toHaveBeenCalledWith({
-      variantId: 'variant-1',
-      warehouseId: 'warehouse-1',
-      available: 1,
-    });
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
   });
 });

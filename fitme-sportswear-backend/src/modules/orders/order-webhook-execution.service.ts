@@ -30,30 +30,58 @@ export class OrderWebhookExecutionService {
     }
 
     const orderPayload = this.objectPayload(payload);
+    const sapoLocationId = this.resolveSapoLocationId(plan, orderPayload);
     let sapoOrderId = await this.findMappedSapoOrderId(plan);
     let sapoOrder: Record<string, any> | null = null;
 
     for (const action of plan.nextActions) {
       switch (action) {
         case 'create_sapo_order':
-          sapoOrderId = await this.createSapoOrder(plan, orderPayload, sapoOrderId);
+          sapoOrderId = await this.createSapoOrder(
+            plan,
+            orderPayload,
+            sapoOrderId,
+            sapoLocationId,
+          );
           break;
         case 'create_sapo_order_if_missing':
           if (!sapoOrderId) {
-            sapoOrderId = await this.createSapoOrder(plan, orderPayload, null);
+            sapoOrderId = await this.createSapoOrder(
+              plan,
+              orderPayload,
+              null,
+              sapoLocationId,
+            );
           }
           break;
         case 'finalize_sapo_order':
           if (sapoOrderId) {
-            await this.sapoClient.finalizeOrder(sapoOrderId);
+            await this.sapoClient.finalizeOrder(sapoOrderId, {
+              locationId: sapoLocationId,
+            });
+            await this.prepaySapoOrderIfNeeded(
+              sapoOrderId,
+              orderPayload,
+              sapoLocationId,
+            );
+            sapoOrder = await this.fetchSapoOrder(sapoOrderId);
           }
           break;
         case 'update_sapo_order':
           if (sapoOrderId) {
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
-            await this.sapoClient.updateOrder(sapoOrderId, {
-              order: await this.toSapoOrder(plan, orderPayload, sapoOrder),
-            });
+            await this.sapoClient.updateOrder(
+              sapoOrderId,
+              {
+                order: await this.toSapoOrder(
+                  plan,
+                  orderPayload,
+                  sapoOrder,
+                  sapoLocationId,
+                ),
+              },
+              { locationId: sapoLocationId },
+            );
           }
           break;
         case 'create_sapo_fulfillment':
@@ -68,6 +96,7 @@ export class OrderWebhookExecutionService {
               await this.sapoClient.createFulfillment(
                 sapoOrderId,
                 await this.toSapoFulfillment(orderPayload, sapoOrder),
+                { locationId: sapoLocationId },
               );
               sapoOrder = await this.fetchSapoOrder(sapoOrderId);
             }
@@ -78,7 +107,9 @@ export class OrderWebhookExecutionService {
             sapoOrder = sapoOrder ?? (await this.fetchSapoOrder(sapoOrderId));
             const fulfillmentId = this.lastFulfillmentId(sapoOrder);
             if (fulfillmentId) {
-              await this.sapoClient.shipFulfillment(sapoOrderId, fulfillmentId);
+              await this.sapoClient.shipFulfillment(sapoOrderId, fulfillmentId, {
+                locationId: sapoLocationId,
+              });
             }
           }
           break;
@@ -87,7 +118,12 @@ export class OrderWebhookExecutionService {
             sapoOrder = sapoOrder ?? (await this.fetchSapoOrder(sapoOrderId));
             const fulfillmentId = this.lastFulfillmentId(sapoOrder);
             if (fulfillmentId) {
-              await this.sapoClient.cancelFulfillment(sapoOrderId, fulfillmentId);
+              await this.sapoClient.cancelFulfillment(
+                sapoOrderId,
+                fulfillmentId,
+                undefined,
+                { locationId: sapoLocationId },
+              );
             }
           }
           break;
@@ -96,13 +132,20 @@ export class OrderWebhookExecutionService {
             sapoOrder = sapoOrder ?? (await this.fetchSapoOrder(sapoOrderId));
             const fulfillmentId = this.lastFulfillmentId(sapoOrder);
             if (fulfillmentId) {
-              await this.sapoClient.receiveAfterCancellation(sapoOrderId, fulfillmentId);
+              await this.sapoClient.receiveAfterCancellation(
+                sapoOrderId,
+                fulfillmentId,
+                undefined,
+                { locationId: sapoLocationId },
+              );
             }
           }
           break;
         case 'cancel_sapo_order':
           if (sapoOrderId) {
-            await this.sapoClient.cancelOrder(sapoOrderId);
+            await this.sapoClient.cancelOrder(sapoOrderId, {
+              locationId: sapoLocationId,
+            });
           }
           break;
         case 'create_shopify_fulfillment':
@@ -124,37 +167,72 @@ export class OrderWebhookExecutionService {
     plan: OrderWebhookProcessingPlan,
     payload: Record<string, any>,
     existingSapoOrderId: string | null,
+    sapoLocationId: string,
   ): Promise<string> {
     if (existingSapoOrderId) {
       return existingSapoOrderId;
     }
 
-    const created = await this.sapoClient.createOrder({
-      order: await this.withSapoCustomerId(await this.toSapoOrder(plan, payload)),
-    });
-    const sapoOrderId = this.requiredString(created.order?.id, 'Sapo order id');
+    const order = await this.withSapoCustomerId(
+      await this.toSapoOrder(plan, payload, {}, sapoLocationId),
+    );
+    const existingSapoOrder = await this.findExistingSapoOrderByCode(order.code);
+    if (existingSapoOrder) {
+      return this.requiredString(existingSapoOrder.id, 'Sapo order id');
+    }
 
+    const created = await this.sapoClient.createOrder(
+      { order },
+      { locationId: sapoLocationId },
+    );
+    return this.requiredString(created.order?.id, 'Sapo order id');
+  }
+
+  private async findExistingSapoOrderByCode(
+    code: unknown,
+  ): Promise<Record<string, any> | null> {
+    const orderCode = this.firstString(code);
+    if (!orderCode || !this.sapoClient.findOrderByCode) {
+      return null;
+    }
+
+    return this.sapoClient.findOrderByCode(orderCode);
+  }
+
+  private async prepaySapoOrderIfNeeded(
+    sapoOrderId: string,
+    payload: Record<string, any>,
+    sapoLocationId: string,
+  ): Promise<void> {
     const prepaid = this.numberValue(payload.prepaid);
-    if (prepaid && prepaid > 0) {
-      await this.sapoClient.prepayOrder(sapoOrderId, {
+    if (!prepaid || prepaid <= 0) {
+      return;
+    }
+
+    await this.sapoClient.prepayOrder(
+      sapoOrderId,
+      {
         prepayment: {
-          payment_method_id: 2575663,
-          payment_method_name: 'Chuyen khoan',
+          payment_method_id: this.configNumber('sapo.prepaymentMethodId', 2575663),
+          payment_method_name: this.configString(
+            'sapo.prepaymentMethodName',
+            'Chuyen khoan',
+          ),
           amount: prepaid,
           paid_amount: prepaid,
           returned_amount: 0,
           paid_on: new Date().toISOString(),
         },
-      });
-    }
-
-    return sapoOrderId;
+      },
+      { locationId: sapoLocationId },
+    );
   }
 
   private async toSapoOrder(
     plan: OrderWebhookProcessingPlan,
     payload: Record<string, any>,
     existingOrder: Record<string, any> = {},
+    sapoLocationId = this.resolveSapoLocationId(plan, payload),
   ): Promise<Record<string, any>> {
     const isShopify = plan.platform === 'shopify';
     const lineItems = await this.toSapoLineItems(
@@ -192,8 +270,44 @@ export class OrderWebhookExecutionService {
       order_line_items: lineItems,
       status: 'placed',
       source_id: 307258,
-      location_id: this.configNumber('sapo.locationId', 572310),
+      location_id: Number(sapoLocationId),
     };
+  }
+
+  private resolveSapoLocationId(
+    plan: OrderWebhookProcessingPlan,
+    payload: Record<string, any>,
+  ): string {
+    const defaultLocationId = this.configString('sapo.locationId', '572310');
+
+    if (plan.platform !== 'pancake') {
+      return defaultLocationId;
+    }
+
+    const pancakeWarehouseId = this.resolvePancakeWarehouseId(payload);
+    const locationMap = this.configRecord('sapo.locationIdByPancakeWarehouseId');
+
+    return pancakeWarehouseId && locationMap[pancakeWarehouseId]
+      ? locationMap[pancakeWarehouseId]
+      : defaultLocationId;
+  }
+
+  private resolvePancakeWarehouseId(payload: Record<string, any>): string | null {
+    const warehouse = this.objectPayload(payload.warehouse);
+    const warehouseInfo = this.objectPayload(
+      payload.warehouse_info ?? payload.warehouseInfo,
+    );
+
+    return this.firstString(
+      payload.warehouse_id,
+      payload.warehouseId,
+      warehouse.id,
+      warehouse.warehouse_id,
+      warehouse.warehouseId,
+      warehouseInfo.id,
+      warehouseInfo.warehouse_id,
+      warehouseInfo.warehouseId,
+    );
   }
 
   private async withSapoCustomerId(
@@ -707,5 +821,19 @@ export class OrderWebhookExecutionService {
   private configNumber(key: string, fallback: number): number {
     const parsed = Number(this.configService.get<number | string | undefined>(key));
     return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private configRecord(key: string): Record<string, string> {
+    const value = this.configService.get<unknown>(key);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([recordKey, recordValue]) => [
+        recordKey,
+        String(recordValue),
+      ]),
+    );
   }
 }

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PancakeModule } from '../pancake/pancake.module';
 import { SapoModule } from '../sapo/sapo.module';
 import { ShopifyModule } from '../shopify/shopify.module';
@@ -9,7 +10,7 @@ import { ProductSyncOrchestratorService } from './product-sync-orchestrator.serv
 import { ShopifyProductCleanupService } from './shopify-product-cleanup.service';
 
 @Module({
-  imports: [SapoModule, PancakeModule, ShopifyModule],
+  imports: [SapoModule, PancakeModule, ShopifyModule, NotificationsModule],
   providers: [
     ProductSnapshotService,
     ProductMatchingService,

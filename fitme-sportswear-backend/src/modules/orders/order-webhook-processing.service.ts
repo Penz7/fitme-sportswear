@@ -93,6 +93,22 @@ export class OrderWebhookProcessingService {
   }
 
   private buildShopifyPlan(event: WebhookEventLike): OrderWebhookProcessingPlan {
+    if (event.eventType === 'product') {
+      return this.ignoredPlan(
+        event,
+        this.resolveExternalOrderId(event),
+        'SHOPIFY_PRODUCT_WEBHOOK_IGNORED_PRODUCT_SYNC_IS_SCHEDULED',
+      );
+    }
+
+    if (event.eventType === 'fulfillment') {
+      return this.ignoredPlan(
+        event,
+        this.resolveExternalOrderId(event),
+        'SHOPIFY_FULFILLMENT_WEBHOOK_IGNORED_NOT_SUPPORTED_YET',
+      );
+    }
+
     if (event.eventType !== 'order') {
       return this.ignoredPlan(event, this.resolveExternalOrderId(event));
     }
@@ -152,13 +168,14 @@ export class OrderWebhookProcessingService {
   private ignoredPlan(
     event: WebhookEventLike,
     externalOrderId: string | null,
+    statusDescription = 'IGNORED',
   ): OrderWebhookProcessingPlan {
     return {
       platform: event.sourcePlatform,
       eventType: event.eventType,
       externalOrderId,
       statusCode: null,
-      statusDescription: 'IGNORED',
+      statusDescription,
       quantityEffect: 'none',
       sapoStatuses: [],
       nextActions: ['ignore'],

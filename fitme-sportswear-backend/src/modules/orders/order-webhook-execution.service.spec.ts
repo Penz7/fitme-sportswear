@@ -28,9 +28,11 @@ describe('OrderWebhookExecutionService', () => {
     };
     const sapoClient = {
       createOrder: jest.fn().mockResolvedValue({ order: { id: 'sapo-order-1' } }),
+      findOrderByCode: jest.fn().mockResolvedValue(null),
       fetchCustomers: jest.fn().mockResolvedValue({ customers: [] }),
       createCustomer: jest.fn().mockResolvedValue({ customer: { id: 12345 } }),
       finalizeOrder: jest.fn().mockResolvedValue({}),
+      prepayOrder: jest.fn().mockResolvedValue({}),
       fetchOrder: jest.fn().mockResolvedValue({
         order: {
           id: 'sapo-order-1',
@@ -67,8 +69,13 @@ describe('OrderWebhookExecutionService', () => {
     };
     const configService = {
       get: jest.fn((key: string) => {
-        const values: Record<string, string | number | undefined> = {
+        const values: Record<string, string | number | Record<string, string> | undefined> = {
           'sapo.locationId': '572310',
+          'sapo.locationIdByPancakeWarehouseId': {
+            'pancake-warehouse-1': '999999',
+          },
+          'sapo.prepaymentMethodId': 2575663,
+          'sapo.prepaymentMethodName': 'Chuyen khoan',
           'shipping.viettelPost.service': 'VSL7',
           'shipping.viettelPost.accountId': '604003_1',
           'shipping.viettelPost.providerId': 508146,
@@ -110,6 +117,10 @@ describe('OrderWebhookExecutionService', () => {
       note: 'call first',
       bill_full_name: 'Nguyen Van A',
       bill_phone_number: '0909000000',
+      prepaid: 100000,
+      warehouse_info: {
+        id: 'pancake-warehouse-1',
+      },
       shipping_address: {
         full_name: 'Nguyen Van A',
         phone_number: '0909000000',
@@ -130,23 +141,27 @@ describe('OrderWebhookExecutionService', () => {
       ],
     });
 
-    expect(sapoClient.createOrder).toHaveBeenCalledWith({
-      order: expect.objectContaining({
-        code: 'AUTO_PANCAKE_pancake-order-1',
-        customer_id: 12345,
-        total: 300000,
-        status: 'placed',
-        phone_number: '0909000000',
-        order_line_items: [
-          expect.objectContaining({
-            sku: 'SKU-1',
-            quantity: 2,
-            product_id: 'sapo-product-1',
-            variant_id: 'sapo-variant-1',
-          }),
-        ],
-      }),
-    });
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          code: 'AUTO_PANCAKE_pancake-order-1',
+          customer_id: 12345,
+          total: 300000,
+          status: 'placed',
+          phone_number: '0909000000',
+          location_id: 999999,
+          order_line_items: [
+            expect.objectContaining({
+              sku: 'SKU-1',
+              quantity: 2,
+              product_id: 'sapo-product-1',
+              variant_id: 'sapo-variant-1',
+            }),
+          ],
+        }),
+      },
+      { locationId: '999999' },
+    );
     expect(sapoClient.fetchCustomers).toHaveBeenCalledWith(1, 1, '0909000000');
     expect(sapoClient.createCustomer).toHaveBeenCalledWith({
       customer: expect.objectContaining({
@@ -154,19 +169,93 @@ describe('OrderWebhookExecutionService', () => {
         name: 'Nguyen Van A',
       }),
     });
-    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1');
+    expect(sapoClient.prepayOrder).toHaveBeenCalledWith(
+      'sapo-order-1',
+      {
+        prepayment: expect.objectContaining({
+          payment_method_id: 2575663,
+          payment_method_name: 'Chuyen khoan',
+          amount: 100000,
+          paid_amount: 100000,
+          returned_amount: 0,
+        }),
+      },
+      { locationId: '999999' },
+    );
+    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1', {
+      locationId: '999999',
+    });
+    expect(sapoClient.fetchOrder).toHaveBeenCalledWith('sapo-order-1');
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },
       create: expect.objectContaining({
         sapoOrderId: 'sapo-order-1',
         pancakeOrderId: 'pancake-order-1',
         pancakeStatus: 0,
+        sapoStatus: 'finalized',
+        sapoPaymentStatus: 'paid',
       }),
       update: expect.objectContaining({
         sapoOrderId: 'sapo-order-1',
         pancakeStatus: 0,
+        sapoStatus: 'finalized',
+        sapoPaymentStatus: 'paid',
       }),
     });
+  });
+
+  it('reuses an existing Sapo order with the same code before creating a duplicate', async () => {
+    const { service, sapoClient, prisma } = createService();
+    sapoClient.findOrderByCode.mockResolvedValueOnce({ id: 'existing-sapo-order-1' });
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+    });
+
+    expect(sapoClient.findOrderByCode).toHaveBeenCalledWith(
+      'AUTO_PANCAKE_pancake-order-1',
+    );
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('existing-sapo-order-1', {
+      locationId: '572310',
+    });
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { pancakeOrderId: 'pancake-order-1' },
+      create: expect.objectContaining({ sapoOrderId: 'existing-sapo-order-1' }),
+      update: expect.objectContaining({ sapoOrderId: 'existing-sapo-order-1' }),
+    });
+  });
+
+  it('falls back to default Sapo location when Pancake warehouse is unmapped', async () => {
+    const { service, sapoClient, prisma } = createService();
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      warehouse_info: {
+        id: 'unknown-warehouse',
+      },
+      shipping_address: {
+        full_name: 'Nguyen Van A',
+        phone_number: '0909000000',
+      },
+      items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+    });
+
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({ location_id: 572310 }),
+      },
+      { locationId: '572310' },
+    );
+    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1', {
+      locationId: '572310',
+    });
+    expect(prisma.orderMapping.upsert).toHaveBeenCalled();
   });
 
   it('updates, fulfills, ships, and snapshots a mapped Pancake order', async () => {
@@ -218,6 +307,7 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.updateOrder).toHaveBeenCalledWith(
       'sapo-order-1',
       expect.objectContaining({ order: expect.any(Object) }),
+      { locationId: '572310' },
     );
     expect(sapoClient.createFulfillment).toHaveBeenCalledWith(
       'sapo-order-1',
@@ -229,6 +319,7 @@ describe('OrderWebhookExecutionService', () => {
           }),
         }),
       },
+      { locationId: '572310' },
     );
     const fulfillmentPayload = sapoClient.createFulfillment.mock.calls[0][1];
     expect(JSON.parse(fulfillmentPayload.fulfillment.shipment.detail)).toEqual(
@@ -275,6 +366,7 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.shipFulfillment).toHaveBeenCalledWith(
       'sapo-order-1',
       'fulfillment-1',
+      { locationId: '572310' },
     );
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },

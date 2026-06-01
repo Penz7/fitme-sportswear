@@ -142,9 +142,41 @@ describe('OrderWebhookProcessingService', () => {
     });
   });
 
+  it('explicitly ignores Shopify product and fulfillment webhooks', () => {
+    expect(
+      service.buildProcessingPlan({
+        id: 'event-7',
+        sourcePlatform: 'shopify',
+        eventType: 'product',
+        externalEventId: 'shopify-product-1',
+        payload: { id: 'shopify-product-1' },
+      } as any),
+    ).toEqual(
+      expect.objectContaining({
+        statusDescription: 'SHOPIFY_PRODUCT_WEBHOOK_IGNORED_PRODUCT_SYNC_IS_SCHEDULED',
+        nextActions: ['ignore'],
+      }),
+    );
+
+    expect(
+      service.buildProcessingPlan({
+        id: 'event-8',
+        sourcePlatform: 'shopify',
+        eventType: 'fulfillment',
+        externalEventId: 'shopify-fulfillment-1',
+        payload: { id: 'shopify-fulfillment-1' },
+      } as any),
+    ).toEqual(
+      expect.objectContaining({
+        statusDescription: 'SHOPIFY_FULFILLMENT_WEBHOOK_IGNORED_NOT_SUPPORTED_YET',
+        nextActions: ['ignore'],
+      }),
+    );
+  });
+
   it('ignores unsupported webhook event types without throwing', () => {
     const result = service.buildProcessingPlan({
-      id: 'event-7',
+      id: 'event-9',
       sourcePlatform: 'pancake',
       eventType: 'inventory_check',
       payload: { inventory: {} },

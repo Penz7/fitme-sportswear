@@ -124,11 +124,28 @@ describe('SapoClient', () => {
       status: 'finalized',
       createdOnMin: '2026-05-01T00:00:00.000Z',
       createdOnMax: '2026-05-30T23:59:59.000Z',
+      query: 'AUTO_PANCAKE_1',
     });
 
     expect(fetchWithSession).toHaveBeenCalledWith(
-      'https://fitme-sportswear.mysapogo.com/admin/orders.json?page=1&limit=50&status=finalized&created_on_min=2026-05-01T00%3A00%3A00.000Z&created_on_max=2026-05-30T23%3A59%3A59.000Z',
+      'https://fitme-sportswear.mysapogo.com/admin/orders.json?page=1&limit=50&status=finalized&created_on_min=2026-05-01T00%3A00%3A00.000Z&created_on_max=2026-05-30T23%3A59%3A59.000Z&query=AUTO_PANCAKE_1',
     );
+  });
+
+  it('finds an existing Sapo order by exact code', async () => {
+    fetchWithSession.mockResolvedValueOnce(
+      jsonResponse({
+        orders: [
+          { id: 'sapo-order-1', code: 'AUTO_PANCAKE_1' },
+          { id: 'sapo-order-2', code: 'AUTO_PANCAKE_10' },
+        ],
+      }),
+    );
+
+    await expect(createClient().findOrderByCode('AUTO_PANCAKE_1')).resolves.toEqual({
+      id: 'sapo-order-1',
+      code: 'AUTO_PANCAKE_1',
+    });
   });
 
   it('fetches Sapo logs with page and limit', async () => {
@@ -202,6 +219,27 @@ describe('SapoClient', () => {
         body: '{}',
       },
     );
+  });
+
+  it('uses per-call location override for order create, finalize, and prepayment', async () => {
+    fetchWithSession
+      .mockResolvedValueOnce(jsonResponse({ order: { id: 'sapo-order-1' } }))
+      .mockResolvedValueOnce(jsonResponse({ order: { id: 'sapo-order-1' } }))
+      .mockResolvedValueOnce(jsonResponse({ prepayment: { id: 'prepayment-1' } }));
+
+    const client = createClient();
+
+    await client.createOrder({ order: { code: 'AUTO_PANCAKE_1' } }, { locationId: '999999' });
+    await client.finalizeOrder('sapo-order-1', { locationId: '999999' });
+    await client.prepayOrder(
+      'sapo-order-1',
+      { prepayment: { amount: 100000 } },
+      { locationId: '999999' },
+    );
+
+    for (const call of fetchWithSession.mock.calls) {
+      expect(call[1].headers['X-Sapo-LocationId']).toBe('999999');
+    }
   });
 
   it('fetches and creates Sapo customers by phone number', async () => {
