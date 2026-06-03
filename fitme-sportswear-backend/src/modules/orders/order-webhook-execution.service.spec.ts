@@ -205,6 +205,54 @@ describe('OrderWebhookExecutionService', () => {
     });
   });
 
+  it('normalizes SKU before resolving product mapping for Sapo line items', async () => {
+    const { service, sapoClient, prisma } = createService();
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      items: [{ quantity: 1, variation_info: { barcode: ' SKU-1 ' } }],
+    });
+
+    expect(prisma.productMapping.findUnique).toHaveBeenCalledWith({
+      where: { sku: 'SKU-1' },
+    });
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          order_line_items: [
+            expect.objectContaining({
+              barcode: 'SKU-1',
+              sku: 'SKU-1',
+              product_id: 'sapo-product-1',
+              variant_id: 'sapo-variant-1',
+            }),
+          ],
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
+  it('rejects Sapo order creation when a line item SKU has no Sapo product mapping', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.productMapping.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.executePlan(basePlan, {
+        id: 'pancake-order-1',
+        bill_full_name: 'Nguyen Van A',
+        bill_phone_number: '0909000000',
+        items: [{ quantity: 1, variation_info: { barcode: 'UNKNOWN-SKU' } }],
+      }),
+    ).rejects.toThrow('Missing Sapo product mapping for SKU UNKNOWN-SKU');
+
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+    expect(sapoClient.finalizeOrder).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).not.toHaveBeenCalled();
+  });
+
   it('reuses an existing Sapo order with the same code before creating a duplicate', async () => {
     const { service, sapoClient, prisma } = createService();
     sapoClient.findOrderByCode.mockResolvedValueOnce({ id: 'existing-sapo-order-1' });

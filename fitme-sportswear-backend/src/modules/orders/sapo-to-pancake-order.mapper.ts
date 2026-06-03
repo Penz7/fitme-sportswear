@@ -150,10 +150,11 @@ export class SapoToPancakeOrderMapper {
   }
 
   private stringOrNull(value: unknown): string | null {
-    if (value === null || value === undefined || String(value).trim() === '') {
+    const normalized = value === null || value === undefined ? '' : String(value).trim();
+    if (normalized === '') {
       return null;
     }
 
-    return String(value);
+    return normalized;
   }
 }

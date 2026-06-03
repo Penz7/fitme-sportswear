@@ -400,9 +400,16 @@ export class OrderWebhookExecutionService {
       rawItems.map(async (item) => {
         const variation = this.objectPayload(item.variation_info ?? item.variationInfo);
         const sku = this.firstString(variation.barcode, item.sku);
+        if (!sku) {
+          throw new Error('Missing SKU for Sapo order line item');
+        }
+
         const productMapping = sku
           ? await this.prisma.productMapping.findUnique({ where: { sku } })
           : null;
+        if (!productMapping?.sapoProductId || !productMapping?.sapoVariantId) {
+          throw new Error(`Missing Sapo product mapping for SKU ${sku}`);
+        }
 
         return {
           quantity: this.numberValue(item.quantity),
@@ -411,8 +418,8 @@ export class OrderWebhookExecutionService {
           barcode: sku,
           sku,
           price: this.numberValue(variation.retail_price ?? item.price),
-          product_id: productMapping?.sapoProductId ?? null,
-          variant_id: productMapping?.sapoVariantId ?? null,
+          product_id: productMapping.sapoProductId,
+          variant_id: productMapping.sapoVariantId,
         };
       }),
     );
@@ -838,8 +845,9 @@ export class OrderWebhookExecutionService {
 
   private firstString(...values: unknown[]): string | null {
     for (const value of values) {
-      if (value !== null && value !== undefined && String(value).trim() !== '') {
-        return String(value);
+      const normalized = value === null || value === undefined ? '' : String(value).trim();
+      if (normalized !== '') {
+        return normalized;
       }
     }
 
