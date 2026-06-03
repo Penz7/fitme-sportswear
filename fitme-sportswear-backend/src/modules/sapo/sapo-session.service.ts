@@ -79,7 +79,7 @@ export class SapoSessionService {
       'suffix-domain': 'mysapogo.com',
     });
 
-    await this.fetchLoginStep(
+    const loginRedirect = await this.fetchLoginStep(
       `${accountBaseUrl}/login`,
       {
         method: 'POST',
@@ -89,13 +89,27 @@ export class SapoSessionService {
       'Sapo login',
     );
 
+    if (loginRedirect) {
+      await this.fetchLoginStep(
+        loginRedirect,
+        {
+          method: 'GET',
+          headers: { Cookie: this.getCookieHeader() },
+        },
+        'Sapo SSO',
+      );
+    }
+
     const authorizeUrl = new URL(`${accountBaseUrl}/oauth/authorize`);
     authorizeUrl.searchParams.set('client_id', clientId);
     authorizeUrl.searchParams.set(
       'redirect_uri',
-      `${sapoBaseUrl}/admin/oauth/callback`,
+      'https://app.sapo.vn/oauth/SapoSSOOauthCallback',
     );
-    authorizeUrl.searchParams.set('state', shopDomain);
+    authorizeUrl.searchParams.set(
+      'state',
+      `{"redirectUrl" : "http://${shopDomain}/admin/authorization/login?returnUrl=/"}`,
+    );
     authorizeUrl.searchParams.set('scope', 'profile');
     authorizeUrl.searchParams.set('response_type', 'code');
 
@@ -128,13 +142,58 @@ export class SapoSessionService {
     url: string,
     init: RequestInit,
     label: string,
-  ): Promise<void> {
-    const response = await fetch(url, init);
-    this.storeCookies(response);
+  ): Promise<string | null> {
+    let currentUrl = url;
+    let currentInit = init;
 
-    if (!response.ok) {
-      throw new Error(`${label} failed with status ${response.status}`);
+    for (let redirectCount = 0; redirectCount < 10; redirectCount += 1) {
+      const response = await fetch(currentUrl, {
+        ...currentInit,
+        redirect: 'manual',
+      });
+      this.storeCookies(response);
+
+      if (this.isRedirect(response.status)) {
+        const location = response.headers.get('location');
+        if (!location) {
+          throw new Error(`${label} redirect missing Location header`);
+        }
+
+        currentUrl = new URL(location, currentUrl).toString();
+        currentInit = {
+          method: 'GET',
+          headers: {
+            ...this.toHeaderObject(currentInit.headers),
+            Cookie: this.getCookieHeader(),
+          },
+        };
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`${label} failed with status ${response.status}`);
+      }
+
+      return this.loginRedirectUrl(response);
     }
+
+    throw new Error(`${label} exceeded redirect limit`);
+  }
+
+  private isRedirect(status: number): boolean {
+    return status >= 300 && status < 400;
+  }
+
+  private async loginRedirectUrl(response: Response): Promise<string | null> {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      return null;
+    }
+
+    const body = (await response.json().catch(() => null)) as {
+      redirect?: unknown;
+    } | null;
+    return typeof body?.redirect === 'string' ? body.redirect : null;
   }
 
   private storeCookies(response: Response): void {

@@ -5,6 +5,7 @@ import { AddressModule } from '../address/address.module';
 import { OrdersModule } from '../orders/orders.module';
 import { ProductsModule } from '../products/products.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SapoModule } from '../sapo/sapo.module';
 import { AddressMappingSyncProcessor } from './processors/address-mapping-sync.processor';
 import { ProductSyncProcessor } from './processors/product-sync.processor';
 import { SapoToPancakeOrderSyncProcessor } from './processors/sapo-to-pancake-order-sync.processor';
@@ -40,6 +41,7 @@ import {
     OrdersModule,
     ProductsModule,
     NotificationsModule,
+    SapoModule,
     BullModule.registerQueue(
       { name: TEST_SYNC_QUEUE },
       { name: PRODUCT_SYNC_QUEUE },
@@ -63,6 +65,7 @@ import {
     ScheduledSyncProducer,
   ],
   exports: [
+    BullModule,
     TestSyncProducer,
     ProductSyncProducer,
     AddressMappingSyncProducer,

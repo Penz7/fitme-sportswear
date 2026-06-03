@@ -27,7 +27,12 @@ describe('SapoSessionService', () => {
     return new SapoSessionService(configService);
   }
 
-  function response(ok: boolean, status: number, setCookie?: string[]) {
+  function response(
+    ok: boolean,
+    status: number,
+    setCookie?: string[],
+    body?: unknown,
+  ) {
     return {
       ok,
       status,
@@ -36,17 +41,25 @@ describe('SapoSessionService', () => {
         get: (name: string) =>
           name.toLowerCase() === 'set-cookie'
             ? (setCookie?.join(', ') ?? null)
-            : null,
+            : name.toLowerCase() === 'content-type' && body !== undefined
+              ? 'application/json'
+              : null,
       },
+      json: async () => body,
       text: async () => 'response body',
     } as unknown as Response;
   }
 
   it('builds the login form and stores cookies from all login steps', async () => {
     fetchMock
-      .mockResolvedValueOnce(response(true, 200, ['session_id=abc; Path=/']))
-      .mockResolvedValueOnce(response(true, 200, ['oauth_id=def; Path=/']))
-      .mockResolvedValueOnce(response(true, 200, ['admin_id=ghi; Path=/']));
+      .mockResolvedValueOnce(
+        response(true, 200, ['session_id=abc; Path=/'], {
+          redirect: 'https://accounts.sapo.vn/sso?serviceType=pos',
+        }),
+      )
+      .mockResolvedValueOnce(response(true, 200, ['sso_id=def; Path=/']))
+      .mockResolvedValueOnce(response(true, 200, ['oauth_id=ghi; Path=/']))
+      .mockResolvedValueOnce(response(true, 200, ['admin_id=jkl; Path=/']));
 
     const service = createService();
 
@@ -70,18 +83,44 @@ describe('SapoSessionService', () => {
     expect(firstBody.get('countryCode')).toBe('84');
     expect(firstBody.get('Product')).toBe('pos');
     expect(firstBody.get('suffix-domain')).toBe('mysapogo.com');
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://accounts.sapo.vn/sso?serviceType=pos',
+      expect.objectContaining({ method: 'GET' }),
+    );
+
+    const authorizeUrl = new URL(fetchMock.mock.calls[2][0]);
+    expect(authorizeUrl.searchParams.get('client_id')).toBe('sapo-client');
+    expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(
+      'https://app.sapo.vn/oauth/SapoSSOOauthCallback',
+    );
+    expect(authorizeUrl.searchParams.get('state')).toBe(
+      '{"redirectUrl" : "http://fitme-sportswear.mysapogo.com/admin/authorization/login?returnUrl=/"}',
+    );
+
     expect(service.getCookieHeader()).toBe(
-      'session_id=abc; oauth_id=def; admin_id=ghi',
+      'session_id=abc; sso_id=def; oauth_id=ghi; admin_id=jkl',
     );
   });
 
   it('refreshes the session and retries a request once after 401', async () => {
     fetchMock
-      .mockResolvedValueOnce(response(true, 200, ['session_id=old; Path=/']))
+      .mockResolvedValueOnce(
+        response(true, 200, ['session_id=old; Path=/'], {
+          redirect: 'https://accounts.sapo.vn/sso?serviceType=pos',
+        }),
+      )
+      .mockResolvedValueOnce(response(true, 200, ['sso_id=old; Path=/']))
       .mockResolvedValueOnce(response(true, 200, ['oauth_id=old; Path=/']))
       .mockResolvedValueOnce(response(true, 200, ['admin_id=old; Path=/']))
       .mockResolvedValueOnce(response(false, 401))
-      .mockResolvedValueOnce(response(true, 200, ['session_id=new; Path=/']))
+      .mockResolvedValueOnce(
+        response(true, 200, ['session_id=new; Path=/'], {
+          redirect: 'https://accounts.sapo.vn/sso?serviceType=pos',
+        }),
+      )
+      .mockResolvedValueOnce(response(true, 200, ['sso_id=new; Path=/']))
       .mockResolvedValueOnce(response(true, 200, ['oauth_id=new; Path=/']))
       .mockResolvedValueOnce(response(true, 200, ['admin_id=new; Path=/']))
       .mockResolvedValueOnce(response(true, 200));
@@ -97,7 +136,7 @@ describe('SapoSessionService', () => {
       'https://fitme-sportswear.mysapogo.com/admin/products/search.json?page=1&limit=50',
       expect.objectContaining({
         headers: expect.objectContaining({
-          Cookie: 'session_id=new; oauth_id=new; admin_id=new',
+          Cookie: 'session_id=new; sso_id=new; oauth_id=new; admin_id=new',
         }),
       }),
     );

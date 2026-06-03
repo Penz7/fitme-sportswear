@@ -265,8 +265,13 @@ export class PancakeClient {
       throw new Error(`Pancake address fetch failed with status ${response.status}`);
     }
 
-    const body = (await response.json()) as { data?: PancakeAddressUnit[] };
-    return body.data ?? [];
+    const body = (await response.json()) as { data?: Array<Record<string, any>> };
+    return (body.data ?? [])
+      .map((unit) => ({
+        id: Number(unit.id),
+        name: String(unit.name ?? ''),
+      }))
+      .filter((unit) => Number.isFinite(unit.id) && unit.name.length > 0);
   }
 
   private async fetchOrderResponse(
