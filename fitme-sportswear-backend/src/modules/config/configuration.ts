@@ -15,12 +15,21 @@ export default () => ({
     password: process.env.SAPO_PASSWORD as string,
     clientId: process.env.SAPO_CLIENT_ID as string,
     shopDomain: process.env.SAPO_SHOP_DOMAIN as string,
-    locationId: process.env.SAPO_LOCATION_ID ?? '572310',
+    locationId: process.env.SAPO_LOCATION_ID as string,
+    pancakeSourceId: Number(process.env.SAPO_PANCAKE_SOURCE_ID),
+    locationIdByPancakeWarehouseId: JSON.parse(
+      process.env.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID ?? '{}',
+    ) as Record<string, string>,
+    prepaymentMethodId: Number(process.env.SAPO_PREPAYMENT_METHOD_ID),
+    prepaymentMethodName: process.env.SAPO_PREPAYMENT_METHOD_NAME as string,
   },
   pancake: {
     baseUrl: process.env.PANCAKE_BASE_URL as string,
     apiKey: process.env.PANCAKE_API_KEY as string,
     shopId: process.env.PANCAKE_SHOP_ID as string,
+    defaultWarehouseId: process.env.PANCAKE_DEFAULT_WAREHOUSE_ID as string,
+    webhookUrl: process.env.PANCAKE_WEBHOOK_URL,
+    webhookSecret: process.env.PANCAKE_WEBHOOK_SECRET,
   },
   shopify: {
     baseUrl: process.env.SHOPIFY_BASE_URL as string,
@@ -32,6 +41,15 @@ export default () => ({
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
     chatId: process.env.TELEGRAM_CHAT_ID,
+  },
+  webhooks: {
+    ingestionEnabled: process.env.WEBHOOK_INGESTION_ENABLED === 'true',
+    pancake: {
+      enabled: process.env.PANCAKE_WEBHOOK_ENABLED === 'true',
+    },
+    shopify: {
+      enabled: process.env.SHOPIFY_WEBHOOK_ENABLED === 'true',
+    },
   },
   shipping: {
     sender: {

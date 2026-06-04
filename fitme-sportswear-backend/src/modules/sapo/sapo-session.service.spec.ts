@@ -27,16 +27,28 @@ describe('SapoSessionService', () => {
     return new SapoSessionService(configService);
   }
 
-  function response(ok: boolean, status: number, setCookie?: string[]) {
+  function response(
+    ok: boolean,
+    status: number,
+    setCookie?: string[],
+    location?: string,
+  ) {
     return {
       ok,
       status,
       headers: {
         getSetCookie: () => setCookie ?? [],
-        get: (name: string) =>
-          name.toLowerCase() === 'set-cookie'
-            ? (setCookie?.join(', ') ?? null)
-            : null,
+        get: (name: string) => {
+          if (name.toLowerCase() === 'set-cookie') {
+            return setCookie?.join(', ') ?? null;
+          }
+
+          if (name.toLowerCase() === 'location') {
+            return location ?? null;
+          }
+
+          return null;
+        },
       },
       text: async () => 'response body',
     } as unknown as Response;
@@ -70,8 +82,53 @@ describe('SapoSessionService', () => {
     expect(firstBody.get('countryCode')).toBe('84');
     expect(firstBody.get('Product')).toBe('pos');
     expect(firstBody.get('suffix-domain')).toBe('mysapogo.com');
+    const authorizeUrl = new URL(fetchMock.mock.calls[1][0]);
+    expect(authorizeUrl.origin + authorizeUrl.pathname).toBe(
+      'https://accounts.sapo.vn/oauth/authorize',
+    );
+    expect(authorizeUrl.searchParams.get('client_id')).toBe('sapo-client');
+    expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(
+      'https://app.sapo.vn/oauth/SapoSSOOauthCallback',
+    );
+    expect(authorizeUrl.searchParams.get('state')).toBe(
+      '{"redirectUrl" : "http://fitme-sportswear.mysapogo.com/admin/authorization/login?returnUrl=/"}',
+    );
     expect(service.getCookieHeader()).toBe(
       'session_id=abc; oauth_id=def; admin_id=ghi',
+    );
+  });
+
+  it('stores cookies from Sapo login redirects', async () => {
+    fetchMock
+      .mockResolvedValueOnce(response(true, 200, ['session_id=abc; Path=/']))
+      .mockResolvedValueOnce(
+        response(
+          false,
+          302,
+          ['oauth_id=def; Path=/'],
+          'https://fitme-sportswear.mysapogo.com/admin',
+        ),
+      )
+      .mockResolvedValueOnce(response(true, 200, ['shop_id=ghi; Path=/']))
+      .mockResolvedValueOnce(response(true, 200, ['admin_id=jkl; Path=/']));
+
+    const service = createService();
+
+    await service.ensureSession();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      'https://fitme-sportswear.mysapogo.com/admin',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          Cookie: 'session_id=abc; oauth_id=def',
+        }),
+        redirect: 'manual',
+      }),
+    );
+    expect(service.getCookieHeader()).toBe(
+      'session_id=abc; oauth_id=def; shop_id=ghi; admin_id=jkl',
     );
   });
 

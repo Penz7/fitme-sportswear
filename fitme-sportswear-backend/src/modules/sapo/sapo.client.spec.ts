@@ -122,12 +122,13 @@ describe('SapoClient', () => {
       page: 1,
       limit: 50,
       status: 'finalized',
+      query: 'AUTO_PANCAKE_17976',
       createdOnMin: '2026-05-01T00:00:00.000Z',
       createdOnMax: '2026-05-30T23:59:59.000Z',
     });
 
     expect(fetchWithSession).toHaveBeenCalledWith(
-      'https://fitme-sportswear.mysapogo.com/admin/orders.json?page=1&limit=50&status=finalized&created_on_min=2026-05-01T00%3A00%3A00.000Z&created_on_max=2026-05-30T23%3A59%3A59.000Z',
+      'https://fitme-sportswear.mysapogo.com/admin/orders.json?page=1&limit=50&status=finalized&query=AUTO_PANCAKE_17976&created_on_min=2026-05-01T00%3A00%3A00.000Z&created_on_max=2026-05-30T23%3A59%3A59.000Z',
     );
   });
 
@@ -145,6 +146,19 @@ describe('SapoClient', () => {
     });
     expect(fetchWithSession).toHaveBeenCalledWith(
       'https://fitme-sportswear.mysapogo.com/admin/logs.json?page=1&limit=100',
+    );
+  });
+
+  it('searches active Sapo customers using the doSearch endpoint', async () => {
+    fetchWithSession.mockResolvedValueOnce(
+      jsonResponse({ customers: [{ id: 'customer-1' }] }),
+    );
+
+    await expect(
+      createClient().fetchCustomers(1, 10, '0909000000'),
+    ).resolves.toEqual({ customers: [{ id: 'customer-1' }] });
+    expect(fetchWithSession).toHaveBeenCalledWith(
+      'https://fitme-sportswear.mysapogo.com/admin/customers/doSearch.json?page=1&limit=10&query.contains=0909000000&statuses.in=active&condition_type=must',
     );
   });
 
@@ -226,7 +240,7 @@ describe('SapoClient', () => {
 
     expect(fetchWithSession).toHaveBeenNthCalledWith(
       1,
-      'https://fitme-sportswear.mysapogo.com/admin/customers.json?page=1&limit=1&query=0909000000',
+      'https://fitme-sportswear.mysapogo.com/admin/customers/doSearch.json?page=1&limit=1&query.contains=0909000000&statuses.in=active&condition_type=must',
     );
     expect(fetchWithSession).toHaveBeenNthCalledWith(
       2,

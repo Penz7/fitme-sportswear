@@ -95,6 +95,47 @@ describe('PancakeClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('normalizes snake_case variation fields returned by Pancake', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: [
+          {
+            id: 'v1',
+            display_id: 'SKU-1',
+            product_id: 'p1',
+            product: { name: 'Shirt' },
+            retail_price: 100000,
+            variations_warehouses: [
+              {
+                warehouse_id: 'warehouse-1',
+                remain_quantity: 12,
+                actual_remain_quantity: 15,
+              },
+            ],
+          },
+        ],
+        total_pages: 1,
+      }),
+    );
+
+    await expect(createClient().fetchProducts()).resolves.toEqual([
+      {
+        id: 'v1',
+        displayId: 'SKU-1',
+        productId: 'p1',
+        product: { name: 'Shirt' },
+        retailPrice: 100000,
+        variationsWarehouses: [
+          {
+            warehouseId: 'warehouse-1',
+            remainQuantity: 12,
+            actualRemainQuantity: 15,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('sends variations_warehouses payload for quantity update', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ success: true }));
 
@@ -167,6 +208,16 @@ describe('PancakeClient', () => {
       3,
       'https://pos.pages.fm/api/v1/geo/communes?district_id=688&api_key=pancake-key',
     );
+  });
+
+  it('normalizes string address IDs returned by Pancake to numbers', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ data: [{ id: '701', name: 'Ho Chi Minh' }] }),
+    );
+
+    await expect(createClient().fetchProvinces()).resolves.toEqual([
+      { id: 701, name: 'Ho Chi Minh' },
+    ]);
   });
 
   it('creates, updates, fetches, and lists Pancake orders using shop scoped endpoints', async () => {

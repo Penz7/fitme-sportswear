@@ -8,6 +8,7 @@ import {
   OrderProcessingAction,
   OrderWebhookProcessingPlan,
 } from './order-webhook-processing.service';
+import { PancakeToSapoPreflightService } from './pancake-to-sapo-preflight.service';
 
 @Injectable()
 export class OrderWebhookExecutionService {
@@ -19,6 +20,7 @@ export class OrderWebhookExecutionService {
     private readonly shopifyClient: ShopifyClient,
     private readonly addressMappingService: AddressMappingService,
     private readonly configService: ConfigService,
+    private readonly pancakeToSapoPreflightService: PancakeToSapoPreflightService,
   ) {}
 
   async executePlan(
@@ -129,23 +131,29 @@ export class OrderWebhookExecutionService {
       return existingSapoOrderId;
     }
 
+    let sapoOrder: Record<string, any>;
+    let prepayment: Record<string, any> | null = null;
+
+    if (plan.platform === 'pancake') {
+      const preflight = await this.pancakeToSapoPreflightService.preflight(payload);
+      if (!preflight.valid || !preflight.sapoOrder) {
+        throw new Error(
+          `Pancake-to-Sapo preflight failed: ${preflight.errors.join('; ')}`,
+        );
+      }
+      sapoOrder = preflight.sapoOrder;
+      prepayment = preflight.prepayment;
+    } else {
+      sapoOrder = await this.toSapoOrder(plan, payload);
+    }
+
     const created = await this.sapoClient.createOrder({
-      order: await this.withSapoCustomerId(await this.toSapoOrder(plan, payload)),
+      order: await this.withSapoCustomerId(sapoOrder),
     });
     const sapoOrderId = this.requiredString(created.order?.id, 'Sapo order id');
 
-    const prepaid = this.numberValue(payload.prepaid);
-    if (prepaid && prepaid > 0) {
-      await this.sapoClient.prepayOrder(sapoOrderId, {
-        prepayment: {
-          payment_method_id: 2575663,
-          payment_method_name: 'Chuyen khoan',
-          amount: prepaid,
-          paid_amount: prepaid,
-          returned_amount: 0,
-          paid_on: new Date().toISOString(),
-        },
-      });
+    if (prepayment) {
+      await this.sapoClient.prepayOrder(sapoOrderId, prepayment);
     }
 
     return sapoOrderId;

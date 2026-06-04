@@ -31,6 +31,7 @@ describe('OrderWebhookExecutionService', () => {
       fetchCustomers: jest.fn().mockResolvedValue({ customers: [] }),
       createCustomer: jest.fn().mockResolvedValue({ customer: { id: 12345 } }),
       finalizeOrder: jest.fn().mockResolvedValue({}),
+      prepayOrder: jest.fn().mockResolvedValue({}),
       fetchOrder: jest.fn().mockResolvedValue({
         order: {
           id: 'sapo-order-1',
@@ -84,6 +85,45 @@ describe('OrderWebhookExecutionService', () => {
         return values[key];
       }),
     };
+    const pancakeToSapoPreflightService = {
+      preflight: jest.fn().mockResolvedValue({
+        valid: true,
+        errors: [],
+        sapoOrder: {
+          code: 'AUTO_PANCAKE_pancake-order-1',
+          total: 300000,
+          note: 'call first',
+          tags: [],
+          shipping_address: {
+            full_name: 'Nguyen Van A',
+            phone_number: '0909000000',
+            full_address: 'Ho Chi Minh',
+            ward: 'Ward',
+          },
+          email: null,
+          phone_number: '0909000000',
+          customer_data: {
+            name: 'Nguyen Van A',
+            tags: [],
+            addresses: [{ full_address: 'Ho Chi Minh' }],
+          },
+          order_line_items: [
+            {
+              sku: 'SKU-1',
+              quantity: 2,
+              price: 150000,
+              product_id: 'sapo-product-1',
+              variant_id: 'sapo-variant-1',
+            },
+          ],
+          status: 'placed',
+          source_id: 5632931,
+          location_id: 572310,
+        },
+        prepayment: null,
+        preview: {},
+      }),
+    };
 
     return {
       prisma,
@@ -91,12 +131,14 @@ describe('OrderWebhookExecutionService', () => {
       shopifyClient,
       addressMappingService,
       configService,
+      pancakeToSapoPreflightService,
       service: new OrderWebhookExecutionService(
         prisma as any,
         sapoClient as any,
         shopifyClient as any,
         addressMappingService as any,
         configService as any,
+        pancakeToSapoPreflightService as any,
       ),
     };
   }
@@ -167,6 +209,28 @@ describe('OrderWebhookExecutionService', () => {
         pancakeStatus: 0,
       }),
     });
+  });
+
+  it('rejects Pancake order creation before any Sapo write when preflight fails', async () => {
+    const { service, sapoClient, pancakeToSapoPreflightService } =
+      createService();
+    pancakeToSapoPreflightService.preflight.mockResolvedValue({
+      valid: false,
+      errors: ['SKU SKU-1 is missing a complete Sapo product mapping'],
+      sapoOrder: null,
+      prepayment: null,
+      preview: {},
+    });
+
+    await expect(
+      service.executePlan(basePlan, { id: 'pancake-order-1' }),
+    ).rejects.toThrow(
+      'Pancake-to-Sapo preflight failed: SKU SKU-1 is missing a complete Sapo product mapping',
+    );
+
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+    expect(sapoClient.createCustomer).not.toHaveBeenCalled();
+    expect(sapoClient.prepayOrder).not.toHaveBeenCalled();
   });
 
   it('updates, fulfills, ships, and snapshots a mapped Pancake order', async () => {

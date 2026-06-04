@@ -1,5 +1,19 @@
 import * as Joi from 'joi';
 
+const warehouseLocationMap = Joi.string()
+  .required()
+  .custom((value: string, helpers) => {
+    try {
+      const parsed = JSON.parse(value);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return helpers.error('any.invalid');
+      }
+      return value;
+    } catch {
+      return helpers.error('any.invalid');
+    }
+  }, 'Pancake warehouse to Sapo location JSON');
+
 export const envValidationSchema = Joi.object({
   APP_ENV: Joi.string().valid('local', 'test', 'development', 'production').default('local'),
   APP_PORT: Joi.number().port().default(3000),
@@ -14,17 +28,27 @@ export const envValidationSchema = Joi.object({
   SAPO_PASSWORD: Joi.string().required(),
   SAPO_CLIENT_ID: Joi.string().required(),
   SAPO_SHOP_DOMAIN: Joi.string().required(),
-  SAPO_LOCATION_ID: Joi.string().default('572310'),
+  SAPO_LOCATION_ID: Joi.string().required(),
+  SAPO_PANCAKE_SOURCE_ID: Joi.number().integer().positive().required(),
+  SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID: warehouseLocationMap,
+  SAPO_PREPAYMENT_METHOD_ID: Joi.number().integer().positive().required(),
+  SAPO_PREPAYMENT_METHOD_NAME: Joi.string().trim().required(),
 
   PANCAKE_BASE_URL: Joi.string().uri().required(),
   PANCAKE_API_KEY: Joi.string().required(),
   PANCAKE_SHOP_ID: Joi.string().required(),
+  PANCAKE_DEFAULT_WAREHOUSE_ID: Joi.string().required(),
+  PANCAKE_WEBHOOK_URL: Joi.string().uri().allow('').optional(),
+  PANCAKE_WEBHOOK_SECRET: Joi.string().allow('').optional(),
 
   SHOPIFY_BASE_URL: Joi.string().uri().required(),
   SHOPIFY_ACCESS_TOKEN: Joi.string().required(),
   SHOPIFY_API_VERSION: Joi.string().default('2024-04'),
   SHOPIFY_LOCATION_ID: Joi.string().optional(),
   SHOPIFY_WEBHOOK_SECRET: Joi.string().optional(),
+  WEBHOOK_INGESTION_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
+  PANCAKE_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
+  SHOPIFY_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
   TELEGRAM_BOT_TOKEN: Joi.string().allow('').optional(),
   TELEGRAM_CHAT_ID: Joi.string().allow('').optional(),
 
@@ -65,4 +89,21 @@ export const envValidationSchema = Joi.object({
     .truthy('true')
     .falsy('false')
     .default(false),
+}).custom((environment, helpers) => {
+  const mappings = JSON.parse(
+    environment.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID,
+  ) as Record<string, unknown>;
+  const locationId = mappings[environment.PANCAKE_DEFAULT_WAREHOUSE_ID];
+
+  if (
+    locationId === undefined ||
+    String(locationId) !== String(environment.SAPO_LOCATION_ID)
+  ) {
+    return helpers.message({
+      custom:
+        'PANCAKE_DEFAULT_WAREHOUSE_ID must map to SAPO_LOCATION_ID in SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID',
+    });
+  }
+
+  return environment;
 });

@@ -67,8 +67,45 @@ export class ProductSyncOrchestratorService {
     }
   }
 
+  async syncPancakeToSapoPreflightMappings() {
+    const snapshots =
+      await this.snapshotService.refreshPancakeToSapoSnapshots();
+    const mappings = this.matchingService.buildMappings(snapshots);
+
+    for (const mapping of mappings) {
+      await this.upsertPreflightMapping(mapping);
+    }
+
+    return {
+      snapshots: snapshots.length,
+      mappings: mappings.length,
+      ...this.countMappingStatuses(mappings),
+    };
+  }
+
   private async upsertMapping(mapping: ProductMappingCandidate) {
     const data = this.toMappingData(mapping);
+
+    await this.prisma.productMapping.upsert({
+      where: { sku: mapping.sku },
+      create: {
+        sku: mapping.sku,
+        ...data,
+      },
+      update: data,
+    });
+  }
+
+  private async upsertPreflightMapping(mapping: ProductMappingCandidate) {
+    const data = {
+      sapoProductId: mapping.sapo?.productId ?? null,
+      sapoVariantId: mapping.sapo?.variantId ?? null,
+      pancakeProductId: mapping.pancake?.productId ?? null,
+      pancakeVariantId: mapping.pancake?.variantId ?? null,
+      pancakeWarehouseId: mapping.pancake?.warehouseId ?? null,
+      status: mapping.status as ProductMappingStatus,
+      conflictReason: mapping.conflictReason,
+    };
 
     await this.prisma.productMapping.upsert({
       where: { sku: mapping.sku },

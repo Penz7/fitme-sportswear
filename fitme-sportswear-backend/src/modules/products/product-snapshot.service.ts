@@ -28,6 +28,12 @@ export class ProductSnapshotService {
     return [...sapo, ...pancake, ...shopify];
   }
 
+  async refreshPancakeToSapoSnapshots() {
+    const sapo = await this.refreshSapoSnapshots();
+    const pancake = await this.refreshPancakeSnapshots();
+    return [...sapo, ...pancake];
+  }
+
   async refreshSapoSnapshots() {
     const products = await this.sapoClient.fetchProducts();
     const snapshots = products.flatMap((product) =>

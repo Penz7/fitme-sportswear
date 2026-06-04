@@ -93,9 +93,12 @@ export class SapoSessionService {
     authorizeUrl.searchParams.set('client_id', clientId);
     authorizeUrl.searchParams.set(
       'redirect_uri',
-      `${sapoBaseUrl}/admin/oauth/callback`,
+      'https://app.sapo.vn/oauth/SapoSSOOauthCallback',
     );
-    authorizeUrl.searchParams.set('state', shopDomain);
+    authorizeUrl.searchParams.set(
+      'state',
+      `{"redirectUrl" : "http://${shopDomain}/admin/authorization/login?returnUrl=/"}`,
+    );
     authorizeUrl.searchParams.set('scope', 'profile');
     authorizeUrl.searchParams.set('response_type', 'code');
 
@@ -129,12 +132,67 @@ export class SapoSessionService {
     init: RequestInit,
     label: string,
   ): Promise<void> {
-    const response = await fetch(url, init);
-    this.storeCookies(response);
+    const response = await this.fetchFollowingRedirects(url, init);
 
     if (!response.ok) {
       throw new Error(`${label} failed with status ${response.status}`);
     }
+  }
+
+  private async fetchFollowingRedirects(
+    url: string,
+    init: RequestInit,
+    maxRedirects = 10,
+  ): Promise<Response> {
+    let currentUrl = url;
+    let currentInit: RequestInit = init;
+
+    for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+      const response = await fetch(currentUrl, {
+        ...currentInit,
+        redirect: 'manual',
+        headers: {
+          ...this.toHeaderObject(currentInit.headers),
+          Cookie: this.getCookieHeader(),
+        },
+      });
+
+      this.storeCookies(response);
+
+      if (!this.isRedirect(response.status)) {
+        return response;
+      }
+
+      const location = response.headers.get('location');
+      if (!location) {
+        return response;
+      }
+
+      currentUrl = new URL(location, currentUrl).toString();
+      currentInit = this.redirectInit(currentInit, response.status);
+    }
+
+    throw new Error('Sapo login redirect limit exceeded');
+  }
+
+  private isRedirect(status: number): boolean {
+    return [301, 302, 303, 307, 308].includes(status);
+  }
+
+  private redirectInit(init: RequestInit, status: number): RequestInit {
+    const method = init.method?.toUpperCase() ?? 'GET';
+    const shouldSwitchToGet =
+      status === 303 || ((status === 301 || status === 302) && method !== 'GET' && method !== 'HEAD');
+
+    if (!shouldSwitchToGet) {
+      return init;
+    }
+
+    const { body: _body, ...rest } = init;
+    return {
+      ...rest,
+      method: 'GET',
+    };
   }
 
   private storeCookies(response: Response): void {

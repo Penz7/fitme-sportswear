@@ -5,8 +5,10 @@ import {
   Headers,
   Post,
   Req,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { ShopifyHmacService } from './shopify-hmac.service';
 import { WebhookIngestionService } from './webhook-ingestion.service';
@@ -18,6 +20,7 @@ export class WebhookController {
   constructor(
     private readonly ingestionService: WebhookIngestionService,
     private readonly shopifyHmacService: ShopifyHmacService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get('webhooks/internal/status')
@@ -30,11 +33,13 @@ export class WebhookController {
 
   @Post('webhook')
   ingestLegacyPancakeWebhook(@Body() body: unknown, @Req() request: RequestWithRawBody) {
+    this.assertPancakeWebhookEnabled();
     return this.ingestionService.ingestPancake(this.rawPayload(body, request));
   }
 
   @Post('webhooks/pancake/v1')
   ingestPancakeWebhook(@Body() body: unknown, @Req() request: RequestWithRawBody) {
+    this.assertPancakeWebhookEnabled();
     return this.ingestionService.ingestPancake(this.rawPayload(body, request));
   }
 
@@ -105,6 +110,20 @@ export class WebhookController {
     }
 
     return this.ingestionService.ingestShopify(eventType, rawPayload);
+  }
+
+  private assertPancakeWebhookEnabled(): void {
+    const ingestionEnabled = this.configBoolean('webhooks.ingestionEnabled');
+    const pancakeEnabled = this.configBoolean('webhooks.pancake.enabled');
+
+    if (!ingestionEnabled || !pancakeEnabled) {
+      throw new ServiceUnavailableException('Pancake webhook ingestion is disabled');
+    }
+  }
+
+  private configBoolean(key: string): boolean {
+    const value = this.configService.get<boolean | string | undefined>(key);
+    return value === true || value === 'true';
   }
 
   private rawPayload(body: unknown, request: RequestWithRawBody): string {

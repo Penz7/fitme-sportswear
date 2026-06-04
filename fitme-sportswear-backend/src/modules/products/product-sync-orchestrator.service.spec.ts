@@ -94,4 +94,87 @@ describe('ProductSyncOrchestratorService', () => {
       }),
     });
   });
+
+  it('builds Phase 4 mappings without Shopify or inventory synchronization', async () => {
+    const sapoSnapshot: PlatformProductSnapshot = {
+      platform: 'sapo',
+      sku: 'SKU-1',
+      productId: 'sapo-product-1',
+      variantId: 'sapo-variant-1',
+      name: 'Product 1',
+      available: 5,
+      remain: 5,
+      retailPrice: 100000,
+      warehouseId: null,
+      warehouseCount: null,
+    };
+    const pancakeSnapshot: PlatformProductSnapshot = {
+      platform: 'pancake',
+      sku: 'SKU-1',
+      productId: 'pancake-product-1',
+      variantId: 'pancake-variant-1',
+      name: 'Product 1',
+      available: 5,
+      remain: 5,
+      retailPrice: 100000,
+      warehouseId: 'warehouse-1',
+      warehouseCount: 1,
+    };
+    const mapping: ProductMappingCandidate = {
+      sku: 'SKU-1',
+      sapo: sapoSnapshot,
+      pancake: pancakeSnapshot,
+      shopify: null,
+      status: 'matched',
+      conflictReason: null,
+    };
+    const prisma = {
+      productMapping: { upsert: jest.fn().mockResolvedValue({}) },
+      syncRun: { update: jest.fn() },
+    };
+    const snapshotService = {
+      refreshPancakeToSapoSnapshots: jest
+        .fn()
+        .mockResolvedValue([sapoSnapshot, pancakeSnapshot]),
+    };
+    const matchingService = {
+      buildMappings: jest.fn().mockReturnValue([mapping]),
+    };
+    const inventorySyncService = {
+      syncMappings: jest.fn(),
+    };
+    const service = new ProductSyncOrchestratorService(
+      prisma as any,
+      snapshotService as any,
+      matchingService as any,
+      inventorySyncService as any,
+    );
+
+    await expect(service.syncPancakeToSapoPreflightMappings()).resolves.toEqual({
+      snapshots: 2,
+      mappings: 1,
+      matched: 1,
+      partial: 0,
+      conflict: 0,
+    });
+
+    expect(snapshotService.refreshPancakeToSapoSnapshots).toHaveBeenCalled();
+    expect(inventorySyncService.syncMappings).not.toHaveBeenCalled();
+    expect(prisma.syncRun.update).not.toHaveBeenCalled();
+    expect(prisma.productMapping.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-1' },
+      create: expect.objectContaining({
+        sku: 'SKU-1',
+        sapoProductId: 'sapo-product-1',
+        sapoVariantId: 'sapo-variant-1',
+        pancakeProductId: 'pancake-product-1',
+        pancakeVariantId: 'pancake-variant-1',
+        pancakeWarehouseId: 'warehouse-1',
+      }),
+      update: expect.objectContaining({
+        sapoProductId: 'sapo-product-1',
+        pancakeProductId: 'pancake-product-1',
+      }),
+    });
+  });
 });

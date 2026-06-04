@@ -106,7 +106,10 @@ export class AddressSyncService {
           .sort((left, right) => left.similarity - right.similarity);
         return ranked[0] ?? null;
       })
-      .filter((match): match is MatchedAddressUnit => match !== null);
+      .filter(
+        (match): match is MatchedAddressUnit =>
+          match !== null && match.similarity <= 0.5,
+      );
   }
 
   private distance(left: string, right: string): number {
