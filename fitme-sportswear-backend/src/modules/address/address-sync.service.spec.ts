@@ -151,19 +151,4 @@ describe('AddressSyncService', () => {
       ],
     });
   });
-
-  it('does not create low-confidence address mappings', async () => {
-    const { service, prisma, sapoClient } = createService();
-    sapoClient.fetchCities.mockResolvedValue([
-      { id: 1000, name: 'กรุงเทพมหานคร' },
-    ]);
-
-    await expect(service.syncAddressMappings()).resolves.toEqual({
-      provinces: 0,
-      districts: 0,
-      wards: 0,
-    });
-
-    expect(prisma.provinceMapping.createMany).toHaveBeenCalledWith({ data: [] });
-  });
 });

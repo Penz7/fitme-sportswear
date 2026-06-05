@@ -46,7 +46,6 @@ export default () => ({
     baseUrl: process.env.PANCAKE_BASE_URL as string,
     apiKey: process.env.PANCAKE_API_KEY as string,
     shopId: process.env.PANCAKE_SHOP_ID as string,
-    webhookUrl: process.env.PANCAKE_WEBHOOK_URL,
     webhookSecret: process.env.PANCAKE_WEBHOOK_SECRET,
     defaultWarehouseId: process.env.PANCAKE_DEFAULT_WAREHOUSE_ID,
     testOrderFilter: process.env.PANCAKE_TEST_ORDER_FILTER,

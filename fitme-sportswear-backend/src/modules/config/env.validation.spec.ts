@@ -10,11 +10,6 @@ const baseEnv = {
   SAPO_PASSWORD: 'password',
   SAPO_CLIENT_ID: 'client',
   SAPO_SHOP_DOMAIN: 'example-sapo.local',
-  SAPO_LOCATION_ID: '572310',
-  SAPO_PANCAKE_SOURCE_ID: 307258,
-  SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID: '{}',
-  SAPO_PREPAYMENT_METHOD_ID: 2575663,
-  SAPO_PREPAYMENT_METHOD_NAME: 'Chuyen khoan',
   PANCAKE_BASE_URL: 'https://example-pancake.local',
   PANCAKE_API_KEY: 'pancake-key',
   PANCAKE_SHOP_ID: 'shop',
@@ -27,9 +22,9 @@ describe('envValidationSchema', () => {
     const result = envValidationSchema.validate(baseEnv, { abortEarly: false });
 
     expect(result.error).toBeUndefined();
-    expect(result.value.WEBHOOK_INGESTION_ENABLED).toBe(false);
-    expect(result.value.PANCAKE_WEBHOOK_ENABLED).toBe(false);
-    expect(result.value.SHOPIFY_WEBHOOK_ENABLED).toBe(false);
+    expect(result.value.WEBHOOK_INGESTION_ENABLED).toBe(true);
+    expect(result.value.PANCAKE_WEBHOOK_ENABLED).toBe(true);
+    expect(result.value.SHOPIFY_WEBHOOK_ENABLED).toBe(true);
   });
 
   it('requires webhook and sync secrets in production', () => {

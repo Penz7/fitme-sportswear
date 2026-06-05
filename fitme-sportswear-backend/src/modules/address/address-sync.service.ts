@@ -144,10 +144,7 @@ export class AddressSyncService {
         const best = ranked[0] ?? null;
         return best && best.similarity <= maxDistance ? best : null;
       })
-      .filter(
-        (match): match is MatchedAddressUnit =>
-          match !== null && match.similarity <= 0.5,
-      );
+      .filter((match): match is MatchedAddressUnit => match !== null);
   }
 
   private distance(left: string, right: string): number {

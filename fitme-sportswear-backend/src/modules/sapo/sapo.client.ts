@@ -32,9 +32,9 @@ export interface SapoOrderListInput {
   page: number;
   limit: number;
   status?: string;
-  query?: string;
   createdOnMin?: string;
   createdOnMax?: string;
+  query?: string;
 }
 
 export interface SapoOrderListResponse {
@@ -199,15 +199,10 @@ export class SapoClient {
     limit: number,
     query: string,
   ): Promise<SapoCustomerResponse> {
-    const url = new URL(
-      '/admin/customers/doSearch.json',
-      `${this.getBaseUrl().replace(/\/$/, '')}/`,
-    );
+    const url = new URL('/admin/customers.json', `${this.getBaseUrl().replace(/\/$/, '')}/`);
     url.searchParams.set('page', String(page));
     url.searchParams.set('limit', String(limit));
-    url.searchParams.set('query.contains', query);
-    url.searchParams.set('statuses.in', 'active');
-    url.searchParams.set('condition_type', 'must');
+    url.searchParams.set('query', query);
 
     const response = await this.sessionService.fetchWithSession(url.toString());
 
@@ -423,9 +418,6 @@ export class SapoClient {
     url.searchParams.set('limit', String(input.limit));
     if (input.status) {
       url.searchParams.set('status', input.status);
-    }
-    if (input.query) {
-      url.searchParams.set('query', input.query);
     }
     if (input.createdOnMin) {
       url.searchParams.set('created_on_min', input.createdOnMin);

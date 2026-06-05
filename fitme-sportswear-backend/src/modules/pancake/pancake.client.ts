@@ -49,7 +49,7 @@ export interface PancakeOrderListInput {
 }
 
 interface PancakeVariationsPage {
-  data?: Array<Record<string, any>>;
+  data?: PancakeProductResponse[];
   total_pages?: number;
   totalPages?: number;
 }
@@ -85,9 +85,7 @@ export class PancakeClient {
       }
 
       const body = (await response.json()) as PancakeVariationsPage;
-      const pageProducts = (body.data ?? []).map((product) =>
-        this.normalizeProduct(product),
-      );
+      const pageProducts = body.data ?? [];
 
       if (pageProducts.length === 0) {
         break;
@@ -102,31 +100,6 @@ export class PancakeClient {
     }
 
     return products;
-  }
-
-  private normalizeProduct(product: Record<string, any>): PancakeProductResponse {
-    const warehouses = this.arrayPayload(
-      product.variations_warehouses ?? product.variationsWarehouses,
-    );
-
-    return {
-      id: String(product.id),
-      displayId: String(product.display_id ?? product.displayId ?? ''),
-      productId: String(product.product_id ?? product.productId ?? ''),
-      product: product.product ?? { name: '' },
-      retailPrice: Number(product.retail_price ?? product.retailPrice ?? 0),
-      variationsWarehouses: warehouses.map((warehouse) => ({
-        warehouseId: String(warehouse.warehouse_id ?? warehouse.warehouseId ?? ''),
-        remainQuantity: Number(
-          warehouse.remain_quantity ?? warehouse.remainQuantity ?? 0,
-        ),
-        actualRemainQuantity: Number(
-          warehouse.actual_remain_quantity ??
-            warehouse.actualRemainQuantity ??
-            0,
-        ),
-      })),
-    };
   }
 
   async updateInventory(input: PancakeInventoryUpdateInput): Promise<void> {
@@ -298,7 +271,7 @@ export class PancakeClient {
         id: Number(unit.id),
         name: String(unit.name ?? ''),
       }))
-      .filter((unit) => Number.isInteger(unit.id) && unit.name.trim() !== '');
+      .filter((unit) => Number.isFinite(unit.id) && unit.name.length > 0);
   }
 
   private async fetchOrderResponse(

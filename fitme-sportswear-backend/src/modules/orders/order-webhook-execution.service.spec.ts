@@ -24,10 +24,15 @@ describe('OrderWebhookExecutionService', () => {
           sapoProductId: 'sapo-product-1',
           sapoVariantId: 'sapo-variant-1',
         }),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      sapoProduct: {
+        findUnique: jest.fn(),
       },
     };
     const sapoClient = {
       createOrder: jest.fn().mockResolvedValue({ order: { id: 'sapo-order-1' } }),
+      findOrderByCode: jest.fn().mockResolvedValue(null),
       fetchCustomers: jest.fn().mockResolvedValue({ customers: [] }),
       createCustomer: jest.fn().mockResolvedValue({ customer: { id: 12345 } }),
       finalizeOrder: jest.fn().mockResolvedValue({}),
@@ -68,8 +73,13 @@ describe('OrderWebhookExecutionService', () => {
     };
     const configService = {
       get: jest.fn((key: string) => {
-        const values: Record<string, string | number | undefined> = {
+        const values: Record<string, string | number | Record<string, string> | undefined> = {
           'sapo.locationId': '572310',
+          'sapo.locationIdByPancakeWarehouseId': {
+            'pancake-warehouse-1': '999999',
+          },
+          'sapo.prepaymentMethodId': 2575663,
+          'sapo.prepaymentMethodName': 'Chuyen khoan',
           'shipping.viettelPost.service': 'VSL7',
           'shipping.viettelPost.accountId': '604003_1',
           'shipping.viettelPost.providerId': 508146,
@@ -85,45 +95,6 @@ describe('OrderWebhookExecutionService', () => {
         return values[key];
       }),
     };
-    const pancakeToSapoPreflightService = {
-      preflight: jest.fn().mockResolvedValue({
-        valid: true,
-        errors: [],
-        sapoOrder: {
-          code: 'AUTO_PANCAKE_pancake-order-1',
-          total: 300000,
-          note: 'call first',
-          tags: [],
-          shipping_address: {
-            full_name: 'Nguyen Van A',
-            phone_number: '0909000000',
-            full_address: 'Ho Chi Minh',
-            ward: 'Ward',
-          },
-          email: null,
-          phone_number: '0909000000',
-          customer_data: {
-            name: 'Nguyen Van A',
-            tags: [],
-            addresses: [{ full_address: 'Ho Chi Minh' }],
-          },
-          order_line_items: [
-            {
-              sku: 'SKU-1',
-              quantity: 2,
-              price: 150000,
-              product_id: 'sapo-product-1',
-              variant_id: 'sapo-variant-1',
-            },
-          ],
-          status: 'draft',
-          source_id: 5632931,
-          location_id: 572310,
-        },
-        prepayment: null,
-        preview: {},
-      }),
-    };
 
     return {
       prisma,
@@ -131,14 +102,12 @@ describe('OrderWebhookExecutionService', () => {
       shopifyClient,
       addressMappingService,
       configService,
-      pancakeToSapoPreflightService,
       service: new OrderWebhookExecutionService(
         prisma as any,
         sapoClient as any,
         shopifyClient as any,
         addressMappingService as any,
         configService as any,
-        pancakeToSapoPreflightService as any,
       ),
     };
   }
@@ -152,6 +121,10 @@ describe('OrderWebhookExecutionService', () => {
       note: 'call first',
       bill_full_name: 'Nguyen Van A',
       bill_phone_number: '0909000000',
+      prepaid: 100000,
+      warehouse_info: {
+        id: 'pancake-warehouse-1',
+      },
       shipping_address: {
         full_name: 'Nguyen Van A',
         phone_number: '0909000000',
@@ -180,6 +153,7 @@ describe('OrderWebhookExecutionService', () => {
           total: 300000,
           status: 'draft',
           phone_number: '0909000000',
+          location_id: 999999,
           order_line_items: [
             expect.objectContaining({
               sku: 'SKU-1',
@@ -190,7 +164,7 @@ describe('OrderWebhookExecutionService', () => {
           ],
         }),
       },
-      { locationId: '572310' },
+      { locationId: '999999' },
     );
     expect(sapoClient.fetchCustomers).toHaveBeenCalledWith(1, 1, '0909000000');
     expect(sapoClient.createCustomer).toHaveBeenCalledWith({
@@ -199,41 +173,208 @@ describe('OrderWebhookExecutionService', () => {
         name: 'Nguyen Van A',
       }),
     });
-    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1');
+    expect(sapoClient.prepayOrder).toHaveBeenCalledWith(
+      'sapo-order-1',
+      {
+        prepayment: expect.objectContaining({
+          payment_method_id: 2575663,
+          payment_method_name: 'Chuyen khoan',
+          amount: 100000,
+          paid_amount: 100000,
+          returned_amount: 0,
+        }),
+      },
+      { locationId: '999999' },
+    );
+    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1', {
+      locationId: '999999',
+      tolerateIdempotent422: true,
+    });
+    expect(sapoClient.fetchOrder).toHaveBeenCalledWith('sapo-order-1');
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },
       create: expect.objectContaining({
         sapoOrderId: 'sapo-order-1',
         pancakeOrderId: 'pancake-order-1',
         pancakeStatus: 0,
+        sapoStatus: 'finalized',
+        sapoPaymentStatus: 'paid',
       }),
       update: expect.objectContaining({
         sapoOrderId: 'sapo-order-1',
         pancakeStatus: 0,
+        sapoStatus: 'finalized',
+        sapoPaymentStatus: 'paid',
       }),
     });
   });
 
-  it('rejects Pancake order creation before any Sapo write when preflight fails', async () => {
-    const { service, sapoClient, pancakeToSapoPreflightService } =
-      createService();
-    pancakeToSapoPreflightService.preflight.mockResolvedValue({
-      valid: false,
-      errors: ['SKU SKU-1 is missing a complete Sapo product mapping'],
-      sapoOrder: null,
-      prepayment: null,
-      preview: {},
+  it('normalizes SKU before resolving product mapping for Sapo line items', async () => {
+    const { service, sapoClient, prisma } = createService();
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      items: [{ quantity: 1, variation_info: { barcode: ' SKU-1 ' } }],
     });
 
-    await expect(
-      service.executePlan(basePlan, { id: 'pancake-order-1' }),
-    ).rejects.toThrow(
-      'Pancake-to-Sapo preflight failed: SKU SKU-1 is missing a complete Sapo product mapping',
+    expect(prisma.productMapping.findUnique).toHaveBeenCalledWith({
+      where: { sku: 'SKU-1' },
+    });
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          order_line_items: [
+            expect.objectContaining({
+              barcode: 'SKU-1',
+              sku: 'SKU-1',
+              product_id: 'sapo-product-1',
+              variant_id: 'sapo-variant-1',
+            }),
+          ],
+        }),
+      },
+      { locationId: '572310' },
     );
+  });
+
+  it('rejects Sapo order creation when a line item SKU has no Sapo product mapping', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.productMapping.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.executePlan(basePlan, {
+        id: 'pancake-order-1',
+        bill_full_name: 'Nguyen Van A',
+        bill_phone_number: '0909000000',
+        items: [{ quantity: 1, variation_info: { barcode: 'UNKNOWN-SKU' } }],
+      }),
+    ).rejects.toThrow('Missing Sapo product mapping for SKU UNKNOWN-SKU');
 
     expect(sapoClient.createOrder).not.toHaveBeenCalled();
-    expect(sapoClient.createCustomer).not.toHaveBeenCalled();
-    expect(sapoClient.prepayOrder).not.toHaveBeenCalled();
+    expect(sapoClient.finalizeOrder).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).not.toHaveBeenCalled();
+  });
+
+  it('creates a missing product mapping from Sapo product snapshot before creating an order', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.productMapping.findUnique.mockResolvedValueOnce(null);
+    prisma.sapoProduct.findUnique.mockResolvedValueOnce({
+      sku: 'SKU-ONLY-SAPO',
+      productId: 'sapo-product-from-snapshot',
+      variantId: 'sapo-variant-from-snapshot',
+    });
+    prisma.productMapping.upsert.mockResolvedValueOnce({
+      sku: 'SKU-ONLY-SAPO',
+      sapoProductId: 'sapo-product-from-snapshot',
+      sapoVariantId: 'sapo-variant-from-snapshot',
+      status: 'partial',
+    });
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      items: [
+        {
+          quantity: 1,
+          variation_info: {
+            barcode: 'SKU-ONLY-SAPO',
+            name: 'Size L',
+            retail_price: 150000,
+          },
+        },
+      ],
+    });
+
+    expect(prisma.sapoProduct.findUnique).toHaveBeenCalledWith({
+      where: { sku: 'SKU-ONLY-SAPO' },
+    });
+    expect(prisma.productMapping.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-ONLY-SAPO' },
+      create: expect.objectContaining({
+        sku: 'SKU-ONLY-SAPO',
+        sapoProductId: 'sapo-product-from-snapshot',
+        sapoVariantId: 'sapo-variant-from-snapshot',
+        status: 'partial',
+      }),
+      update: expect.objectContaining({
+        sapoProductId: 'sapo-product-from-snapshot',
+        sapoVariantId: 'sapo-variant-from-snapshot',
+        status: 'partial',
+      }),
+    });
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          order_line_items: [
+            expect.objectContaining({
+              sku: 'SKU-ONLY-SAPO',
+              product_id: 'sapo-product-from-snapshot',
+              variant_id: 'sapo-variant-from-snapshot',
+            }),
+          ],
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
+  it('reuses an existing Sapo order with the same code before creating a duplicate', async () => {
+    const { service, sapoClient, prisma } = createService();
+    sapoClient.findOrderByCode.mockResolvedValueOnce({ id: 'existing-sapo-order-1' });
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+    });
+
+    expect(sapoClient.findOrderByCode).toHaveBeenCalledWith(
+      'AUTO_PANCAKE_pancake-order-1',
+    );
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('existing-sapo-order-1', {
+      locationId: '572310',
+      tolerateIdempotent422: true,
+    });
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { pancakeOrderId: 'pancake-order-1' },
+      create: expect.objectContaining({ sapoOrderId: 'existing-sapo-order-1' }),
+      update: expect.objectContaining({ sapoOrderId: 'existing-sapo-order-1' }),
+    });
+  });
+
+  it('falls back to default Sapo location when Pancake warehouse is unmapped', async () => {
+    const { service, sapoClient, prisma } = createService();
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      warehouse_info: {
+        id: 'unknown-warehouse',
+      },
+      shipping_address: {
+        full_name: 'Nguyen Van A',
+        phone_number: '0909000000',
+      },
+      items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+    });
+
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({ location_id: 572310 }),
+      },
+      { locationId: '572310' },
+    );
+    expect(sapoClient.finalizeOrder).toHaveBeenCalledWith('sapo-order-1', {
+      locationId: '572310',
+      tolerateIdempotent422: true,
+    });
+    expect(prisma.orderMapping.upsert).toHaveBeenCalled();
   });
 
   it('updates, fulfills, ships, and snapshots a mapped Pancake order', async () => {
@@ -285,6 +426,7 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.updateOrder).toHaveBeenCalledWith(
       'sapo-order-1',
       expect.objectContaining({ order: expect.any(Object) }),
+      { locationId: '572310' },
     );
     expect(sapoClient.createFulfillment).toHaveBeenCalledWith(
       'sapo-order-1',
@@ -296,6 +438,7 @@ describe('OrderWebhookExecutionService', () => {
           }),
         }),
       },
+      { locationId: '572310', tolerateIdempotent422: true },
     );
     const fulfillmentPayload = sapoClient.createFulfillment.mock.calls[0][1];
     expect(JSON.parse(fulfillmentPayload.fulfillment.shipment.detail)).toEqual(
@@ -342,6 +485,7 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.shipFulfillment).toHaveBeenCalledWith(
       'sapo-order-1',
       'fulfillment-1',
+      { locationId: '572310', tolerateIdempotent422: true },
     );
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },
@@ -354,6 +498,67 @@ describe('OrderWebhookExecutionService', () => {
         sapoFulfillmentStatus: 'shipped',
       }),
     });
+  });
+
+  it('rejects Pancake fulfillment when address mapping is missing before calling Sapo freight API', async () => {
+    const { service, sapoClient, prisma, addressMappingService } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    addressMappingService.resolvePancakeAddress.mockResolvedValue({
+      provinceId: null,
+      districtId: null,
+      wardId: null,
+      wardName: null,
+      cityName: null,
+      districtName: null,
+    });
+
+    await expect(
+      service.executePlan(
+        {
+          ...basePlan,
+          eventType: 'order_updated',
+          statusCode: 1,
+          nextActions: ['create_sapo_fulfillment', 'upsert_order_mapping'],
+        },
+        {
+          id: 'pancake-order-1',
+          bill_full_name: 'Nguyen Van A',
+          bill_phone_number: '0909000000',
+          money_to_collect: 300000,
+          is_free_shipping: false,
+          shipping_address: {
+            full_name: 'Nguyen Van A',
+            phone_number: '0909000000',
+            full_address: 'Ho Chi Minh',
+            province_id: 707,
+            district_id: 70708,
+            commune_id: 7070802,
+            commune_name: 'Xa Thanh Tam',
+          },
+          warehouse_info: {
+            province_id: 701,
+            district_id: 70137,
+            commune_id: 7013717,
+          },
+          items: [
+            {
+              quantity: 1,
+              variation_info: {
+                barcode: 'SKU-1',
+                name: 'Size M',
+                retail_price: 150000,
+              },
+            },
+          ],
+        },
+      ),
+    ).rejects.toThrow('Missing Sapo address mapping');
+
+    expect(sapoClient.getFreightAmount).not.toHaveBeenCalled();
+    expect(sapoClient.createFulfillment).not.toHaveBeenCalled();
   });
 
   it('creates Shopify fulfillment after Sapo shipment produces a tracking code', async () => {

@@ -127,29 +127,4 @@ describe('ProductSnapshotService', () => {
     expect(prisma.pancakeProduct.upsert).toHaveBeenCalledTimes(1);
     expect(prisma.shopifyProduct.upsert).toHaveBeenCalledTimes(1);
   });
-
-  it('refreshes only Sapo and Pancake snapshots for Phase 4 preflight mappings', async () => {
-    const prisma = createPrismaMock();
-    const sapoClient = {
-      fetchProducts: jest.fn().mockResolvedValue([]),
-    };
-    const pancakeClient = {
-      fetchProducts: jest.fn().mockResolvedValue([]),
-    };
-    const shopifyClient = {
-      fetchProducts: jest.fn(),
-    };
-    const service = new ProductSnapshotService(
-      prisma as any,
-      sapoClient as any,
-      pancakeClient as any,
-      shopifyClient as any,
-    );
-
-    await expect(service.refreshPancakeToSapoSnapshots()).resolves.toEqual([]);
-
-    expect(sapoClient.fetchProducts).toHaveBeenCalledTimes(1);
-    expect(pancakeClient.fetchProducts).toHaveBeenCalledTimes(1);
-    expect(shopifyClient.fetchProducts).not.toHaveBeenCalled();
-  });
 });
