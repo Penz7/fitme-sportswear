@@ -3,7 +3,10 @@ import { Job } from 'bullmq';
 import { PrismaService } from '../../database/prisma.service';
 import { SapoLogSyncService } from '../../orders/sapo-log-sync.service';
 import { SapoTopOrderSyncService } from '../../orders/sapo-top-order-sync.service';
-import { SapoToPancakeOrderSyncService } from '../../orders/sapo-to-pancake-order-sync.service';
+import {
+  SapoToPancakeOrderSyncResult,
+  SapoToPancakeOrderSyncService,
+} from '../../orders/sapo-to-pancake-order-sync.service';
 import { SapoClient } from '../../sapo/sapo.client';
 import { SapoToPancakeOrderSyncPayload } from '../producers/sapo-to-pancake-order-sync.producer';
 import { SAPO_TO_PANCAKE_ORDER_SYNC_QUEUE } from '../queue.constants';
@@ -91,11 +94,43 @@ export class SapoToPancakeOrderSyncProcessor extends WorkerHost {
     };
   }
 
-  private async syncOrderPages(filters: NonNullable<SapoToPancakeOrderSyncPayload['filters']>) {
+  private async syncOrderPages(
+    filters: NonNullable<SapoToPancakeOrderSyncPayload['filters']>,
+  ): Promise<{
+    processed: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    results: SapoToPancakeOrderSyncResult[];
+  }> {
+    if (filters.statuses && filters.statuses.length > 0) {
+      const results: SapoToPancakeOrderSyncResult[] = [];
+      let processed = 0;
+
+      for (const status of filters.statuses) {
+        const result = await this.syncOrderPages({
+          ...filters,
+          statuses: undefined,
+          status,
+        });
+        processed += result.processed;
+        results.push(...result.results);
+      }
+
+      return {
+        processed,
+        created: results.filter((result) => result.action === 'created').length,
+        updated: results.filter((result) => result.action === 'updated').length,
+        skipped: results.filter((result) => result.action === 'skipped').length,
+        results,
+      };
+    }
+
     const results = [];
     let processed = 0;
     let page = 1;
     const limit = filters.limit ?? this.pageLimit;
+    const maxOrders = filters.limit ?? null;
 
     while (true) {
       const response = await this.sapoClient.fetchOrders({
@@ -117,6 +152,10 @@ export class SapoToPancakeOrderSyncProcessor extends WorkerHost {
       }
 
       processed += orders.length;
+
+      if (maxOrders !== null && processed >= maxOrders) {
+        break;
+      }
 
       if (response.metadata?.total !== undefined && processed >= response.metadata.total) {
         break;

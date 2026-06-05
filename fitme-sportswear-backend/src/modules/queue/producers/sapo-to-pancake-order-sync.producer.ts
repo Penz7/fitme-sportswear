@@ -12,6 +12,7 @@ export interface SapoToPancakeOrderSyncPayload {
   sapoOrderId?: string;
   filters?: {
     status?: string;
+    statuses?: string[];
     createdOnMin?: string;
     createdOnMax?: string;
     limit?: number;

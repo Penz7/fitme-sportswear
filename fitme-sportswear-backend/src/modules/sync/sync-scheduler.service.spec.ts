@@ -68,4 +68,21 @@ describe('SyncSchedulerService', () => {
       cron: '*/1 * * * *',
     });
   });
+
+  it('registers comma-separated Sapo order statuses as bulk filters', async () => {
+    const { service, scheduledSyncProducer } = createService({
+      'sync.scheduler.enabled': true,
+      'sync.scheduler.sapoOrderCron': '*/10 * * * * *',
+      'sync.scheduler.sapoOrderStatus': 'finalized,cancelled',
+      'sync.scheduler.sapoOrderLimit': 5,
+    });
+
+    await service.onApplicationBootstrap();
+
+    expect(scheduledSyncProducer.schedule).toHaveBeenCalledWith({
+      syncType: 'sapo-to-pancake-order-sync',
+      cron: '*/10 * * * * *',
+      filters: { statuses: ['finalized', 'cancelled'], limit: 5 },
+    });
+  });
 });

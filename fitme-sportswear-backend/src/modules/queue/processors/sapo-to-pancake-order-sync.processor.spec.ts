@@ -218,6 +218,87 @@ describe('SapoToPancakeOrderSyncProcessor', () => {
     });
   });
 
+  it('fetches each configured Sapo order status separately', async () => {
+    const { processor, sapoClient, orderSyncService } = createProcessor();
+    sapoClient.fetchOrders
+      .mockResolvedValueOnce({
+        orders: [{ id: 'sapo-order-finalized', status: 'finalized' }],
+        metadata: { total: 1 },
+      })
+      .mockResolvedValueOnce({
+        orders: [{ id: 'sapo-order-cancelled', status: 'cancelled' }],
+        metadata: { total: 1 },
+      });
+    orderSyncService.syncSapoOrder
+      .mockResolvedValueOnce({
+        action: 'updated',
+        sapoOrderId: 'sapo-order-finalized',
+        pancakeOrderId: 'pancake-order-finalized',
+      })
+      .mockResolvedValueOnce({
+        action: 'updated',
+        sapoOrderId: 'sapo-order-cancelled',
+        pancakeOrderId: 'pancake-order-cancelled',
+      });
+
+    await processor.process({
+      data: {
+        syncRunId: 'sync-run-1',
+        filters: {
+          statuses: ['finalized', 'cancelled'],
+          limit: 5,
+        },
+      },
+    } as any);
+
+    expect(sapoClient.fetchOrders).toHaveBeenNthCalledWith(1, {
+      page: 1,
+      limit: 5,
+      status: 'finalized',
+      createdOnMin: undefined,
+      createdOnMax: undefined,
+    });
+    expect(sapoClient.fetchOrders).toHaveBeenNthCalledWith(2, {
+      page: 1,
+      limit: 5,
+      status: 'cancelled',
+      createdOnMin: undefined,
+      createdOnMax: undefined,
+    });
+    expect(orderSyncService.syncSapoOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats bulk filter limit as the maximum orders processed per run', async () => {
+    const { processor, sapoClient, orderSyncService } = createProcessor();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [{ id: 'sapo-order-1' }, { id: 'sapo-order-2' }],
+      metadata: { total: 100 },
+    });
+    orderSyncService.syncSapoOrder
+      .mockResolvedValueOnce({
+        action: 'updated',
+        sapoOrderId: 'sapo-order-1',
+        pancakeOrderId: 'pancake-order-1',
+      })
+      .mockResolvedValueOnce({
+        action: 'updated',
+        sapoOrderId: 'sapo-order-2',
+        pancakeOrderId: 'pancake-order-2',
+      });
+
+    await processor.process({
+      data: {
+        syncRunId: 'sync-run-1',
+        filters: {
+          limit: 2,
+        },
+      },
+    } as any);
+
+    expect(sapoClient.fetchOrders).toHaveBeenCalledTimes(1);
+    expect(orderSyncService.syncSapoOrder).toHaveBeenCalledTimes(2);
+  });
+
   it('dispatches top-order sync jobs to the top-order service', async () => {
     const { processor, prisma, topOrderSyncService } = createProcessor();
 

@@ -471,7 +471,10 @@ describe('OrderWebhookExecutionService', () => {
       fallbackProvinceId: 1,
       fallbackDistrictId: 688,
       fallbackWardId: 12345,
+      fallbackProvinceName: null,
+      fallbackDistrictName: null,
       fallbackWardName: 'Xa Xuan Thoi Thuong',
+      fallbackFullAddress: 'Ho Chi Minh',
     });
     expect(addressMappingService.resolvePancakeAddress).toHaveBeenCalledWith({
       provinceId: 2,
@@ -480,6 +483,7 @@ describe('OrderWebhookExecutionService', () => {
       fallbackProvinceId: 2,
       fallbackDistrictId: 55,
       fallbackWardId: 947,
+      fallbackFullAddress: '11/4B Pham Van Sang',
       fallbackWardName: null,
     });
     expect(sapoClient.shipFulfillment).toHaveBeenCalledWith(

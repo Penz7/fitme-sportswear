@@ -49,7 +49,7 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
       | 'sapo-top-order-sync'
       | 'sapo-log-sync',
     cron: string | null,
-    filters?: { status?: string; limit?: number },
+    filters?: { status?: string; statuses?: string[]; limit?: number },
     topOrder?: { limit?: number },
   ): Promise<void> {
     if (!cron) {
@@ -65,13 +65,26 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
     this.logger.log(`Registered ${syncType} schedule: ${cron}`);
   }
 
-  private sapoOrderFilters(): { status?: string; limit?: number } {
-    const filters: { status?: string; limit?: number } = {};
+  private sapoOrderFilters(): {
+    status?: string;
+    statuses?: string[];
+    limit?: number;
+  } {
+    const filters: { status?: string; statuses?: string[]; limit?: number } =
+      {};
     const status = this.configString('sync.scheduler.sapoOrderStatus');
     const limit = this.configNumber('sync.scheduler.sapoOrderLimit');
 
     if (status) {
-      filters.status = status;
+      const statuses = status
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (statuses.length > 1) {
+        filters.statuses = statuses;
+      } else {
+        filters.status = statuses[0] ?? status;
+      }
     }
     if (limit !== null) {
       filters.limit = limit;

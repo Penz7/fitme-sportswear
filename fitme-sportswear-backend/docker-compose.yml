@@ -24,6 +24,8 @@ services:
       DATABASE_URL: postgresql://fitme:fitme@postgres:5432/fitme_sportswear_backend?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      QUEUE_PROCESSORS_ENABLED: false
+      SYNC_SCHEDULER_ENABLED: false
     ports:
       - "3000:3000"
     depends_on:

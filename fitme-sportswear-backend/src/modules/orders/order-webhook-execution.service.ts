@@ -516,9 +516,25 @@ export class OrderWebhookExecutionService {
               shipping.district_id ?? shipping.districtId,
             ),
             fallbackWardId: this.numberValue(shipping.commune_id ?? shipping.communeId),
+            fallbackProvinceName: this.firstString(
+              shipping.province_name,
+              shipping.provinceName,
+            ),
+            fallbackDistrictName: this.firstString(
+              shipping.district_name,
+              shipping.districtName,
+            ),
             fallbackWardName: this.firstString(
               shipping.commune_name,
+              shipping.commnue_name,
               shipping.communeName,
+              shipping.commnueName,
+            ),
+            fallbackFullAddress: this.firstString(
+              shipping.full_address,
+              shipping.fullAddress,
+              shipping.new_full_address,
+              shipping.newFullAddress,
             ),
           })
         : await this.resolveShopifyTextAddress(shippingAddress);
@@ -529,6 +545,10 @@ export class OrderWebhookExecutionService {
       fallbackProvinceId: this.numberValue(warehouse.province_id ?? warehouse.provinceId),
       fallbackDistrictId: this.numberValue(warehouse.district_id ?? warehouse.districtId),
       fallbackWardId: this.numberValue(warehouse.commune_id ?? warehouse.communeId),
+      fallbackFullAddress: this.firstString(
+        warehouse.full_address,
+        warehouse.fullAddress,
+      ),
       fallbackWardName: null,
     });
     const senderProvinceId = this.requiredAddressId(
