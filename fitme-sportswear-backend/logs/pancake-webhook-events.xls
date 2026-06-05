@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #999; padding: 6px; vertical-align: top; }
+    th { background: #e6eef8; font-weight: 700; }
+    td { mso-number-format: "\@"; }
+  </style>
+</head>
+<body>
+  <h1>Pancake Webhook Events</h1>
+  <p>Generated at: 2026-06-05T04:42:04.411Z</p>
+  <p>Total events: 20</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Received At</th>
+        <th>Event ID</th>
+        <th>Platform</th>
+        <th>Event Type</th>
+        <th>External Event ID</th>
+        <th>Status</th>
+        <th>Processed At</th>
+        <th>Payload</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>2026-06-05T04:37:15.258Z</td>
+          <td>026488ac-0f03-4dda-b6c4-f36006c774c7</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17986</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17986,&quot;cod&quot;:798000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;igo_17841445426527655&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;igo_fitme.sportswearvn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120247057974980219&quot;,&quot;items&quot;:[{&quot;id&quot;:11614786742,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;ef025e06-b983-41b6-9157-fbdbf42c86bb&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;b028e034-96dc-43fc-8351-868a2dbdfc81&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Áo polo tennis pickleball nữ Fitme EMBER CE chất liệu thoáng khí kháng khuẩn chống mùi APTN01#FM-APTN01-NB-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-25/2025/7/11/06ea77cc8e540ec6a281c13ea270359c3361a114.jpg&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[614052901],&quot;measure_info&quot;:null,&quot;retail_price&quot;:450000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:37:14.705Z</td>
+          <td>e974f95d-77e3-4e41-a7d2-3c1d5c645a8c</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17986</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17986,&quot;cod&quot;:798000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;igo_17841445426527655&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;igo_fitme.sportswearvn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120247057974980219&quot;,&quot;items&quot;:[{&quot;id&quot;:11614786742,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;ef025e06-b983-41b6-9157-fbdbf42c86bb&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;b028e034-96dc-43fc-8351-868a2dbdfc81&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Áo polo tennis pickleball nữ Fitme EMBER CE chất liệu thoáng khí kháng khuẩn chống mùi APTN01#FM-APTN01-NB-L&quot;,&quot;detail&quot;:&quot;&quot;,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-25/2025/7/11/06ea77cc8e540ec6a281c13ea270359c3361a114.jpg&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[614052901],&quot;measure_info&quot;:null,&quot;retail_price&quot;:450000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;n...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:37:14.275Z</td>
+          <td>d5eaecae-cb69-497d-9b7d-dd7b1a515642</td>
+          <td>pancake</td>
+          <td>order_created</td>
+          <td>17986</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17986,&quot;cod&quot;:798000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;igo_17841445426527655&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;igo_fitme.sportswearvn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120247057974980219&quot;,&quot;items&quot;:[{&quot;id&quot;:11614786742,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;ef025e06-b983-41b6-9157-fbdbf42c86bb&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;b028e034-96dc-43fc-8351-868a2dbdfc81&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Áo polo tennis pickleball nữ Fitme EMBER CE chất liệu thoáng khí kháng khuẩn chống mùi APTN01#FM-APTN01-NB-L&quot;,&quot;detail&quot;:&quot;&quot;,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-25/2025/7/11/06ea77cc8e540ec6a281c13ea270359c3361a114.jpg&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[614052901],&quot;measure_info&quot;:null,&quot;retail_price&quot;:450000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-APTN01-NB-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;n...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:26:35.965Z</td>
+          <td>f287237d-c7f5-455a-84c7-bc0643a7086a</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17985</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17985,&quot;cod&quot;:400000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120244813603780443&quot;,&quot;items&quot;:[{&quot;id&quot;:12526257360,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;db1d7399-adb4-4bfb-9a83-e6db7227a3ad&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;02737cc0-79bd-4398-bee4-bc4ac2a4d7f4&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Áo thun tennis pickleball nữ Fitme IVY GR chất liệu co giãn thoáng khí kháng khuẩn ATGR01#FM-ATGR01-DO-XL&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2602/2026/2/10/8adf666ed766082afb1505fd5289bba2c40d2f07.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:400000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;289819da-3abb-4122-a6ee-76e0ededa8d9&quot;,&quot;name&quot;:&quot;Ngọc Ánh&quot;,&quot;email&quot;:null,&quot;fb_id&quot;:&quot;112814726317968...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:26:33.165Z</td>
+          <td>6a1372c8-14c1-4c5c-a4c6-6732e24d6dcc</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17985</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17985,&quot;cod&quot;:400000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120244813603780443&quot;,&quot;items&quot;:[{&quot;id&quot;:12526257360,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;db1d7399-adb4-4bfb-9a83-e6db7227a3ad&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;02737cc0-79bd-4398-bee4-bc4ac2a4d7f4&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Áo thun tennis pickleball nữ Fitme IVY GR chất liệu co giãn thoáng khí kháng khuẩn ATGR01#FM-ATGR01-DO-XL&quot;,&quot;detail&quot;:&quot;&quot;,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2602/2026/2/10/8adf666ed766082afb1505fd5289bba2c40d2f07.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:400000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;289819da-3abb-4122-a6ee-76e0ededa8d9&quot;,&quot;name&quot;:&quot;Ngọc Ánh&quot;,&quot;email&quot;:null,&quot;fb_id&quot;:&quot;112814726317968&quot;,...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:26:32.658Z</td>
+          <td>24e20e3a-9732-4d25-b89a-02d1489aabc8</td>
+          <td>pancake</td>
+          <td>order_created</td>
+          <td>17985</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17985,&quot;cod&quot;:400000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120244813603780443&quot;,&quot;items&quot;:[{&quot;id&quot;:12526257360,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;db1d7399-adb4-4bfb-9a83-e6db7227a3ad&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;02737cc0-79bd-4398-bee4-bc4ac2a4d7f4&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Áo thun tennis pickleball nữ Fitme IVY GR chất liệu co giãn thoáng khí kháng khuẩn ATGR01#FM-ATGR01-DO-XL&quot;,&quot;detail&quot;:&quot;&quot;,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2602/2026/2/10/8adf666ed766082afb1505fd5289bba2c40d2f07.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:400000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-ATGR01-DO-XL&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;289819da-3abb-4122-a6ee-76e0ededa8d9&quot;,&quot;name&quot;:&quot;Ngọc Ánh&quot;,&quot;email&quot;:null,&quot;fb_id&quot;:&quot;112814726317968&quot;,...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:08:06.277Z</td>
+          <td>47ec45d8-af2b-4e88-8543-860bc91928fa</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17984</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17984,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:11285052093,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:08:03.764Z</td>
+          <td>f864ffc0-2a54-4c42-91bc-143f0bd5d9c3</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17984</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17984,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:11285052093,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:08:03.177Z</td>
+          <td>9f821538-2f4d-4fd8-8059-17d086691f4b</td>
+          <td>pancake</td>
+          <td>order_created</td>
+          <td>17984</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17984,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:11285052093,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:07:59.588Z</td>
+          <td>9542fb04-039c-48c5-b660-1d855493a166</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17983</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17983,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:12806937457,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:07:05.038Z</td>
+          <td>6336ccc9-ee73-43aa-a104-3f3681175737</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17982</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17982,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120246363456660219&quot;,&quot;items&quot;:[{&quot;id&quot;:11285034636,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:06:48.249Z</td>
+          <td>ca850168-28dd-4e8e-bcdf-22ebc70a1911</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17982</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17982,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120246363456660219&quot;,&quot;items&quot;:[{&quot;id&quot;:11285034636,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:06:29.347Z</td>
+          <td>1e903e09-41ff-4009-a366-10edc760c346</td>
+          <td>pancake</td>
+          <td>order_created</td>
+          <td>17982</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17982,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:&quot;120246363456660219&quot;,&quot;items&quot;:[{&quot;id&quot;:11285034636,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:02:41.412Z</td>
+          <td>11a86dc1-488f-490e-94f1-4225d47d205d</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17984</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17984,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:11285052093,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:00:50.798Z</td>
+          <td>057c0068-0e5a-40cc-b0ca-033a8b93246d</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17983</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17983,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:12806937457,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:00:50.458Z</td>
+          <td>0e20cd66-ead0-4019-92fe-9fc72f1d6ab1</td>
+          <td>pancake</td>
+          <td>order_updated</td>
+          <td>17983</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17983,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:12806937457,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T04:00:49.936Z</td>
+          <td>5d328d7a-d121-490b-8f16-b934e6697a2e</td>
+          <td>pancake</td>
+          <td>order_created</td>
+          <td>17983</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:17983,&quot;cod&quot;:399000,&quot;tax&quot;:0,&quot;cash&quot;:0,&quot;link&quot;:null,&quot;note&quot;:&quot;&quot;,&quot;page&quot;:{&quot;id&quot;:&quot;103914074304586&quot;,&quot;name&quot;:&quot;Fitme Sportswear&quot;,&quot;username&quot;:&quot;fitme.vn&quot;},&quot;tags&quot;:[],&quot;type&quot;:&quot;orders&quot;,&quot;ad_id&quot;:null,&quot;items&quot;:[{&quot;id&quot;:12806937457,&quot;note&quot;:null,&quot;quantity&quot;:1,&quot;components&quot;:null,&quot;product_id&quot;:&quot;29fcf7c4-8443-4821-9451-ddd237a7c6e5&quot;,&quot;is_composite&quot;:false,&quot;is_wholesale&quot;:false,&quot;note_product&quot;:&quot;&quot;,&quot;variation_id&quot;:&quot;7fc2862d-e715-4f57-9046-5b526d3ef204&quot;,&quot;exchange_count&quot;:0,&quot;returned_count&quot;:0,&quot;total_discount&quot;:0,&quot;variation_info&quot;:{&quot;name&quot;:&quot;Quần tập gym, yoga, pilates nữ ống loe Fitme Bloom legging cạp cao nâng mông tôn dáng QDBL01#FM-QDBL01-DE-L&quot;,&quot;detail&quot;:null,&quot;fields&quot;:[],&quot;images&quot;:[&quot;https://content.pancake.vn/2-2604/2026/4/24/47a85c3719ae90fef7a2007a9c92d2dfd0507a6a.png&quot;],&quot;weight&quot;:0,&quot;barcode&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;brand_id&quot;:null,&quot;tax_rate&quot;:0,&quot;avg_price&quot;:0,&quot;display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;exact_price&quot;:0,&quot;category_ids&quot;:[],&quot;measure_info&quot;:null,&quot;retail_price&quot;:399000,&quot;is_upsale_product&quot;:false,&quot;product_display_id&quot;:&quot;FM-QDBL01-DE-L&quot;,&quot;last_imported_price&quot;:0,&quot;retail_price_original&quot;:null},&quot;return_quantity&quot;:0,&quot;assigning_seller&quot;:{&quot;id&quot;:&quot;aea158b7-535c-4d53-8dac-55fe17c7f21a&quot;,&quot;name&quot;:&quot;Nguyễn Hòa&quot;,&quot;email&quot;:&quot;nguyenhoa16112002@gmail.com&quot;,&quot;fb_id&quot;:&quot;17034...</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T03:47:49.388Z</td>
+          <td>34894bd8-7153-4dc8-8169-8c9c1a44b17f</td>
+          <td>pancake</td>
+          <td>order_created</td>
+          <td>db-check-smoke-test</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:&quot;db-check-smoke-test&quot;,&quot;type&quot;:&quot;orders&quot;,&quot;status&quot;:0,&quot;event_type&quot;:&quot;create&quot;}</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T03:32:58.175Z</td>
+          <td>835e398d-4a74-4723-91b7-1d9e13106cb8</td>
+          <td>pancake</td>
+          <td>order_created</td>
+          <td>cloudflare-tunnel-smoke-test</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:&quot;cloudflare-tunnel-smoke-test&quot;,&quot;type&quot;:&quot;orders&quot;,&quot;status&quot;:0,&quot;event_type&quot;:&quot;create&quot;}</td>
+        </tr>
+        <tr>
+          <td>2026-06-05T03:02:54.852Z</td>
+          <td>cc5e19da-7d53-4c86-ab0c-88b581717dc0</td>
+          <td>pancake</td>
+          <td>unknown</td>
+          <td>codex-test-1780628574682</td>
+          <td>queued</td>
+          <td></td>
+          <td>{&quot;id&quot;:&quot;codex-test-1780628574682&quot;,&quot;items&quot;:[],&quot;source&quot;:&quot;codex-webhook-smoke-test&quot;,&quot;status&quot;:0}</td>
+        </tr></tbody>
+  </table>
+</body>
+</html>
