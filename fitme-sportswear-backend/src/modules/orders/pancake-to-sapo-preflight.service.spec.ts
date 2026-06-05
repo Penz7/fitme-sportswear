@@ -100,7 +100,7 @@ describe('PancakeToSapoPreflightService', () => {
         code: 'AUTO_PANCAKE_pancake-order-1',
         source_id: 5632931,
         location_id: 572310,
-        status: 'placed',
+        status: 'draft',
         total: 150000,
         shipping_address: expect.objectContaining({
           full_address: '11 Street, Ward, District, City',

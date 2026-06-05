@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ProductMappingStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
 import { InventorySyncService } from './inventory-sync.service';
 import { ProductMappingCandidate } from './types/platform-product-snapshot';
 import { ProductMatchingService } from './product-matching.service';
@@ -13,6 +14,7 @@ export class ProductSyncOrchestratorService {
     private readonly snapshotService: ProductSnapshotService,
     private readonly matchingService: ProductMatchingService,
     private readonly inventorySyncService: InventorySyncService,
+    private readonly notifier?: TelegramNotifierService,
   ) {}
 
   async run(syncRunId: string) {
@@ -54,6 +56,7 @@ export class ProductSyncOrchestratorService {
           } as unknown as Prisma.InputJsonObject,
         },
       });
+      await this.notifyPartialIssues(syncRunId, counts, syncResult.errors ?? []);
     } catch (error) {
       await this.prisma.syncRun.update({
         where: { id: syncRunId },
@@ -63,6 +66,10 @@ export class ProductSyncOrchestratorService {
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
         },
       });
+      await this.notifier?.sendException(
+        `Product sync failed: ${syncRunId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -81,6 +88,37 @@ export class ProductSyncOrchestratorService {
       mappings: mappings.length,
       ...this.countMappingStatuses(mappings),
     };
+  }
+
+  private async notifyPartialIssues(
+    syncRunId: string,
+    counts: { matched: number; partial: number; conflict: number },
+    errors: Array<{ sku?: string; platform?: string; operation?: string; message?: string }>,
+  ): Promise<void> {
+    if (!this.notifier || (counts.conflict === 0 && errors.length === 0)) {
+      return;
+    }
+
+    const sampleErrors = errors
+      .slice(0, 3)
+      .map((error) =>
+        [error.sku, error.platform, error.operation, error.message]
+          .filter(Boolean)
+          .join(' | '),
+      )
+      .join('\n');
+
+    await this.notifier.sendMessage(
+      `Product sync completed with issues: ${syncRunId}`,
+      [
+        `conflict=${counts.conflict}`,
+        `partial=${counts.partial}`,
+        `errors=${errors.length}`,
+        sampleErrors ? `sample errors:\n${sampleErrors}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
   }
 
   private async upsertMapping(mapping: ProductMappingCandidate) {

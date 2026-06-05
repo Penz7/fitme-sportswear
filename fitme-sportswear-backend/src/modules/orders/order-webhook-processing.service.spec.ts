@@ -111,6 +111,48 @@ describe('OrderWebhookProcessingService', () => {
     expect(result.quantityEffect).toBe('remain_only');
   });
 
+  it('ignores Pancake orders that do not match the configured test marker', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'pancake.testOrderFilter' ? 'WEBHOOK_TEST' : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      sourcePlatform: 'pancake',
+      eventType: 'order_created',
+      externalEventId: 'real-order-1',
+      payload: { id: 'real-order-1', status: 0, note: 'normal order' },
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        externalOrderId: 'real-order-1',
+        statusDescription: 'PANCAKE_TEST_FILTER_IGNORED',
+        nextActions: ['ignore'],
+      }),
+    );
+  });
+
+  it('processes Pancake orders that match the configured test marker', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'pancake.testOrderFilter' ? 'WEBHOOK_TEST' : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      sourcePlatform: 'pancake',
+      eventType: 'order_created',
+      externalEventId: 'test-order-1',
+      payload: { id: 'test-order-1', status: 0, note_print: ' WEBHOOK_TEST ' },
+    });
+
+    expect(result.nextActions).toEqual([
+      'create_sapo_order',
+      'finalize_sapo_order',
+      'upsert_order_mapping',
+    ]);
+  });
+
   it('plans Shopify order webhook using the legacy order-to-Sapo plus fulfillment flow', () => {
     const result = service.buildProcessingPlan({
       id: 'event-6',
@@ -142,9 +184,41 @@ describe('OrderWebhookProcessingService', () => {
     });
   });
 
+  it('explicitly ignores Shopify product and fulfillment webhooks', () => {
+    expect(
+      service.buildProcessingPlan({
+        id: 'event-7',
+        sourcePlatform: 'shopify',
+        eventType: 'product',
+        externalEventId: 'shopify-product-1',
+        payload: { id: 'shopify-product-1' },
+      } as any),
+    ).toEqual(
+      expect.objectContaining({
+        statusDescription: 'SHOPIFY_PRODUCT_WEBHOOK_IGNORED_PRODUCT_SYNC_IS_SCHEDULED',
+        nextActions: ['ignore'],
+      }),
+    );
+
+    expect(
+      service.buildProcessingPlan({
+        id: 'event-8',
+        sourcePlatform: 'shopify',
+        eventType: 'fulfillment',
+        externalEventId: 'shopify-fulfillment-1',
+        payload: { id: 'shopify-fulfillment-1' },
+      } as any),
+    ).toEqual(
+      expect.objectContaining({
+        statusDescription: 'SHOPIFY_FULFILLMENT_WEBHOOK_IGNORED_NOT_SUPPORTED_YET',
+        nextActions: ['ignore'],
+      }),
+    );
+  });
+
   it('ignores unsupported webhook event types without throwing', () => {
     const result = service.buildProcessingPlan({
-      id: 'event-7',
+      id: 'event-9',
       sourcePlatform: 'pancake',
       eventType: 'inventory_check',
       payload: { inventory: {} },

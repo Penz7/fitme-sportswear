@@ -4,12 +4,13 @@ import {
   Get,
   Headers,
   Post,
+  Query,
   Req,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
+import { PancakeWebhookSecretService } from './pancake-webhook-secret.service';
 import { ShopifyHmacService } from './shopify-hmac.service';
 import { WebhookIngestionService } from './webhook-ingestion.service';
 
@@ -20,6 +21,7 @@ export class WebhookController {
   constructor(
     private readonly ingestionService: WebhookIngestionService,
     private readonly shopifyHmacService: ShopifyHmacService,
+    private readonly pancakeWebhookSecretService: PancakeWebhookSecretService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -32,15 +34,23 @@ export class WebhookController {
   }
 
   @Post('webhook')
-  ingestLegacyPancakeWebhook(@Body() body: unknown, @Req() request: RequestWithRawBody) {
-    this.assertPancakeWebhookEnabled();
-    return this.ingestionService.ingestPancake(this.rawPayload(body, request));
+  ingestLegacyPancakeWebhook(
+    @Body() body: unknown,
+    @Req() request: RequestWithRawBody,
+    @Headers('x-pancake-webhook-secret') secret?: string,
+    @Query('secret') querySecret?: string,
+  ) {
+    return this.ingestPancakeWebhookPayload(body, request, secret ?? querySecret);
   }
 
   @Post('webhooks/pancake/v1')
-  ingestPancakeWebhook(@Body() body: unknown, @Req() request: RequestWithRawBody) {
-    this.assertPancakeWebhookEnabled();
-    return this.ingestionService.ingestPancake(this.rawPayload(body, request));
+  ingestPancakeWebhook(
+    @Body() body: unknown,
+    @Req() request: RequestWithRawBody,
+    @Headers('x-pancake-webhook-secret') secret?: string,
+    @Query('secret') querySecret?: string,
+  ) {
+    return this.ingestPancakeWebhookPayload(body, request, secret ?? querySecret);
   }
 
   @Post('webhooks/order')
@@ -97,6 +107,22 @@ export class WebhookController {
     return this.ingestShopifyWebhook('fulfillment', body, request, hmac);
   }
 
+  private ingestPancakeWebhookPayload(
+    body: unknown,
+    request: RequestWithRawBody,
+    secret?: string,
+  ) {
+    if (!this.pancakeWebhookSecretService.verify(secret)) {
+      throw new UnauthorizedException('Invalid Pancake webhook secret');
+    }
+
+    if (!this.webhookEnabled('pancake')) {
+      return this.disabledResponse('pancake');
+    }
+
+    return this.ingestionService.ingestPancake(this.rawPayload(body, request));
+  }
+
   private ingestShopifyWebhook(
     eventType: 'order' | 'product' | 'fulfillment',
     body: unknown,
@@ -109,20 +135,37 @@ export class WebhookController {
       throw new UnauthorizedException('Invalid Shopify webhook signature');
     }
 
+    if (!this.webhookEnabled('shopify')) {
+      return this.disabledResponse('shopify', eventType);
+    }
+
     return this.ingestionService.ingestShopify(eventType, rawPayload);
   }
 
-  private assertPancakeWebhookEnabled(): void {
-    const ingestionEnabled = this.configBoolean('webhooks.ingestionEnabled');
-    const pancakeEnabled = this.configBoolean('webhooks.pancake.enabled');
-
-    if (!ingestionEnabled || !pancakeEnabled) {
-      throw new ServiceUnavailableException('Pancake webhook ingestion is disabled');
+  private webhookEnabled(platform: 'pancake' | 'shopify'): boolean {
+    if (!this.configBoolean('webhook.ingestionEnabled', true)) {
+      return false;
     }
+
+    return this.configBoolean(`webhook.${platform}.enabled`, true);
   }
 
-  private configBoolean(key: string): boolean {
+  private disabledResponse(platform: 'pancake' | 'shopify', eventType = 'unknown') {
+    return {
+      duplicate: false,
+      eventType,
+      platform,
+      status: 'ignored',
+      reason: 'WEBHOOK_INGESTION_DISABLED',
+    };
+  }
+
+  private configBoolean(key: string, fallback: boolean): boolean {
     const value = this.configService.get<boolean | string | undefined>(key);
+    if (value === undefined || value === null || value === '') {
+      return fallback;
+    }
+
     return value === true || value === 'true';
   }
 

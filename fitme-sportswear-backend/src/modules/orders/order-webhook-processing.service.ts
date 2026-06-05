@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   SapoOrderStatus,
   findPancakeStatusByCode,
@@ -45,6 +46,7 @@ interface WebhookEventLike {
 export class OrderWebhookProcessingService {
   constructor(
     private readonly inventoryImpactService: OrderInventoryImpactService,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   buildProcessingPlan(event: WebhookEventLike): OrderWebhookProcessingPlan {
@@ -65,6 +67,14 @@ export class OrderWebhookProcessingService {
     }
 
     const payload = this.objectPayload(event.payload);
+    if (!this.matchesPancakeTestOrderFilter(payload)) {
+      return this.ignoredPlan(
+        event,
+        this.resolveExternalOrderId(event),
+        'PANCAKE_TEST_FILTER_IGNORED',
+      );
+    }
+
     const statusCode = this.numberOrNull(payload.status);
     const pancakeStatus =
       statusCode === null ? null : findPancakeStatusByCode(statusCode);
@@ -93,6 +103,22 @@ export class OrderWebhookProcessingService {
   }
 
   private buildShopifyPlan(event: WebhookEventLike): OrderWebhookProcessingPlan {
+    if (event.eventType === 'product') {
+      return this.ignoredPlan(
+        event,
+        this.resolveExternalOrderId(event),
+        'SHOPIFY_PRODUCT_WEBHOOK_IGNORED_PRODUCT_SYNC_IS_SCHEDULED',
+      );
+    }
+
+    if (event.eventType === 'fulfillment') {
+      return this.ignoredPlan(
+        event,
+        this.resolveExternalOrderId(event),
+        'SHOPIFY_FULFILLMENT_WEBHOOK_IGNORED_NOT_SUPPORTED_YET',
+      );
+    }
+
     if (event.eventType !== 'order') {
       return this.ignoredPlan(event, this.resolveExternalOrderId(event));
     }
@@ -152,13 +178,14 @@ export class OrderWebhookProcessingService {
   private ignoredPlan(
     event: WebhookEventLike,
     externalOrderId: string | null,
+    statusDescription = 'IGNORED',
   ): OrderWebhookProcessingPlan {
     return {
       platform: event.sourcePlatform,
       eventType: event.eventType,
       externalOrderId,
       statusCode: null,
-      statusDescription: 'IGNORED',
+      statusDescription,
       quantityEffect: 'none',
       sapoStatuses: [],
       nextActions: ['ignore'],
@@ -188,5 +215,42 @@ export class OrderWebhookProcessingService {
   private numberOrNull(value: unknown): number | null {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private matchesPancakeTestOrderFilter(payload: Record<string, unknown>): boolean {
+    const filter = this.configService?.get<string>('pancake.testOrderFilter')?.trim();
+    if (!filter) {
+      return true;
+    }
+
+    const searchableValues = [
+      payload.note,
+      payload.note_print,
+      payload.notePrint,
+      ...this.arrayPayload(payload.tags),
+    ]
+      .map((value) => this.searchableString(value))
+      .filter((value) => value.length > 0);
+
+    return searchableValues.some((value) => value.includes(filter));
+  }
+
+  private arrayPayload(value: unknown): unknown[] {
+    return Array.isArray(value) ? value : [];
+  }
+
+  private searchableString(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (!value || typeof value !== 'object') {
+      return '';
+    }
+
+    const objectValue = value as Record<string, unknown>;
+    return [objectValue.name, objectValue.value, objectValue.text]
+      .filter((entry): entry is string => typeof entry === 'string')
+      .join(' ');
   }
 }

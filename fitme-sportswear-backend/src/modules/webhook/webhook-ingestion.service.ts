@@ -151,10 +151,24 @@ export class WebhookIngestionService {
     externalEventId: string | null,
     rawPayload: string,
   ): string {
-    const stableId =
-      externalEventId ??
-      createHash('sha256').update(rawPayload).digest('hex').slice(0, 32);
-    return `${platform}:${eventType}:${stableId}`;
+    const payloadHash = this.payloadHash(rawPayload);
+    const stableId = externalEventId ?? payloadHash;
+
+    return this.isUpdateLikeEvent(platform, eventType) && externalEventId
+      ? `${platform}:${eventType}:${stableId}:${payloadHash}`
+      : `${platform}:${eventType}:${stableId}`;
+  }
+
+  private payloadHash(rawPayload: string): string {
+    return createHash('sha256').update(rawPayload).digest('hex').slice(0, 32);
+  }
+
+  private isUpdateLikeEvent(platform: WebhookPlatform, eventType: string): boolean {
+    return (
+      (platform === 'pancake' && eventType === 'order_updated') ||
+      eventType.endsWith('_updated') ||
+      eventType.includes('updated')
+    );
   }
 
   private idempotencyExpiry(): Date {

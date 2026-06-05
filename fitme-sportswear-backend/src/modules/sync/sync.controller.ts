@@ -1,11 +1,13 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CreateTestSyncDto } from './dto/create-test-sync.dto';
 import {
   CreateSapoToPancakeOrderBulkSyncDto,
   CreateSapoToPancakeOrderSyncDto,
 } from './dto/sapo-to-pancake-order-sync.dto';
+import { SyncApiTokenGuard } from './sync-api-token.guard';
 import { SyncService } from './sync.service';
 
+@UseGuards(SyncApiTokenGuard)
 @Controller('sync')
 export class SyncController {
   constructor(private readonly syncService: SyncService) {}

@@ -79,7 +79,7 @@ export class SapoSessionService {
       'suffix-domain': 'mysapogo.com',
     });
 
-    await this.fetchLoginStep(
+    const loginRedirect = await this.fetchLoginStep(
       `${accountBaseUrl}/login`,
       {
         method: 'POST',
@@ -88,6 +88,17 @@ export class SapoSessionService {
       },
       'Sapo login',
     );
+
+    if (loginRedirect) {
+      await this.fetchLoginStep(
+        loginRedirect,
+        {
+          method: 'GET',
+          headers: { Cookie: this.getCookieHeader() },
+        },
+        'Sapo SSO',
+      );
+    }
 
     const authorizeUrl = new URL(`${accountBaseUrl}/oauth/authorize`);
     authorizeUrl.searchParams.set('client_id', clientId);
@@ -131,68 +142,58 @@ export class SapoSessionService {
     url: string,
     init: RequestInit,
     label: string,
-  ): Promise<void> {
-    const response = await this.fetchFollowingRedirects(url, init);
-
-    if (!response.ok) {
-      throw new Error(`${label} failed with status ${response.status}`);
-    }
-  }
-
-  private async fetchFollowingRedirects(
-    url: string,
-    init: RequestInit,
-    maxRedirects = 10,
-  ): Promise<Response> {
+  ): Promise<string | null> {
     let currentUrl = url;
-    let currentInit: RequestInit = init;
+    let currentInit = init;
 
-    for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    for (let redirectCount = 0; redirectCount < 10; redirectCount += 1) {
       const response = await fetch(currentUrl, {
         ...currentInit,
         redirect: 'manual',
-        headers: {
-          ...this.toHeaderObject(currentInit.headers),
-          Cookie: this.getCookieHeader(),
-        },
       });
-
       this.storeCookies(response);
 
-      if (!this.isRedirect(response.status)) {
-        return response;
+      if (this.isRedirect(response.status)) {
+        const location = response.headers.get('location');
+        if (!location) {
+          throw new Error(`${label} redirect missing Location header`);
+        }
+
+        currentUrl = new URL(location, currentUrl).toString();
+        currentInit = {
+          method: 'GET',
+          headers: {
+            ...this.toHeaderObject(currentInit.headers),
+            Cookie: this.getCookieHeader(),
+          },
+        };
+        continue;
       }
 
-      const location = response.headers.get('location');
-      if (!location) {
-        return response;
+      if (!response.ok) {
+        throw new Error(`${label} failed with status ${response.status}`);
       }
 
-      currentUrl = new URL(location, currentUrl).toString();
-      currentInit = this.redirectInit(currentInit, response.status);
+      return this.loginRedirectUrl(response);
     }
 
-    throw new Error('Sapo login redirect limit exceeded');
+    throw new Error(`${label} exceeded redirect limit`);
   }
 
   private isRedirect(status: number): boolean {
-    return [301, 302, 303, 307, 308].includes(status);
+    return status >= 300 && status < 400;
   }
 
-  private redirectInit(init: RequestInit, status: number): RequestInit {
-    const method = init.method?.toUpperCase() ?? 'GET';
-    const shouldSwitchToGet =
-      status === 303 || ((status === 301 || status === 302) && method !== 'GET' && method !== 'HEAD');
-
-    if (!shouldSwitchToGet) {
-      return init;
+  private async loginRedirectUrl(response: Response): Promise<string | null> {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      return null;
     }
 
-    const { body: _body, ...rest } = init;
-    return {
-      ...rest,
-      method: 'GET',
-    };
+    const body = (await response.json().catch(() => null)) as {
+      redirect?: unknown;
+    } | null;
+    return typeof body?.redirect === 'string' ? body.redirect : null;
   }
 
   private storeCookies(response: Response): void {

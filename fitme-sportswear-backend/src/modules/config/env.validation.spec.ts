@@ -1,65 +1,64 @@
 import { envValidationSchema } from './env.validation';
 
-describe('envValidationSchema Phase 4 configuration', () => {
-  const validEnvironment = {
-    DATABASE_URL: 'postgresql://fitme:fitme@localhost:5432/fitme',
-    REDIS_HOST: 'localhost',
-    REDIS_PORT: 6379,
-    SAPO_BASE_URL: 'https://example.mysapogo.com',
-    SAPO_PHONE_NUMBER: '0900000000',
-    SAPO_PASSWORD: 'secret',
-    SAPO_CLIENT_ID: 'client-id',
-    SAPO_SHOP_DOMAIN: 'example.mysapogo.com',
-    SAPO_LOCATION_ID: '572310',
-    SAPO_PANCAKE_SOURCE_ID: '5632931',
-    SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID:
-      '{"warehouse-1":"572310"}',
-    SAPO_PREPAYMENT_METHOD_ID: '2575663',
-    SAPO_PREPAYMENT_METHOD_NAME: 'Chuyen khoan',
-    PANCAKE_BASE_URL: 'https://pos.pages.fm/api/v1',
-    PANCAKE_API_KEY: 'key',
-    PANCAKE_SHOP_ID: '1290216695',
-    PANCAKE_DEFAULT_WAREHOUSE_ID: 'warehouse-1',
-    SHOPIFY_BASE_URL: 'https://example.myshopify.com',
-    SHOPIFY_ACCESS_TOKEN: 'token',
-  };
+const baseEnv = {
+  APP_ENV: 'local',
+  DATABASE_URL: 'postgresql://fitme:fitme@localhost:5433/fitme_sportswear_backend?schema=public',
+  REDIS_HOST: 'localhost',
+  REDIS_PORT: 6380,
+  SAPO_BASE_URL: 'https://example-sapo.local',
+  SAPO_PHONE_NUMBER: 'phone',
+  SAPO_PASSWORD: 'password',
+  SAPO_CLIENT_ID: 'client',
+  SAPO_SHOP_DOMAIN: 'example-sapo.local',
+  SAPO_LOCATION_ID: '572310',
+  SAPO_PANCAKE_SOURCE_ID: 307258,
+  SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID: '{}',
+  SAPO_PREPAYMENT_METHOD_ID: 2575663,
+  SAPO_PREPAYMENT_METHOD_NAME: 'Chuyen khoan',
+  PANCAKE_BASE_URL: 'https://example-pancake.local',
+  PANCAKE_API_KEY: 'pancake-key',
+  PANCAKE_SHOP_ID: 'shop',
+  SHOPIFY_BASE_URL: 'https://example-shopify.local',
+  SHOPIFY_ACCESS_TOKEN: 'shopify-token',
+};
 
-  it.each([
-    'SAPO_PANCAKE_SOURCE_ID',
-    'SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID',
-    'SAPO_PREPAYMENT_METHOD_ID',
-    'SAPO_PREPAYMENT_METHOD_NAME',
-    'PANCAKE_DEFAULT_WAREHOUSE_ID',
-  ])('requires %s', (key) => {
-    const environment = { ...validEnvironment, [key]: undefined };
+describe('envValidationSchema', () => {
+  it('allows local development without production-only secrets', () => {
+    const result = envValidationSchema.validate(baseEnv, { abortEarly: false });
 
-    expect(envValidationSchema.validate(environment).error).toBeDefined();
+    expect(result.error).toBeUndefined();
+    expect(result.value.WEBHOOK_INGESTION_ENABLED).toBe(false);
+    expect(result.value.PANCAKE_WEBHOOK_ENABLED).toBe(false);
+    expect(result.value.SHOPIFY_WEBHOOK_ENABLED).toBe(false);
   });
 
-  it('rejects invalid warehouse-location JSON', () => {
-    const environment = {
-      ...validEnvironment,
-      SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID: 'not-json',
-    };
+  it('requires webhook and sync secrets in production', () => {
+    const result = envValidationSchema.validate(
+      { ...baseEnv, APP_ENV: 'production' },
+      { abortEarly: false },
+    );
 
-    expect(envValidationSchema.validate(environment).error?.message).toContain(
-      'SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID',
+    expect(result.error?.details.map((detail) => detail.path.join('.'))).toEqual(
+      expect.arrayContaining([
+        'PANCAKE_WEBHOOK_SECRET',
+        'SHOPIFY_WEBHOOK_SECRET',
+        'SYNC_API_TOKEN',
+      ]),
     );
   });
 
-  it('requires the default warehouse to map to the configured Sapo location', () => {
-    const environment = {
-      ...validEnvironment,
-      SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID:
-        '{"another-warehouse":"572310"}',
-    };
-
-    expect(envValidationSchema.validate(environment).error?.message).toContain(
-      'PANCAKE_DEFAULT_WAREHOUSE_ID',
+  it('accepts production when required secrets are configured', () => {
+    const result = envValidationSchema.validate(
+      {
+        ...baseEnv,
+        APP_ENV: 'production',
+        PANCAKE_WEBHOOK_SECRET: 'pancake-secret',
+        SHOPIFY_WEBHOOK_SECRET: 'shopify-secret',
+        SYNC_API_TOKEN: 'sync-token',
+      },
+      { abortEarly: false },
     );
-  });
 
-  it('accepts a complete Phase 4 configuration', () => {
-    expect(envValidationSchema.validate(validEnvironment).error).toBeUndefined();
+    expect(result.error).toBeUndefined();
   });
 });

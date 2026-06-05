@@ -103,6 +103,39 @@ describe('WebhookIngestionService', () => {
     expect(producer.enqueue).not.toHaveBeenCalled();
   });
 
+  it('includes a payload fingerprint for Pancake order update idempotency keys', async () => {
+    const { prisma, service } = createService();
+
+    await service.ingestPancake(
+      JSON.stringify({ id: 'pancake-order-1', type: 'orders', event_type: 'update', status: 1 }),
+    );
+    await service.ingestPancake(
+      JSON.stringify({ id: 'pancake-order-1', type: 'orders', event_type: 'update', status: 8 }),
+    );
+
+    const createdKeys = prisma.idempotencyKey.create.mock.calls.map(
+      ([call]) => call.data.key,
+    );
+    expect(createdKeys).toHaveLength(2);
+    expect(createdKeys[0]).toMatch(/^pancake:order_updated:pancake-order-1:[a-f0-9]{32}$/);
+    expect(createdKeys[1]).toMatch(/^pancake:order_updated:pancake-order-1:[a-f0-9]{32}$/);
+    expect(createdKeys[0]).not.toBe(createdKeys[1]);
+  });
+
+  it('keeps stable idempotency keys for Pancake order create events', async () => {
+    const { prisma, service } = createService();
+
+    await service.ingestPancake(
+      JSON.stringify({ id: 'pancake-order-1', type: 'orders', event_type: 'create', status: 0 }),
+    );
+
+    expect(prisma.idempotencyKey.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        key: 'pancake:order_created:pancake-order-1',
+      }),
+    });
+  });
+
   it('throws a clear error for invalid JSON', async () => {
     const { service } = createService();
 

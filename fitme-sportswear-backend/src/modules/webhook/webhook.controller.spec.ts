@@ -1,83 +1,105 @@
-import { ServiceUnavailableException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { UnauthorizedException } from '@nestjs/common';
 import { WebhookController } from './webhook.controller';
 
 describe('WebhookController', () => {
-  function createController(overrides: Record<string, unknown> = {}) {
-    const configValues: Record<string, unknown> = {
-      'webhooks.ingestionEnabled': false,
-      'webhooks.pancake.enabled': false,
-      ...overrides,
-    };
+  function createController(options: { pancakeSecretValid?: boolean; shopifyHmacValid?: boolean; webhookEnabled?: boolean; platformEnabled?: boolean } = {}) {
     const ingestionService = {
-      ingestPancake: jest.fn().mockResolvedValue({
-        id: 'webhook-event-1',
-        duplicate: false,
-        eventType: 'order_created',
-        status: 'queued',
-      }),
-      ingestShopify: jest.fn(),
+      ingestPancake: jest.fn().mockResolvedValue({ id: 'pancake-event' }),
+      ingestShopify: jest.fn().mockResolvedValue({ id: 'shopify-event' }),
     };
     const shopifyHmacService = {
-      verify: jest.fn().mockReturnValue(true),
+      verify: jest.fn().mockReturnValue(options.shopifyHmacValid ?? true),
+    };
+    const pancakeWebhookSecretService = {
+      verify: jest.fn().mockReturnValue(options.pancakeSecretValid ?? true),
     };
     const configService = {
-      get: jest.fn((key: string) => configValues[key]),
-    } as unknown as ConfigService;
+      get: jest.fn((key: string) => {
+        if (key === 'webhook.ingestionEnabled') {
+          return options.webhookEnabled ?? true;
+        }
+        if (key === 'webhook.pancake.enabled' || key === 'webhook.shopify.enabled') {
+          return options.platformEnabled ?? true;
+        }
+        return undefined;
+      }),
+    };
 
     return {
-      configService,
-      ingestionService,
       controller: new WebhookController(
         ingestionService as any,
         shopifyHmacService as any,
-        configService,
+        pancakeWebhookSecretService as any,
+        configService as any,
       ),
+      ingestionService,
+      shopifyHmacService,
+      pancakeWebhookSecretService,
     };
   }
 
-  it('rejects Pancake webhook when global ingestion is disabled', async () => {
-    const { controller, ingestionService } = createController({
-      'webhooks.ingestionEnabled': false,
-      'webhooks.pancake.enabled': true,
-    });
+  const request = { rawBody: Buffer.from('{"id":"order-1"}') } as any;
+
+  it('rejects Pancake webhooks with invalid secret', () => {
+    const { controller } = createController({ pancakeSecretValid: false });
 
     expect(() =>
-      controller.ingestPancakeWebhook({ id: 'order-1' }, {} as any),
-    ).toThrow(ServiceUnavailableException);
+      controller.ingestPancakeWebhook({ id: 'order-1' }, request, 'wrong'),
+    ).toThrow(UnauthorizedException);
+  });
+
+  it('does not enqueue Pancake webhooks when ingestion is disabled', async () => {
+    const { controller, ingestionService } = createController({ webhookEnabled: false });
+
+    expect(
+      controller.ingestPancakeWebhook({ id: 'order-1' }, request, 'secret'),
+    ).toMatchObject({
+      platform: 'pancake',
+      status: 'ignored',
+      reason: 'WEBHOOK_INGESTION_DISABLED',
+    });
     expect(ingestionService.ingestPancake).not.toHaveBeenCalled();
   });
 
-  it('rejects Pancake webhook when Pancake ingestion is disabled', async () => {
-    const { controller, ingestionService } = createController({
-      'webhooks.ingestionEnabled': true,
-      'webhooks.pancake.enabled': false,
-    });
+  it('enqueues Pancake webhooks when secret and switches are valid', async () => {
+    const { controller, ingestionService } = createController();
 
-    expect(() =>
-      controller.ingestLegacyPancakeWebhook({ id: 'order-1' }, {} as any),
-    ).toThrow(ServiceUnavailableException);
-    expect(ingestionService.ingestPancake).not.toHaveBeenCalled();
+    await controller.ingestPancakeWebhook({ id: 'order-1' }, request, 'secret');
+
+    expect(ingestionService.ingestPancake).toHaveBeenCalledWith('{"id":"order-1"}');
   });
 
-  it('ingests Pancake webhook when both switches are enabled', async () => {
-    const { controller, ingestionService } = createController({
-      'webhooks.ingestionEnabled': true,
-      'webhooks.pancake.enabled': true,
-    });
+  it('accepts Pancake webhook secret from query when header is unavailable', async () => {
+    const { controller, pancakeWebhookSecretService } = createController();
 
-    await expect(
-      controller.ingestPancakeWebhook(
-        { id: 'order-1', type: 'orders', event_type: 'create' },
-        {} as any,
-      ),
-    ).resolves.toMatchObject({
-      id: 'webhook-event-1',
-      eventType: 'order_created',
-      status: 'queued',
-    });
-    expect(ingestionService.ingestPancake).toHaveBeenCalledWith(
-      JSON.stringify({ id: 'order-1', type: 'orders', event_type: 'create' }),
+    await controller.ingestPancakeWebhook(
+      { id: 'order-1' },
+      request,
+      undefined,
+      'query-secret',
     );
+
+    expect(pancakeWebhookSecretService.verify).toHaveBeenCalledWith('query-secret');
+  });
+
+  it('rejects Shopify webhooks with invalid HMAC', () => {
+    const { controller } = createController({ shopifyHmacValid: false });
+
+    expect(() =>
+      controller.ingestShopifyOrderWebhook({ id: 123 }, request, 'bad-hmac'),
+    ).toThrow(UnauthorizedException);
+  });
+
+  it('does not enqueue Shopify webhooks when the platform switch is disabled', async () => {
+    const { controller, ingestionService } = createController({ platformEnabled: false });
+
+    expect(
+      controller.ingestShopifyOrderWebhook({ id: 123 }, request, 'hmac'),
+    ).toMatchObject({
+      eventType: 'order',
+      platform: 'shopify',
+      status: 'ignored',
+    });
+    expect(ingestionService.ingestShopify).not.toHaveBeenCalled();
   });
 });

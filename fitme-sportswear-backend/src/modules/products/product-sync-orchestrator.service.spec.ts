@@ -47,12 +47,17 @@ describe('ProductSyncOrchestratorService', () => {
     const inventorySyncService = {
       syncMappings: jest.fn().mockResolvedValue(syncResult),
     } as unknown as InventorySyncService;
+    const notifier = {
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
 
     const service = new ProductSyncOrchestratorService(
       prisma as any,
       snapshotService,
       matchingService,
       inventorySyncService,
+      notifier as any,
     );
 
     await service.run(syncRunId);
@@ -93,6 +98,55 @@ describe('ProductSyncOrchestratorService', () => {
         finishedAt: expect.any(Date),
       }),
     });
+    expect(notifier.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('notifies when product sync succeeds with conflicts or partial errors', async () => {
+    const syncRunId = 'sync-run-1';
+    const mapping: ProductMappingCandidate = {
+      sku: 'SKU-1',
+      sapo: null,
+      pancake: null,
+      shopify: null,
+      status: 'conflict',
+      conflictReason: 'Duplicate SKU',
+    };
+    const prisma = {
+      productMapping: { upsert: jest.fn().mockResolvedValue({}) },
+      syncRun: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const snapshotService = {
+      refreshAllSnapshots: jest.fn().mockResolvedValue([]),
+    } as unknown as ProductSnapshotService;
+    const matchingService = {
+      buildMappings: jest.fn().mockReturnValue([mapping]),
+    } as unknown as ProductMatchingService;
+    const inventorySyncService = {
+      syncMappings: jest.fn().mockResolvedValue({
+        updatedPancake: 0,
+        updatedShopify: 0,
+        errors: [{ sku: 'SKU-1', platform: 'pancake', operation: 'update', message: 'failed' }],
+      }),
+    } as unknown as InventorySyncService;
+    const notifier = {
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const service = new ProductSyncOrchestratorService(
+      prisma as any,
+      snapshotService,
+      matchingService,
+      inventorySyncService,
+      notifier as any,
+    );
+
+    await service.run(syncRunId);
+
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Product sync completed with issues: sync-run-1',
+      expect.stringContaining('conflict=1'),
+    );
   });
 
   it('builds Phase 4 mappings without Shopify or inventory synchronization', async () => {

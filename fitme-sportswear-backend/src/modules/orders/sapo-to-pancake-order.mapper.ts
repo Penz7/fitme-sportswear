@@ -5,12 +5,23 @@ import { PANCAKE_ORDER_STATUSES } from './order-status.mapper';
 export type SapoOrderSnapshot = Record<string, any>;
 export type PancakeOrderPayload = Record<string, any>;
 
+export interface SapoToPancakeAddressMapping {
+  provinceId: number | null;
+  districtId: number | null;
+  wardId: number | null;
+}
+
 @Injectable()
 export class SapoToPancakeOrderMapper {
   constructor(private readonly prisma: PrismaService) {}
 
   async toPancakeOrder(
     sapoOrder: SapoOrderSnapshot,
+    addressMapping: SapoToPancakeAddressMapping = {
+      provinceId: null,
+      districtId: null,
+      wardId: null,
+    },
   ): Promise<PancakeOrderPayload | null> {
     const items = await this.toPancakeItems(
       this.arrayPayload(sapoOrder.order_line_items ?? sapoOrder.orderLineItems),
@@ -48,8 +59,9 @@ export class SapoToPancakeOrderMapper {
         null,
       shipping_address: {
         address: shippingAddress.address1 ?? shippingAddress.address ?? null,
-        province_id: shippingAddress.city ?? null,
-        district_id: shippingAddress.district ?? null,
+        province_id: addressMapping.provinceId,
+        district_id: addressMapping.districtId,
+        commune_id: addressMapping.wardId,
         phone_number:
           shippingAddress.phone_number ?? shippingAddress.phoneNumber ?? null,
       },
@@ -138,10 +150,11 @@ export class SapoToPancakeOrderMapper {
   }
 
   private stringOrNull(value: unknown): string | null {
-    if (value === null || value === undefined || String(value).trim() === '') {
+    const normalized = value === null || value === undefined ? '' : String(value).trim();
+    if (normalized === '') {
       return null;
     }
 
-    return String(value);
+    return normalized;
   }
 }

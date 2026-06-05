@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AddressMappingService } from '../address/address-mapping.service';
 import { PrismaService } from '../database/prisma.service';
 import { PancakeClient } from '../pancake/pancake.client';
-import { SapoToPancakeOrderMapper, SapoOrderSnapshot } from './sapo-to-pancake-order.mapper';
+import {
+  SapoToPancakeAddressMapping,
+  SapoToPancakeOrderMapper,
+  SapoOrderSnapshot,
+} from './sapo-to-pancake-order.mapper';
 
 export interface SapoToPancakeOrderSyncResult {
   action: 'created' | 'updated' | 'skipped';
@@ -12,11 +17,14 @@ export interface SapoToPancakeOrderSyncResult {
 
 @Injectable()
 export class SapoToPancakeOrderSyncService {
+  private readonly logger = new Logger(SapoToPancakeOrderSyncService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly pancakeClient: PancakeClient,
     private readonly mapper: SapoToPancakeOrderMapper,
     private readonly configService?: ConfigService,
+    private readonly addressMappingService?: AddressMappingService,
   ) {}
 
   async syncSapoOrder(
@@ -26,7 +34,37 @@ export class SapoToPancakeOrderSyncService {
     const mapping = sapoOrderId
       ? await this.prisma.orderMapping.findFirst({ where: { sapoOrderId } })
       : null;
-    const payload = await this.mapper.toPancakeOrder(sapoOrder);
+    const cancelPayload = {
+      status: 6,
+      status_name: 'Huy don',
+    };
+
+    if (sapoOrderId && mapping?.pancakeOrderId && this.isCancelled(sapoOrder)) {
+      const response = await this.pancakeClient.updateOrder(
+        mapping.pancakeOrderId,
+        cancelPayload,
+      );
+      const pancakeOrder = this.objectPayload(response.data);
+      const pancakeOrderId =
+        this.stringOrNull(pancakeOrder.id) ?? mapping.pancakeOrderId;
+
+      await this.upsertMapping({
+        sapoOrder,
+        sapoOrderId,
+        pancakeOrderId,
+        pancakeOrder,
+        payload: cancelPayload,
+      });
+
+      return {
+        action: 'updated',
+        sapoOrderId,
+        pancakeOrderId,
+      };
+    }
+
+    const addressMapping = await this.resolvePancakeAddressMapping(sapoOrder);
+    const payload = await this.mapper.toPancakeOrder(sapoOrder, addressMapping);
 
     if (!payload || !sapoOrderId) {
       return {
@@ -85,6 +123,35 @@ export class SapoToPancakeOrderSyncService {
     };
   }
 
+  private async resolvePancakeAddressMapping(
+    sapoOrder: SapoOrderSnapshot,
+  ): Promise<SapoToPancakeAddressMapping> {
+    if (!this.addressMappingService?.resolvePancakeAddressFromSapoText) {
+      return { provinceId: null, districtId: null, wardId: null };
+    }
+
+    const shippingAddress = this.objectPayload(
+      sapoOrder.shipping_address ?? sapoOrder.shippingAddress,
+    );
+    const fullAddress = this.stringOrNull(
+      shippingAddress.address1 ?? shippingAddress.address,
+    );
+    const resolved = await this.addressMappingService.resolvePancakeAddressFromSapoText({
+      provinceName: this.stringOrNull(
+        shippingAddress.city ?? shippingAddress.province,
+      ),
+      districtName: this.stringOrNull(shippingAddress.district),
+      wardName: this.stringOrNull(shippingAddress.ward),
+      fullAddress,
+    });
+
+    return {
+      provinceId: resolved.provinceId,
+      districtId: resolved.districtId,
+      wardId: resolved.wardId,
+    };
+  }
+
   private async upsertMapping(input: {
     sapoOrder: SapoOrderSnapshot;
     sapoOrderId: string;
@@ -125,30 +192,14 @@ export class SapoToPancakeOrderSyncService {
       return;
     }
 
-    for (const lineItem of this.arrayPayload(
-      sapoOrder.order_line_items ?? sapoOrder.orderLineItems,
-    )) {
-      const sku = this.stringOrNull(lineItem.sku);
-      const quantity = this.numberOrNull(lineItem.quantity);
-
-      if (!sku || quantity === null) {
-        continue;
-      }
-
-      const mapping = await this.prisma.productMapping.findUnique({
-        where: { sku },
-      });
-
-      if (!mapping?.pancakeVariantId) {
-        continue;
-      }
-
-      await this.pancakeClient.updateInventory({
-        variantId: mapping.pancakeVariantId,
-        warehouseId: mapping.pancakeWarehouseId,
-        available: quantity,
-      });
-    }
+    this.logger.warn(
+      [
+        'Skipping Pancake inventory update from Sapo order quantity.',
+        'Order line quantity is not stock availability;',
+        'use product inventory sync for authoritative Sapo inventory.',
+        `sapoOrderId=${this.stringOrNull(sapoOrder.id) ?? 'unknown'}`,
+      ].join(' '),
+    );
   }
 
   private objectPayload(value: unknown): Record<string, any> {
@@ -183,5 +234,9 @@ export class SapoToPancakeOrderSyncService {
     }
 
     return value === true || value === 'true';
+  }
+
+  private isCancelled(sapoOrder: SapoOrderSnapshot): boolean {
+    return this.stringOrNull(sapoOrder.status)?.toLowerCase() === 'cancelled';
   }
 }

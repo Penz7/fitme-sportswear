@@ -258,7 +258,7 @@ export class PancakeToSapoPreflightService {
           addresses: [shippingAddress],
         },
         order_line_items: lineItems,
-        status: 'placed',
+        status: 'draft',
         source_id:
           this.configService.getOrThrow<number>('sapo.pancakeSourceId'),
         location_id: locationId,

@@ -2,7 +2,7 @@ import { AddressSyncService } from './address-sync.service';
 
 describe('AddressSyncService', () => {
   function createService() {
-    const prisma = {
+    const prisma: any = {
       provinceMapping: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
         createMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -16,6 +16,7 @@ describe('AddressSyncService', () => {
         createMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     };
+    prisma.$transaction = jest.fn((work: (tx: any) => Promise<unknown>) => work(prisma));
     const sapoClient = {
       fetchCities: jest.fn().mockResolvedValue([{ id: 79, name: 'Ho Chi Minh' }]),
       fetchDistrictsByCityId: jest.fn().mockResolvedValue([{ id: 784, name: 'Hoc Mon' }]),
@@ -27,17 +28,71 @@ describe('AddressSyncService', () => {
       fetchCommunesByDistrictId: jest.fn().mockResolvedValue([{ id: 12345, name: 'Xa Xuan Thoi Thuong' }]),
     };
 
+    const configService: { get: jest.Mock<unknown, [string]> } = {
+      get: jest.fn((_key: string) => undefined),
+    };
+
     return {
       prisma,
       sapoClient,
       pancakeClient,
+      configService,
       service: new AddressSyncService(
         prisma as any,
         sapoClient as any,
         pancakeClient as any,
+        configService as any,
       ),
     };
   }
+
+  it('skips address sync when disabled by config', async () => {
+    const { service, configService, prisma, sapoClient } = createService();
+    configService.get.mockImplementation((key: string) =>
+      key === 'sync.address.enabled' ? false : undefined,
+    );
+
+    await expect(service.syncAddressMappings()).resolves.toEqual({
+      provinces: 0,
+      districts: 0,
+      wards: 0,
+      skipped: true,
+    });
+    expect(sapoClient.fetchCities).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('aborts before deleting mappings when minimum thresholds are not met', async () => {
+    const { service, configService, prisma, sapoClient } = createService();
+    configService.get.mockImplementation((key: string) => {
+      const values: Record<string, unknown> = {
+        'sync.address.minProvinces': 2,
+      };
+      return values[key];
+    });
+    sapoClient.fetchCities.mockResolvedValueOnce([{ id: 79, name: 'Ho Chi Minh' }]);
+
+    await expect(service.syncAddressMappings()).rejects.toThrow(
+      'Sapo cities count 1 is below minimum 2',
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.provinceMapping.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('normalizes uppercase Vietnamese administrative prefixes before matching', async () => {
+    const { service, sapoClient, pancakeClient, prisma } = createService();
+    sapoClient.fetchCities.mockResolvedValueOnce([{ id: 79, name: 'TP HCM' }]);
+    pancakeClient.fetchProvinces.mockResolvedValueOnce([{ id: 1, name: 'tp hcm' }]);
+
+    await expect(service.syncAddressMappings()).resolves.toEqual({
+      provinces: 1,
+      districts: 1,
+      wards: 1,
+    });
+    expect(prisma.provinceMapping.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ similarity: 0 })],
+    });
+  });
 
   it('syncs province, district, and ward mapping tables from Sapo and Pancake addresses', async () => {
     const { service, prisma, sapoClient, pancakeClient } = createService();
@@ -54,6 +109,7 @@ describe('AddressSyncService', () => {
     expect(pancakeClient.fetchDistrictsByProvinceId).toHaveBeenCalledWith(1);
     expect(sapoClient.fetchWardsByDistrictId).toHaveBeenCalledWith(784);
     expect(pancakeClient.fetchCommunesByDistrictId).toHaveBeenCalledWith(688);
+    expect(prisma.$transaction).toHaveBeenCalled();
     expect(prisma.provinceMapping.deleteMany).toHaveBeenCalled();
     expect(prisma.districtMapping.deleteMany).toHaveBeenCalled();
     expect(prisma.wardMapping.deleteMany).toHaveBeenCalled();

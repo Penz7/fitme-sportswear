@@ -22,32 +22,35 @@ describe('SapoToPancakeOrderMapper', () => {
     const { mapper, prisma } = createMapper();
 
     await expect(
-      mapper.toPancakeOrder({
-        id: 'sapo-order-1',
-        total: 300000,
-        total_discount: 10000,
-        note: 'AUTO_SAPO_API',
-        source_id: 1290216695,
-        status: 'finalized',
-        packed_status: 'unpacked',
-        shipping_address: {
-          address1: 'Ho Chi Minh',
-          city: '79',
-          district: '784',
-          phone_number: '0909000000',
-        },
-        customer_data: {
-          name: 'Nguyen Van A',
-          addresses: [{ phone_number: '0909000000' }],
-        },
-        order_line_items: [
-          {
-            sku: 'SKU-1',
-            quantity: 2,
-            price: 150000,
+      mapper.toPancakeOrder(
+        {
+          id: 'sapo-order-1',
+          total: 300000,
+          total_discount: 10000,
+          note: 'AUTO_SAPO_API',
+          source_id: 1290216695,
+          status: 'finalized',
+          packed_status: 'unpacked',
+          shipping_address: {
+            address1: 'Ho Chi Minh',
+            city: '79',
+            district: '784',
+            phone_number: '0909000000',
           },
-        ],
-      }),
+          customer_data: {
+            name: 'Nguyen Van A',
+            addresses: [{ phone_number: '0909000000' }],
+          },
+          order_line_items: [
+            {
+              sku: 'SKU-1',
+              quantity: 2,
+              price: 150000,
+            },
+          ],
+        },
+        { provinceId: 79, districtId: 784, wardId: 27523 },
+      ),
     ).resolves.toEqual({
       total_price: 300000,
       total_discount: 10000,
@@ -60,8 +63,9 @@ describe('SapoToPancakeOrderMapper', () => {
       bill_phone_number: '0909000000',
       shipping_address: {
         address: 'Ho Chi Minh',
-        province_id: '79',
-        district_id: '784',
+        province_id: 79,
+        district_id: 784,
+        commune_id: 27523,
         phone_number: '0909000000',
       },
       items: [

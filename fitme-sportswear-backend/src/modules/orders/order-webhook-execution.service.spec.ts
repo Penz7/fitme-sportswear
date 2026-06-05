@@ -116,7 +116,7 @@ describe('OrderWebhookExecutionService', () => {
               variant_id: 'sapo-variant-1',
             },
           ],
-          status: 'placed',
+          status: 'draft',
           source_id: 5632931,
           location_id: 572310,
         },
@@ -172,23 +172,26 @@ describe('OrderWebhookExecutionService', () => {
       ],
     });
 
-    expect(sapoClient.createOrder).toHaveBeenCalledWith({
-      order: expect.objectContaining({
-        code: 'AUTO_PANCAKE_pancake-order-1',
-        customer_id: 12345,
-        total: 300000,
-        status: 'placed',
-        phone_number: '0909000000',
-        order_line_items: [
-          expect.objectContaining({
-            sku: 'SKU-1',
-            quantity: 2,
-            product_id: 'sapo-product-1',
-            variant_id: 'sapo-variant-1',
-          }),
-        ],
-      }),
-    });
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          code: 'AUTO_PANCAKE_pancake-order-1',
+          customer_id: 12345,
+          total: 300000,
+          status: 'draft',
+          phone_number: '0909000000',
+          order_line_items: [
+            expect.objectContaining({
+              sku: 'SKU-1',
+              quantity: 2,
+              product_id: 'sapo-product-1',
+              variant_id: 'sapo-variant-1',
+            }),
+          ],
+        }),
+      },
+      { locationId: '572310' },
+    );
     expect(sapoClient.fetchCustomers).toHaveBeenCalledWith(1, 1, '0909000000');
     expect(sapoClient.createCustomer).toHaveBeenCalledWith({
       customer: expect.objectContaining({

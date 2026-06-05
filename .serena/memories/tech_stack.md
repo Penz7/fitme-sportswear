@@ -1,6 +1,16 @@
 # Tech Stack
 
-- `fitme-sportswear-backend`: Node/NestJS 10, TypeScript 5.7 strict mode, CommonJS build target ES2021, Prisma 6 with PostgreSQL, BullMQ/ioredis queues, Jest/ts-jest, ESLint 9.
-- `sportswear-main`: Java 21, Spring Boot 3.4.3, Maven, Spring Web/JPA/Cache/Actuator, PostgreSQL runtime, H2 runtime, Caffeine cache, Lombok, MapStruct 1.6.3, Jersey 2.25.1, Jackson, hibernate-types.
-- Database/search notes: backend Prisma schema uses PostgreSQL; root README documents PostgreSQL `pg_trgm` extension for fuzzy address/name matching.
-- Runtime integrations include Sapo, Pancake, Shopify, Telegram notifications, and Gemini address normalization in Spring config.
+Backend:
+- TypeScript + NestJS 10.
+- Prisma Client/CLI 6.x, PostgreSQL datasource.
+- BullMQ 5 + Redis/ioredis for background work.
+- Joi for env validation via `src/modules/config/env.validation.ts`.
+- Jest + ts-jest for unit tests under `src/**/*.spec.ts` with Jest rootDir `src`.
+- ESLint script covers `{src,test}/**/*.ts`.
+
+Runtime layout:
+- API entrypoint: `src/main.ts`, built start: `node dist/main.js`.
+- Worker entrypoint: `src/worker.ts`, built worker: `node dist/worker.js`.
+- Docker Compose includes API, worker, Redis, PostgreSQL.
+
+Package manager: npm. Node requirement in README is Node 22+; package install may warn if Node is below supported patch level.

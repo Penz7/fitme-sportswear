@@ -39,7 +39,7 @@ export class ProductMatchingService {
         pancake,
         shopify,
         status: 'conflict',
-        conflictReason: `Duplicate SKU in ${duplicatePlatform}`,
+        conflictReason: `Duplicate SKU in ${duplicatePlatform}: ${this.describeEntries(entries, duplicatePlatform)}`,
       };
     }
 
@@ -91,6 +91,25 @@ export class ProductMatchingService {
     platform: ProductPlatform,
   ): PlatformProductSnapshot | null {
     return entries.find((entry) => entry.platform === platform) ?? null;
+  }
+
+  private describeEntries(
+    entries: PlatformProductSnapshot[],
+    platform: ProductPlatform,
+  ): string {
+    return entries
+      .filter((entry) => entry.platform === platform)
+      .map((entry) =>
+        [
+          `product=${entry.productId ?? 'unknown'}`,
+          `variant=${entry.variantId ?? 'unknown'}`,
+          entry.warehouseId ? `warehouse=${entry.warehouseId}` : null,
+          entry.name ? `name=${entry.name}` : null,
+        ]
+          .filter(Boolean)
+          .join(','),
+      )
+      .join('; ');
   }
 
   private findDuplicatePlatform(

@@ -292,9 +292,7 @@ export class PancakeClient {
       throw new Error(`Pancake address fetch failed with status ${response.status}`);
     }
 
-    const body = (await response.json()) as {
-      data?: Array<{ id?: string | number; name?: string }>;
-    };
+    const body = (await response.json()) as { data?: Array<Record<string, any>> };
     return (body.data ?? [])
       .map((unit) => ({
         id: Number(unit.id),

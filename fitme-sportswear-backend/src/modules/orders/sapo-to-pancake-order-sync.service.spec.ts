@@ -37,17 +37,26 @@ describe('SapoToPancakeOrderSyncService', () => {
     const configService = {
       get: jest.fn().mockReturnValue(false),
     };
+    const addressMappingService = {
+      resolvePancakeAddressFromSapoText: jest.fn().mockResolvedValue({
+        provinceId: 79,
+        districtId: 784,
+        wardId: 27523,
+      }),
+    };
 
     return {
       prisma,
       pancakeClient,
       mapper,
       configService,
+      addressMappingService,
       service: new SapoToPancakeOrderSyncService(
         prisma as any,
         pancakeClient as any,
         mapper as any,
         configService as any,
+        addressMappingService as any,
       ),
     };
   }
@@ -64,7 +73,11 @@ describe('SapoToPancakeOrderSyncService', () => {
     expect(prisma.orderMapping.findFirst).toHaveBeenCalledWith({
       where: { sapoOrderId: 'sapo-order-1' },
     });
-    expect(mapper.toPancakeOrder).toHaveBeenCalledWith(sapoOrder);
+    expect(mapper.toPancakeOrder).toHaveBeenCalledWith(sapoOrder, {
+      provinceId: 79,
+      districtId: 784,
+      wardId: 27523,
+    });
     expect(pancakeClient.createOrder).toHaveBeenCalledWith(pancakePayload);
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },
@@ -112,6 +125,114 @@ describe('SapoToPancakeOrderSyncService', () => {
     });
   });
 
+  it('updates a mapped Pancake order to cancelled when the Sapo order is cancelled without manual inventory mutation', async () => {
+    const { service, prisma, pancakeClient, mapper, configService } = createService();
+    const cancelledSapoOrder = {
+      ...sapoOrder,
+      status: 'cancelled',
+      packed_status: 'unpacked',
+      fulfillment_status: 'unshipped',
+    };
+    const cancelPayload = {
+      ...pancakePayload,
+      status: 6,
+      status_name: 'Huy don',
+    };
+    prisma.orderMapping.findFirst.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    mapper.toPancakeOrder.mockResolvedValue(cancelPayload);
+    pancakeClient.updateOrder.mockResolvedValue({
+      data: { id: 'pancake-order-1', status: 6, status_name: 'Huy don' },
+    });
+    configService.get.mockImplementation((key: string) =>
+      key === 'sync.orders.updatePancakeInventoryByOrder' ? true : false,
+    );
+
+    await expect(service.syncSapoOrder(cancelledSapoOrder)).resolves.toEqual({
+      action: 'updated',
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+
+    expect(pancakeClient.updateOrder).toHaveBeenCalledWith(
+      'pancake-order-1',
+      expect.objectContaining({
+        status: 6,
+        status_name: 'Huy don',
+      }),
+    );
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { pancakeOrderId: 'pancake-order-1' },
+      create: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeOrderId: 'pancake-order-1',
+        pancakeStatus: 6,
+        pancakeStatusDescription: 'Huy don',
+        sapoStatus: 'cancelled',
+        sapoFulfillmentStatus: 'unshipped',
+      }),
+      update: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeStatus: 6,
+        pancakeStatusDescription: 'Huy don',
+        sapoStatus: 'cancelled',
+        sapoFulfillmentStatus: 'unshipped',
+      }),
+    });
+  });
+
+  it('updates a mapped Pancake order to cancelled even when line item mapping is incomplete', async () => {
+    const { service, prisma, pancakeClient, mapper } = createService();
+    const cancelledSapoOrder = {
+      ...sapoOrder,
+      status: 'cancelled',
+      packed_status: 'unpacked',
+      fulfillment_status: 'unshipped',
+    };
+    prisma.orderMapping.findFirst.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    mapper.toPancakeOrder.mockResolvedValue(null);
+    pancakeClient.updateOrder.mockResolvedValue({
+      data: { id: 'pancake-order-1', status: 6, status_name: 'Huy don' },
+    });
+
+    await expect(service.syncSapoOrder(cancelledSapoOrder)).resolves.toEqual({
+      action: 'updated',
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+
+    expect(pancakeClient.updateOrder).toHaveBeenCalledWith(
+      'pancake-order-1',
+      {
+        status: 6,
+        status_name: 'Huy don',
+      },
+    );
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { pancakeOrderId: 'pancake-order-1' },
+      create: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeOrderId: 'pancake-order-1',
+        pancakeStatus: 6,
+        pancakeStatusDescription: 'Huy don',
+        sapoStatus: 'cancelled',
+      }),
+      update: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeStatus: 6,
+        pancakeStatusDescription: 'Huy don',
+        sapoStatus: 'cancelled',
+      }),
+    });
+  });
+
   it('skips sync when mapper cannot build a Pancake payload', async () => {
     const { service, mapper, pancakeClient, prisma } = createService();
     mapper.toPancakeOrder.mockResolvedValue(null);
@@ -125,7 +246,7 @@ describe('SapoToPancakeOrderSyncService', () => {
     expect(prisma.orderMapping.upsert).not.toHaveBeenCalled();
   });
 
-  it('updates Pancake inventory from Sapo order lines when enabled', async () => {
+  it('does not update Pancake inventory from Sapo order line quantity when enabled', async () => {
     const { service, configService, pancakeClient } = createService();
     configService.get.mockImplementation((key: string) =>
       key === 'sync.orders.updatePancakeInventoryByOrder' ? true : false,
@@ -133,10 +254,6 @@ describe('SapoToPancakeOrderSyncService', () => {
 
     await service.syncSapoOrder(sapoOrder);
 
-    expect(pancakeClient.updateInventory).toHaveBeenCalledWith({
-      variantId: 'variant-1',
-      warehouseId: 'warehouse-1',
-      available: 1,
-    });
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
   });
 });

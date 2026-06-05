@@ -57,6 +57,21 @@ interface ShopifyLocationsResponse {
   locations?: Array<{ id: string | number }>;
 }
 
+interface ShopifyFulfillmentOrdersResponse {
+  fulfillment_orders?: Array<{
+    id: string | number;
+    status?: string;
+    request_status?: string;
+    assigned_location_id?: string | number | null;
+    line_items?: Array<{
+      id: string | number;
+      line_item_id?: string | number | null;
+      quantity?: number;
+      fulfillable_quantity?: number;
+    }>;
+  }>;
+}
+
 @Injectable()
 export class ShopifyClient {
   private cachedLocationId: string | null = null;
@@ -94,7 +109,14 @@ export class ShopifyClient {
     const variant = await this.fetchVariant(input.variantId);
 
     if (variant.inventory_management !== 'shopify') {
-      await this.enableShopifyInventoryManagement(variant);
+      await this.updateVariant(variant, { inventoryManagement: 'shopify' });
+    }
+
+    if (
+      input.retailPrice !== null &&
+      !this.samePrice(variant.price, input.retailPrice)
+    ) {
+      await this.updateVariant(variant, { price: input.retailPrice });
     }
 
     const locationId = await this.getLocationId();
@@ -116,29 +138,71 @@ export class ShopifyClient {
   }
 
   async createFulfillment(input: ShopifyFulfillmentInput): Promise<void> {
-    const locationId = await this.getLocationId();
-    const response = await fetch(
-      this.apiUrl(`/orders/${input.orderId}/fulfillments.json`),
-      {
-        method: 'POST',
-        headers: this.jsonHeaders(),
-        body: JSON.stringify({
-          fulfillment: {
-            location_id: locationId,
-            tracking_company: input.trackingCompany,
-            tracking_number: input.trackingNumber,
-            notify_customer: input.notifyCustomer,
-            line_items: input.lineItems,
-          },
-        }),
-      },
+    const fulfillmentOrders = await this.fetchFulfillmentOrders(input.orderId);
+    const openFulfillmentOrders = fulfillmentOrders.filter((fulfillmentOrder) =>
+      this.isFulfillableOrder(fulfillmentOrder),
     );
 
+    if (openFulfillmentOrders.length === 0 && fulfillmentOrders.length > 0) {
+      return;
+    }
+
+    const lineItemsByFulfillmentOrder = openFulfillmentOrders.map((fulfillmentOrder) => ({
+      fulfillment_order_id: fulfillmentOrder.id,
+      fulfillment_order_line_items: this.fulfillmentOrderLineItems(
+        fulfillmentOrder,
+        input.lineItems,
+      ),
+    }));
+
+    if (lineItemsByFulfillmentOrder.length === 0) {
+      throw new Error(
+        `Shopify fulfillment order is required for order ${input.orderId}`,
+      );
+    }
+
+    const response = await fetch(this.apiUrl('/fulfillments.json'), {
+      method: 'POST',
+      headers: this.jsonHeaders(),
+      body: JSON.stringify({
+        fulfillment: {
+          line_items_by_fulfillment_order: lineItemsByFulfillmentOrder,
+          tracking_info: {
+            company: input.trackingCompany,
+            number: input.trackingNumber,
+          },
+          notify_customer: input.notifyCustomer,
+        },
+      }),
+    });
+
     if (!response.ok) {
+      if (response.status === 422 && this.isFulfillmentAlreadyApplied(await response.text())) {
+        return;
+      }
+
       throw new Error(
         `Shopify fulfillment create failed with status ${response.status}`,
       );
     }
+  }
+
+  async fetchFulfillmentOrders(
+    orderId: string,
+  ): Promise<NonNullable<ShopifyFulfillmentOrdersResponse['fulfillment_orders']>> {
+    const response = await fetch(
+      this.apiUrl(`/orders/${orderId}/fulfillment_orders.json`),
+      { headers: this.authHeaders() },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Shopify fulfillment orders fetch failed with status ${response.status}`,
+      );
+    }
+
+    const body = (await response.json()) as ShopifyFulfillmentOrdersResponse;
+    return body.fulfillment_orders ?? [];
   }
 
   async createProductFromSapo(
@@ -259,8 +323,9 @@ export class ShopifyClient {
     return body.variant;
   }
 
-  private async enableShopifyInventoryManagement(
+  private async updateVariant(
     variant: ShopifyVariantResponse['variant'],
+    input: { inventoryManagement?: string; price?: number },
   ): Promise<void> {
     const response = await fetch(this.apiUrl(`/variants/${variant.id}.json`), {
       method: 'PUT',
@@ -268,8 +333,10 @@ export class ShopifyClient {
       body: JSON.stringify({
         variant: {
           id: variant.id,
-          inventory_management: 'shopify',
-          price: variant.price,
+          ...(input.inventoryManagement
+            ? { inventory_management: input.inventoryManagement }
+            : {}),
+          ...(input.price !== undefined ? { price: input.price } : {}),
         },
       }),
     });
@@ -279,6 +346,55 @@ export class ShopifyClient {
         `Shopify variant update failed with status ${response.status}`,
       );
     }
+  }
+
+  private samePrice(currentPrice: string | number | null, nextPrice: number): boolean {
+    const current = Number(currentPrice);
+    return Number.isFinite(current) && current === nextPrice;
+  }
+
+  private isFulfillableOrder(fulfillmentOrder: {
+    status?: string;
+    request_status?: string;
+  }): boolean {
+    const status = String(fulfillmentOrder.status ?? '').toLowerCase();
+    const requestStatus = String(fulfillmentOrder.request_status ?? '').toLowerCase();
+
+    return (
+      ['open', 'in_progress', 'scheduled'].includes(status) &&
+      !['cancellation_requested', 'cancellation_accepted'].includes(requestStatus)
+    );
+  }
+
+  private fulfillmentOrderLineItems(
+    fulfillmentOrder: NonNullable<ShopifyFulfillmentOrdersResponse['fulfillment_orders']>[number],
+    orderLineItems: ShopifyFulfillmentInput['lineItems'],
+  ): Array<{ id: string | number; quantity: number }> {
+    const requestedLineItems = new Map(
+      orderLineItems.map((lineItem) => [String(lineItem.id), lineItem.quantity]),
+    );
+
+    return (fulfillmentOrder.line_items ?? [])
+      .map((lineItem) => {
+        const requestedQuantity = requestedLineItems.get(String(lineItem.line_item_id));
+        const quantity = Math.min(
+          requestedQuantity ?? lineItem.fulfillable_quantity ?? lineItem.quantity ?? 0,
+          lineItem.fulfillable_quantity ?? lineItem.quantity ?? requestedQuantity ?? 0,
+        );
+
+        return { id: lineItem.id, quantity };
+      })
+      .filter((lineItem) => lineItem.quantity > 0);
+  }
+
+  private isFulfillmentAlreadyApplied(body: string): boolean {
+    const normalized = body.toLowerCase();
+    return (
+      normalized.includes('already') ||
+      normalized.includes('closed') ||
+      normalized.includes('not fulfillable') ||
+      normalized.includes('fulfilled')
+    );
   }
 
   private async getLocationId(): Promise<string> {

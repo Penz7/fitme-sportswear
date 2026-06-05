@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ProductMappingStatus } from '@prisma/client';
 import { AddressMappingService } from '../address/address-mapping.service';
 import { PrismaService } from '../database/prisma.service';
 import { SapoClient } from '../sapo/sapo.client';
@@ -32,17 +33,28 @@ export class OrderWebhookExecutionService {
     }
 
     const orderPayload = this.objectPayload(payload);
+    const sapoLocationId = this.resolveSapoLocationId(plan, orderPayload);
     let sapoOrderId = await this.findMappedSapoOrderId(plan);
     let sapoOrder: Record<string, any> | null = null;
 
     for (const action of plan.nextActions) {
       switch (action) {
         case 'create_sapo_order':
-          sapoOrderId = await this.createSapoOrder(plan, orderPayload, sapoOrderId);
+          sapoOrderId = await this.createSapoOrder(
+            plan,
+            orderPayload,
+            sapoOrderId,
+            sapoLocationId,
+          );
           break;
         case 'create_sapo_order_if_missing':
           if (!sapoOrderId) {
-            sapoOrderId = await this.createSapoOrder(plan, orderPayload, null);
+            sapoOrderId = await this.createSapoOrder(
+              plan,
+              orderPayload,
+              null,
+              sapoLocationId,
+            );
           }
           break;
         case 'finalize_sapo_order':
@@ -126,6 +138,7 @@ export class OrderWebhookExecutionService {
     plan: OrderWebhookProcessingPlan,
     payload: Record<string, any>,
     existingSapoOrderId: string | null,
+    sapoLocationId: string,
   ): Promise<string> {
     if (existingSapoOrderId) {
       return existingSapoOrderId;
@@ -147,16 +160,36 @@ export class OrderWebhookExecutionService {
       sapoOrder = await this.toSapoOrder(plan, payload);
     }
 
-    const created = await this.sapoClient.createOrder({
-      order: await this.withSapoCustomerId(sapoOrder),
-    });
+    const order = await this.withSapoCustomerId(sapoOrder);
+    const existingSapoOrder = await this.findExistingSapoOrderByCode(order.code);
+    if (existingSapoOrder) {
+      return this.requiredString(existingSapoOrder.id, 'Sapo order id');
+    }
+
+    const created = await this.sapoClient.createOrder(
+      { order },
+      { locationId: sapoLocationId },
+    );
     const sapoOrderId = this.requiredString(created.order?.id, 'Sapo order id');
 
     if (prepayment) {
-      await this.sapoClient.prepayOrder(sapoOrderId, prepayment);
+      await this.sapoClient.prepayOrder(sapoOrderId, prepayment, {
+        locationId: sapoLocationId,
+      });
     }
 
     return sapoOrderId;
+  }
+
+  private async findExistingSapoOrderByCode(
+    code: unknown,
+  ): Promise<Record<string, any> | null> {
+    const orderCode = this.firstString(code);
+    if (!orderCode || !this.sapoClient.findOrderByCode) {
+      return null;
+    }
+
+    return this.sapoClient.findOrderByCode(orderCode);
   }
 
   private async toSapoOrder(
@@ -198,10 +231,46 @@ export class OrderWebhookExecutionService {
         addresses: [address],
       },
       order_line_items: lineItems,
-      status: 'placed',
-      source_id: 307258,
+      status: 'draft',
+      source_id: this.configNumber('sapo.pancakeSourceId', 307258),
       location_id: this.configNumber('sapo.locationId', 572310),
     };
+  }
+
+  private resolveSapoLocationId(
+    plan: OrderWebhookProcessingPlan,
+    payload: Record<string, any>,
+  ): string {
+    const defaultLocationId = this.configString('sapo.locationId', '572310');
+
+    if (plan.platform !== 'pancake') {
+      return defaultLocationId;
+    }
+
+    const pancakeWarehouseId = this.resolvePancakeWarehouseId(payload);
+    const locationMap = this.configRecord('sapo.locationIdByPancakeWarehouseId');
+
+    return pancakeWarehouseId && locationMap[pancakeWarehouseId]
+      ? locationMap[pancakeWarehouseId]
+      : defaultLocationId;
+  }
+
+  private resolvePancakeWarehouseId(payload: Record<string, any>): string | null {
+    const warehouse = this.objectPayload(payload.warehouse);
+    const warehouseInfo = this.objectPayload(
+      payload.warehouse_info ?? payload.warehouseInfo,
+    );
+
+    return this.firstString(
+      payload.warehouse_id,
+      payload.warehouseId,
+      warehouse.id,
+      warehouse.warehouse_id,
+      warehouse.warehouseId,
+      warehouseInfo.id,
+      warehouseInfo.warehouse_id,
+      warehouseInfo.warehouseId,
+    );
   }
 
   private async withSapoCustomerId(
@@ -213,7 +282,22 @@ export class OrderWebhookExecutionService {
       return order;
     }
 
-    const response = await this.sapoClient.fetchCustomers(1, 1, phoneNumber);
+    let response: Awaited<ReturnType<SapoClient['fetchCustomers']>>;
+    try {
+      response = await this.sapoClient.fetchCustomers(1, 1, phoneNumber);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('Sapo customers fetch failed with status 403')
+      ) {
+        this.logger.warn(
+          'Skipping Sapo customer lookup because customer API returned 403',
+        );
+        return order;
+      }
+
+      throw error;
+    }
     const existingCustomerId = this.firstString(response.customers?.[0]?.id);
 
     if (existingCustomerId) {
@@ -249,9 +333,14 @@ export class OrderWebhookExecutionService {
       rawItems.map(async (item) => {
         const variation = this.objectPayload(item.variation_info ?? item.variationInfo);
         const sku = this.firstString(variation.barcode, item.sku);
-        const productMapping = sku
-          ? await this.prisma.productMapping.findUnique({ where: { sku } })
-          : null;
+        if (!sku) {
+          throw new Error('Missing SKU for Sapo order line item');
+        }
+
+        const productMapping = await this.resolveSapoProductMapping(sku);
+        if (!productMapping?.sapoProductId || !productMapping?.sapoVariantId) {
+          throw new Error(`Missing Sapo product mapping for SKU ${sku}`);
+        }
 
         return {
           quantity: this.numberValue(item.quantity),
@@ -260,11 +349,42 @@ export class OrderWebhookExecutionService {
           barcode: sku,
           sku,
           price: this.numberValue(variation.retail_price ?? item.price),
-          product_id: productMapping?.sapoProductId ?? null,
-          variant_id: productMapping?.sapoVariantId ?? null,
+          product_id: productMapping.sapoProductId,
+          variant_id: productMapping.sapoVariantId,
         };
       }),
     );
+  }
+
+  private async resolveSapoProductMapping(sku: string) {
+    const productMapping = await this.prisma.productMapping.findUnique({
+      where: { sku },
+    });
+    if (productMapping?.sapoProductId && productMapping?.sapoVariantId) {
+      return productMapping;
+    }
+
+    const sapoProduct = await this.prisma.sapoProduct.findUnique({
+      where: { sku },
+    });
+    if (!sapoProduct?.productId || !sapoProduct?.variantId) {
+      return productMapping;
+    }
+
+    return this.prisma.productMapping.upsert({
+      where: { sku },
+      create: {
+        sku,
+        sapoProductId: sapoProduct.productId,
+        sapoVariantId: sapoProduct.variantId,
+        status: ProductMappingStatus.partial,
+      },
+      update: {
+        sapoProductId: sapoProduct.productId,
+        sapoVariantId: sapoProduct.variantId,
+        status: ProductMappingStatus.partial,
+      },
+    });
   }
 
   private async toSapoFulfillment(
@@ -328,12 +448,22 @@ export class OrderWebhookExecutionService {
       fallbackWardId: this.numberValue(warehouse.commune_id ?? warehouse.communeId),
       fallbackWardName: null,
     });
-    const senderProvinceId =
-      senderAddress.provinceId ?? this.configNumber('shipping.sender.provinceId', 2);
-    const senderDistrictId =
-      senderAddress.districtId ?? this.configNumber('shipping.sender.districtId', 55);
-    const receiverProvinceId = receiverAddress.provinceId ?? 1;
-    const receiverDistrictId = receiverAddress.districtId ?? 688;
+    const senderProvinceId = this.requiredAddressId(
+      senderAddress.provinceId,
+      'sender province',
+    );
+    const senderDistrictId = this.requiredAddressId(
+      senderAddress.districtId,
+      'sender district',
+    );
+    const receiverProvinceId = this.requiredAddressId(
+      receiverAddress.provinceId,
+      'receiver province',
+    );
+    const receiverDistrictId = this.requiredAddressId(
+      receiverAddress.districtId,
+      'receiver district',
+    );
     const freightAmount = await this.sapoClient.getFreightAmount({
       senderProvinceId,
       senderDistrictId,
@@ -701,6 +831,14 @@ export class OrderWebhookExecutionService {
     return normalized;
   }
 
+  private requiredAddressId(value: number | null, label: string): number {
+    if (!Number.isFinite(value)) {
+      throw new Error(`Missing Sapo address mapping for ${label}`);
+    }
+
+    return value as number;
+  }
+
   private logUnsupportedAction(action: OrderProcessingAction): void {
     this.logger.debug(`No executor branch for action ${action}`);
   }
@@ -715,5 +853,31 @@ export class OrderWebhookExecutionService {
   private configNumber(key: string, fallback: number): number {
     const parsed = Number(this.configService.get<number | string | undefined>(key));
     return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private configRecord(key: string): Record<string, string> {
+    const value = this.configService.get<Record<string, string> | string | undefined>(key);
+    if (!value) {
+      return {};
+    }
+    if (typeof value === 'object') {
+      return value;
+    }
+
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return {};
+      }
+
+      return Object.fromEntries(
+        Object.entries(parsed).map(([mapKey, mapValue]) => [
+          mapKey,
+          String(mapValue),
+        ]),
+      );
+    } catch {
+      return {};
+    }
   }
 }

@@ -11,6 +11,7 @@ export interface PlatformProductSnapshot {
   retailPrice: number | null;
   warehouseId: string | null;
   warehouseCount: number | null;
+  sourceUpdatedAt?: Date | null;
 }
 
 export interface ProductMappingCandidate {

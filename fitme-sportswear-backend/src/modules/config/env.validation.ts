@@ -37,18 +37,33 @@ export const envValidationSchema = Joi.object({
   PANCAKE_BASE_URL: Joi.string().uri().required(),
   PANCAKE_API_KEY: Joi.string().required(),
   PANCAKE_SHOP_ID: Joi.string().required(),
-  PANCAKE_DEFAULT_WAREHOUSE_ID: Joi.string().required(),
   PANCAKE_WEBHOOK_URL: Joi.string().uri().allow('').optional(),
-  PANCAKE_WEBHOOK_SECRET: Joi.string().allow('').optional(),
+  PANCAKE_WEBHOOK_SECRET: Joi.when('APP_ENV', {
+    is: 'production',
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('').optional(),
+  }),
+  PANCAKE_DEFAULT_WAREHOUSE_ID: Joi.string().allow('').optional(),
+  PANCAKE_TEST_ORDER_FILTER: Joi.string().allow('').optional(),
 
   SHOPIFY_BASE_URL: Joi.string().uri().required(),
   SHOPIFY_ACCESS_TOKEN: Joi.string().required(),
   SHOPIFY_API_VERSION: Joi.string().default('2024-04'),
   SHOPIFY_LOCATION_ID: Joi.string().optional(),
-  SHOPIFY_WEBHOOK_SECRET: Joi.string().optional(),
+  SHOPIFY_WEBHOOK_SECRET: Joi.when('APP_ENV', {
+    is: 'production',
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('').optional(),
+  }),
   WEBHOOK_INGESTION_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
   PANCAKE_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
   SHOPIFY_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
+  QUEUE_PROCESSORS_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
+  SYNC_API_TOKEN: Joi.when('APP_ENV', {
+    is: 'production',
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('').optional(),
+  }),
   TELEGRAM_BOT_TOKEN: Joi.string().allow('').optional(),
   TELEGRAM_CHAT_ID: Joi.string().allow('').optional(),
 
@@ -89,7 +104,16 @@ export const envValidationSchema = Joi.object({
     .truthy('true')
     .falsy('false')
     .default(false),
+  SYNC_ADDRESS_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
+  SYNC_ADDRESS_MIN_PROVINCES: Joi.number().integer().min(0).default(1),
+  SYNC_ADDRESS_MIN_DISTRICTS: Joi.number().integer().min(0).default(1),
+  SYNC_ADDRESS_MIN_WARDS: Joi.number().integer().min(0).default(1),
+  SYNC_ADDRESS_MAX_DISTANCE: Joi.number().min(0).max(1).default(0.75),
 }).custom((environment, helpers) => {
+  if (!environment.PANCAKE_DEFAULT_WAREHOUSE_ID) {
+    return environment;
+  }
+
   const mappings = JSON.parse(
     environment.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID,
   ) as Record<string, unknown>;

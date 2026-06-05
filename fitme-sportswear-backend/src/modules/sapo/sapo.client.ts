@@ -5,10 +5,18 @@ import { SapoSessionService } from './sapo-session.service';
 export interface SapoProductResponse {
   id: string;
   name: string;
+  updatedAt?: string | null;
+  updated_at?: string | null;
+  modifiedOn?: string | null;
+  modified_on?: string | null;
   variants: Array<{
     id: string;
     sku: string;
     variantRetailPrice: number;
+    updatedAt?: string | null;
+    updated_at?: string | null;
+    modifiedOn?: string | null;
+    modified_on?: string | null;
     inventories: Array<{
       available: number;
       onHand: number;
@@ -50,6 +58,11 @@ export interface SapoLogResponse {
 
 export type SapoOrderPayload = Record<string, any>;
 export type SapoFulfillmentPayload = Record<string, any>;
+
+export interface SapoRequestOptions {
+  locationId?: string | number;
+  tolerateIdempotent422?: boolean;
+}
 
 export interface SapoFreightAmountInput {
   senderProvinceId: number;
@@ -145,6 +158,13 @@ export class SapoClient {
     };
   }
 
+  async findOrderByCode(code: string): Promise<Record<string, any> | null> {
+    const response = await this.fetchOrders({ page: 1, limit: 20, query: code });
+    return (
+      response.orders.find((order) => String(order.code ?? '').trim() === code) ?? null
+    );
+  }
+
   async fetchLogs(page: number, limit: number): Promise<SapoLogResponse> {
     const response = await this.sessionService.fetchWithSession(
       this.buildLogsUrl(page, limit),
@@ -161,8 +181,17 @@ export class SapoClient {
     };
   }
 
-  async createOrder(orderData: SapoOrderPayload): Promise<SapoOrderResponse> {
-    return this.request('/admin/orders.json', 'POST', orderData, 'Sapo order create');
+  async createOrder(
+    orderData: SapoOrderPayload,
+    options: SapoRequestOptions = {},
+  ): Promise<SapoOrderResponse> {
+    return this.request(
+      '/admin/orders.json',
+      'POST',
+      orderData,
+      'Sapo order create',
+      options,
+    );
   }
 
   async fetchCustomers(
@@ -201,51 +230,62 @@ export class SapoClient {
   async updateOrder(
     orderId: string,
     orderData: SapoOrderPayload,
+    options: SapoRequestOptions = {},
   ): Promise<SapoOrderResponse> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}.json`,
       'PUT',
       orderData,
       'Sapo order update',
+      options,
     );
   }
 
-  async finalizeOrder(orderId: string): Promise<SapoOrderResponse> {
+  async finalizeOrder(
+    orderId: string,
+    options: SapoRequestOptions = {},
+  ): Promise<SapoOrderResponse> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}/finalize.json`,
       'POST',
       '{}',
       'Sapo order finalize',
+      options,
     );
   }
 
   async prepayOrder(
     orderId: string,
     prepaymentData: Record<string, any>,
+    options: SapoRequestOptions = {},
   ): Promise<Record<string, any>> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}/prepayments.json`,
       'POST',
       prepaymentData,
       'Sapo order prepayment',
+      options,
     );
   }
 
   async createFulfillment(
     orderId: string,
     fulfillmentData: SapoFulfillmentPayload,
+    options: SapoRequestOptions = {},
   ): Promise<Record<string, any>> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}/fulfillments.json`,
       'POST',
       fulfillmentData,
       'Sapo fulfillment create',
+      options,
     );
   }
 
   async shipFulfillment(
     orderId: string,
     fulfillmentId: string,
+    options: SapoRequestOptions = {},
   ): Promise<Record<string, any>> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}/fulfillments/${encodeURIComponent(
@@ -254,6 +294,7 @@ export class SapoClient {
       'POST',
       '{}',
       'Sapo fulfillment ship',
+      options,
     );
   }
 
@@ -261,6 +302,7 @@ export class SapoClient {
     orderId: string,
     fulfillmentId: string,
     fulfillmentData?: SapoFulfillmentPayload,
+    options: SapoRequestOptions = {},
   ): Promise<Record<string, any>> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}/fulfillments/${encodeURIComponent(
@@ -269,6 +311,7 @@ export class SapoClient {
       'POST',
       fulfillmentData ?? '{}',
       'Sapo fulfillment cancel',
+      options,
     );
   }
 
@@ -276,6 +319,7 @@ export class SapoClient {
     orderId: string,
     fulfillmentId: string,
     fulfillmentData?: SapoFulfillmentPayload,
+    options: SapoRequestOptions = {},
   ): Promise<Record<string, any>> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}/fulfillments/${encodeURIComponent(
@@ -284,15 +328,20 @@ export class SapoClient {
       'POST',
       fulfillmentData ?? '{}',
       'Sapo fulfillment receive after cancellation',
+      options,
     );
   }
 
-  async cancelOrder(orderId: string): Promise<Record<string, any>> {
+  async cancelOrder(
+    orderId: string,
+    options: SapoRequestOptions = {},
+  ): Promise<Record<string, any>> {
     return this.request(
       `/admin/orders/${encodeURIComponent(orderId)}/cancel.json`,
       'POST',
       '0',
       'Sapo order cancel',
+      options,
     );
   }
 
@@ -384,6 +433,9 @@ export class SapoClient {
     if (input.createdOnMax) {
       url.searchParams.set('created_on_max', input.createdOnMax);
     }
+    if (input.query) {
+      url.searchParams.set('query', input.query);
+    }
     return url.toString();
   }
 
@@ -428,20 +480,51 @@ export class SapoClient {
     method: string,
     body: unknown,
     label: string,
+    options: SapoRequestOptions = {},
   ): Promise<T> {
     const response = await this.sessionService.fetchWithSession(this.apiUrl(path), {
       method,
-      headers: this.sapoJsonHeaders(),
+      headers: this.sapoJsonHeaders(options.locationId),
       ...(body === undefined
         ? {}
         : { body: typeof body === 'string' ? body : JSON.stringify(body) }),
     });
 
     if (!response.ok) {
-      throw new Error(`${label} failed with status ${response.status}`);
+      const responseText = await response.text();
+      if (
+        response.status === 422 &&
+        options.tolerateIdempotent422 &&
+        this.isIdempotentSapoError(responseText)
+      ) {
+        return {} as T;
+      }
+
+      const responseSummary =
+        responseText.length > 1000
+          ? `${responseText.slice(0, 1000)}...`
+          : responseText;
+      throw new Error(
+        `${label} failed with status ${response.status}: ${responseSummary}`,
+      );
     }
 
     return (await response.json()) as T;
+  }
+
+  private isIdempotentSapoError(body: string): boolean {
+    const normalized = body.toLowerCase();
+    return (
+      normalized.includes('already') ||
+      normalized.includes('not_suitable') ||
+      normalized.includes('not suitable') ||
+      normalized.includes('status.not_suitable') ||
+      normalized.includes('cancelled') ||
+      normalized.includes('canceled') ||
+      normalized.includes('finalized') ||
+      normalized.includes('fulfilled') ||
+      normalized.includes('shipped')
+    );
   }
 
   private apiUrl(path: string): string {
@@ -451,10 +534,12 @@ export class SapoClient {
     ).toString();
   }
 
-  private sapoJsonHeaders(): Record<string, string> {
+  private sapoJsonHeaders(locationId?: string | number): Record<string, string> {
     return {
       'Content-Type': 'application/json',
-      'X-Sapo-LocationId': this.configString('sapo.locationId', '572310'),
+      'X-Sapo-LocationId': String(
+        locationId ?? this.configString('sapo.locationId', '572310'),
+      ),
     };
   }
 

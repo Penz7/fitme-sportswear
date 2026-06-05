@@ -27,6 +27,15 @@ export interface ResolveSapoAddressTextInput {
   fullAddress?: string | null;
 }
 
+export interface ResolvedPancakeAddress {
+  provinceId: number | null;
+  districtId: number | null;
+  wardId: number | null;
+  provinceName: string | null;
+  districtName: string | null;
+  wardName: string | null;
+}
+
 @Injectable()
 export class AddressMappingService {
   constructor(private readonly prisma: PrismaService) {}
@@ -48,16 +57,13 @@ export class AddressMappingService {
       provinceId:
         this.numberOrNull(wardMapping?.sapoCityId) ??
         this.numberOrNull(provinceMapping?.sapoId) ??
-        input.fallbackProvinceId ??
         null,
       districtId:
         this.numberOrNull(wardMapping?.sapoDistrictId) ??
         this.numberOrNull(districtMapping?.sapoId) ??
-        input.fallbackDistrictId ??
         null,
       wardId:
         this.numberOrNull(wardMapping?.sapoId) ??
-        input.fallbackWardId ??
         null,
       wardName: wardMapping?.sapoName ?? input.fallbackWardName ?? null,
       cityName: provinceMapping?.sapoName ?? null,
@@ -68,6 +74,42 @@ export class AddressMappingService {
   async resolveSapoAddressText(
     input: ResolveSapoAddressTextInput,
   ): Promise<ResolvedSapoAddress> {
+    const { provinceMapping, districtMapping, wardMapping } =
+      await this.findSapoTextMappings(input);
+
+    return {
+      provinceId:
+        this.numberOrNull(wardMapping?.sapoCityId) ??
+        this.numberOrNull(provinceMapping?.sapoId) ??
+        null,
+      districtId:
+        this.numberOrNull(wardMapping?.sapoDistrictId) ??
+        this.numberOrNull(districtMapping?.sapoId) ??
+        null,
+      wardId: this.numberOrNull(wardMapping?.sapoId) ?? null,
+      wardName: wardMapping?.sapoName ?? null,
+      cityName: provinceMapping?.sapoName ?? null,
+      districtName: districtMapping?.sapoName ?? null,
+    };
+  }
+
+  async resolvePancakeAddressFromSapoText(
+    input: ResolveSapoAddressTextInput,
+  ): Promise<ResolvedPancakeAddress> {
+    const { provinceMapping, districtMapping, wardMapping } =
+      await this.findSapoTextMappings(input);
+
+    return {
+      provinceId: this.numberOrNull(provinceMapping?.pancakeId),
+      districtId: this.numberOrNull(districtMapping?.pancakeId),
+      wardId: this.numberOrNull(wardMapping?.pancakeId),
+      provinceName: provinceMapping?.pancakeName ?? null,
+      districtName: districtMapping?.pancakeName ?? null,
+      wardName: wardMapping?.pancakeName ?? null,
+    };
+  }
+
+  private async findSapoTextMappings(input: ResolveSapoAddressTextInput) {
     const provinceMapping = await this.findTextMapping(
       'provinceMapping',
       input.provinceName,
@@ -84,20 +126,7 @@ export class AddressMappingService {
       input.fullAddress,
     );
 
-    return {
-      provinceId:
-        this.numberOrNull(wardMapping?.sapoCityId) ??
-        this.numberOrNull(provinceMapping?.sapoId) ??
-        null,
-      districtId:
-        this.numberOrNull(wardMapping?.sapoDistrictId) ??
-        this.numberOrNull(districtMapping?.sapoId) ??
-        null,
-      wardId: this.numberOrNull(wardMapping?.sapoId) ?? null,
-      wardName: wardMapping?.sapoName ?? null,
-      cityName: provinceMapping?.sapoName ?? null,
-      districtName: districtMapping?.sapoName ?? null,
-    };
+    return { provinceMapping, districtMapping, wardMapping };
   }
 
   private async findMapping(modelName: string, pancakeId: number | null) {

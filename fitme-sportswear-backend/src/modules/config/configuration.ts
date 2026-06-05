@@ -1,3 +1,22 @@
+function parseStringMap(value: string | undefined): Record<string, string> {
+  if (!value) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed).map(([key, mapValue]) => [key, String(mapValue)]),
+    );
+  } catch {
+    return {};
+  }
+}
+
 export default () => ({
   app: {
     env: process.env.APP_ENV ?? 'local',
@@ -15,21 +34,22 @@ export default () => ({
     password: process.env.SAPO_PASSWORD as string,
     clientId: process.env.SAPO_CLIENT_ID as string,
     shopDomain: process.env.SAPO_SHOP_DOMAIN as string,
-    locationId: process.env.SAPO_LOCATION_ID as string,
-    pancakeSourceId: Number(process.env.SAPO_PANCAKE_SOURCE_ID),
-    locationIdByPancakeWarehouseId: JSON.parse(
-      process.env.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID ?? '{}',
-    ) as Record<string, string>,
-    prepaymentMethodId: Number(process.env.SAPO_PREPAYMENT_METHOD_ID),
-    prepaymentMethodName: process.env.SAPO_PREPAYMENT_METHOD_NAME as string,
+    locationId: process.env.SAPO_LOCATION_ID ?? '572310',
+    pancakeSourceId: Number(process.env.SAPO_PANCAKE_SOURCE_ID ?? 307258),
+    locationIdByPancakeWarehouseId: parseStringMap(
+      process.env.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID,
+    ),
+    prepaymentMethodId: Number(process.env.SAPO_PREPAYMENT_METHOD_ID ?? 2575663),
+    prepaymentMethodName: process.env.SAPO_PREPAYMENT_METHOD_NAME ?? 'Chuyen khoan',
   },
   pancake: {
     baseUrl: process.env.PANCAKE_BASE_URL as string,
     apiKey: process.env.PANCAKE_API_KEY as string,
     shopId: process.env.PANCAKE_SHOP_ID as string,
-    defaultWarehouseId: process.env.PANCAKE_DEFAULT_WAREHOUSE_ID as string,
     webhookUrl: process.env.PANCAKE_WEBHOOK_URL,
     webhookSecret: process.env.PANCAKE_WEBHOOK_SECRET,
+    defaultWarehouseId: process.env.PANCAKE_DEFAULT_WAREHOUSE_ID,
+    testOrderFilter: process.env.PANCAKE_TEST_ORDER_FILTER,
   },
   shopify: {
     baseUrl: process.env.SHOPIFY_BASE_URL as string,
@@ -41,15 +61,6 @@ export default () => ({
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
     chatId: process.env.TELEGRAM_CHAT_ID,
-  },
-  webhooks: {
-    ingestionEnabled: process.env.WEBHOOK_INGESTION_ENABLED === 'true',
-    pancake: {
-      enabled: process.env.PANCAKE_WEBHOOK_ENABLED === 'true',
-    },
-    shopify: {
-      enabled: process.env.SHOPIFY_WEBHOOK_ENABLED === 'true',
-    },
   },
   shipping: {
     sender: {
@@ -70,7 +81,17 @@ export default () => ({
       trackingCompany: process.env.VIETTELPOST_TRACKING_COMPANY ?? 'Viettel',
     },
   },
+  webhook: {
+    ingestionEnabled: process.env.WEBHOOK_INGESTION_ENABLED !== 'false',
+    pancake: {
+      enabled: process.env.PANCAKE_WEBHOOK_ENABLED !== 'false',
+    },
+    shopify: {
+      enabled: process.env.SHOPIFY_WEBHOOK_ENABLED !== 'false',
+    },
+  },
   sync: {
+    apiToken: process.env.SYNC_API_TOKEN,
     startup: {
       productSyncEnabled: process.env.SYNC_STARTUP_PRODUCT_SYNC_ENABLED === 'true',
     },
@@ -83,6 +104,13 @@ export default () => ({
     orders: {
       updatePancakeInventoryByOrder:
         process.env.SYNC_UPDATE_PANCAKE_INVENTORY_BY_ORDER === 'true',
+    },
+    address: {
+      enabled: process.env.SYNC_ADDRESS_ENABLED !== 'false',
+      minProvinces: Number(process.env.SYNC_ADDRESS_MIN_PROVINCES ?? 1),
+      minDistricts: Number(process.env.SYNC_ADDRESS_MIN_DISTRICTS ?? 1),
+      minWards: Number(process.env.SYNC_ADDRESS_MIN_WARDS ?? 1),
+      maxDistance: Number(process.env.SYNC_ADDRESS_MAX_DISTANCE ?? 0.75),
     },
     scheduler: {
       enabled: process.env.SYNC_SCHEDULER_ENABLED === 'true',

@@ -12,9 +12,18 @@ describe('ScheduledSyncProcessor', () => {
       createSapoLogSync: jest.fn().mockResolvedValue({ id: 'log-run' }),
     };
 
+    const notifier = {
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
+    const lockService = {
+      withLock: jest.fn((_: string, __: number, work: () => Promise<unknown>) => work()),
+    };
+
     return {
       syncService,
-      processor: new ScheduledSyncProcessor(syncService as any),
+      notifier,
+      lockService,
+      processor: new ScheduledSyncProcessor(syncService as any, lockService as any, notifier as any),
     };
   }
 
@@ -79,11 +88,29 @@ describe('ScheduledSyncProcessor', () => {
     expect(syncService.createSapoLogSync).toHaveBeenCalledWith();
   });
 
+  it('notifies and rethrows when a scheduled sync fails', async () => {
+    const { processor, syncService, notifier } = createProcessor();
+    syncService.createProductSync.mockRejectedValueOnce(new Error('product sync failed'));
+
+    await expect(
+      processor.process({ data: { syncType: 'product-inventory-sync' } } as any),
+    ).rejects.toThrow('product sync failed');
+
+    expect(notifier.sendException).toHaveBeenCalledWith(
+      'Scheduled sync failed: product-inventory-sync',
+      expect.any(Error),
+    );
+  });
+
   it('fails fast for unsupported scheduled sync type', async () => {
-    const { processor } = createProcessor();
+    const { processor, notifier } = createProcessor();
 
     await expect(
       processor.process({ data: { syncType: 'unknown-sync' } } as any),
     ).rejects.toThrow('Unsupported scheduled sync type: unknown-sync');
+    expect(notifier.sendException).toHaveBeenCalledWith(
+      'Scheduled sync failed: unknown-sync',
+      expect.any(Error),
+    );
   });
 });

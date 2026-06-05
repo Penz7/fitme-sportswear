@@ -1,5 +1,5 @@
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { Module, Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AddressModule } from '../address/address.module';
 import { OrdersModule } from '../orders/orders.module';
@@ -26,6 +26,33 @@ import {
   WEBHOOK_EVENT_QUEUE,
 } from './queue.constants';
 
+const queueProducerProviders = [
+  TestSyncProducer,
+  ProductSyncProducer,
+  AddressMappingSyncProducer,
+  WebhookEventProducer,
+  SapoToPancakeOrderSyncProducer,
+  ScheduledSyncProducer,
+];
+
+const queueProcessorProviders = [
+  TestSyncProcessor,
+  ProductSyncProcessor,
+  AddressMappingSyncProcessor,
+  WebhookEventProcessor,
+  SapoToPancakeOrderSyncProcessor,
+];
+
+export function queueProcessorsEnabled(): boolean {
+  return process.env.QUEUE_PROCESSORS_ENABLED !== 'false';
+}
+
+export function queueProviders(processorsEnabled = queueProcessorsEnabled()): Provider[] {
+  return processorsEnabled
+    ? [...queueProducerProviders, ...queueProcessorProviders]
+    : queueProducerProviders;
+}
+
 @Module({
   imports: [
     BullModule.forRootAsync({
@@ -51,20 +78,9 @@ import {
       { name: SCHEDULED_SYNC_QUEUE },
     ),
   ],
-  providers: [
-    TestSyncProducer,
-    TestSyncProcessor,
-    ProductSyncProducer,
-    ProductSyncProcessor,
-    AddressMappingSyncProducer,
-    AddressMappingSyncProcessor,
-    WebhookEventProducer,
-    WebhookEventProcessor,
-    SapoToPancakeOrderSyncProducer,
-    SapoToPancakeOrderSyncProcessor,
-    ScheduledSyncProducer,
-  ],
+  providers: queueProviders(),
   exports: [
+    BullModule,
     TestSyncProducer,
     ProductSyncProducer,
     AddressMappingSyncProducer,

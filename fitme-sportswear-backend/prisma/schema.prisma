@@ -80,17 +80,18 @@ enum ProductMappingStatus {
 }
 
 model SapoProduct {
-  id          String   @id @default(uuid())
-  sku         String   @unique
-  productId   String?
-  variantId   String?
-  name        String?
-  available   Int?
-  remain      Int?
-  retailPrice Decimal? @db.Decimal(18, 2)
-  updatedBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  sku             String   @unique
+  productId       String?
+  variantId       String?
+  name            String?
+  available       Int?
+  remain          Int?
+  retailPrice     Decimal? @db.Decimal(18, 2)
+  sourceUpdatedAt DateTime?
+  updatedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@map("sapo_products")
 }
