@@ -34,6 +34,35 @@ export class SapoToPancakeOrderSyncService {
     const mapping = sapoOrderId
       ? await this.prisma.orderMapping.findFirst({ where: { sapoOrderId } })
       : null;
+    const cancelPayload = {
+      status: 6,
+      status_name: 'Huy don',
+    };
+
+    if (sapoOrderId && mapping?.pancakeOrderId && this.isCancelled(sapoOrder)) {
+      const response = await this.pancakeClient.updateOrder(
+        mapping.pancakeOrderId,
+        cancelPayload,
+      );
+      const pancakeOrder = this.objectPayload(response.data);
+      const pancakeOrderId =
+        this.stringOrNull(pancakeOrder.id) ?? mapping.pancakeOrderId;
+
+      await this.upsertMapping({
+        sapoOrder,
+        sapoOrderId,
+        pancakeOrderId,
+        pancakeOrder,
+        payload: cancelPayload,
+      });
+
+      return {
+        action: 'updated',
+        sapoOrderId,
+        pancakeOrderId,
+      };
+    }
+
     const addressMapping = await this.resolvePancakeAddressMapping(sapoOrder);
     const payload = await this.mapper.toPancakeOrder(sapoOrder, addressMapping);
 
@@ -205,5 +234,9 @@ export class SapoToPancakeOrderSyncService {
     }
 
     return value === true || value === 'true';
+  }
+
+  private isCancelled(sapoOrder: SapoOrderSnapshot): boolean {
+    return this.stringOrNull(sapoOrder.status)?.toLowerCase() === 'cancelled';
   }
 }

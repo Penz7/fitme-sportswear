@@ -69,6 +69,19 @@ describe('WebhookController', () => {
     expect(ingestionService.ingestPancake).toHaveBeenCalledWith('{"id":"order-1"}');
   });
 
+  it('accepts Pancake webhook secret from query when header is unavailable', async () => {
+    const { controller, pancakeWebhookSecretService } = createController();
+
+    await controller.ingestPancakeWebhook(
+      { id: 'order-1' },
+      request,
+      undefined,
+      'query-secret',
+    );
+
+    expect(pancakeWebhookSecretService.verify).toHaveBeenCalledWith('query-secret');
+  });
+
   it('rejects Shopify webhooks with invalid HMAC', () => {
     const { controller } = createController({ shopifyHmacValid: false });
 

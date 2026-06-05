@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   Post,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -37,8 +38,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-pancake-webhook-secret') secret?: string,
+    @Query('secret') querySecret?: string,
   ) {
-    return this.ingestPancakeWebhookPayload(body, request, secret);
+    return this.ingestPancakeWebhookPayload(body, request, secret ?? querySecret);
   }
 
   @Post('webhooks/pancake/v1')
@@ -46,8 +48,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-pancake-webhook-secret') secret?: string,
+    @Query('secret') querySecret?: string,
   ) {
-    return this.ingestPancakeWebhookPayload(body, request, secret);
+    return this.ingestPancakeWebhookPayload(body, request, secret ?? querySecret);
   }
 
   @Post('webhooks/order')

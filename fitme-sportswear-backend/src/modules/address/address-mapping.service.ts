@@ -57,16 +57,13 @@ export class AddressMappingService {
       provinceId:
         this.numberOrNull(wardMapping?.sapoCityId) ??
         this.numberOrNull(provinceMapping?.sapoId) ??
-        input.fallbackProvinceId ??
         null,
       districtId:
         this.numberOrNull(wardMapping?.sapoDistrictId) ??
         this.numberOrNull(districtMapping?.sapoId) ??
-        input.fallbackDistrictId ??
         null,
       wardId:
         this.numberOrNull(wardMapping?.sapoId) ??
-        input.fallbackWardId ??
         null,
       wardName: wardMapping?.sapoName ?? input.fallbackWardName ?? null,
       cityName: provinceMapping?.sapoName ?? null,

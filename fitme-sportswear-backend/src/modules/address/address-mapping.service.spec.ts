@@ -66,7 +66,7 @@ describe('AddressMappingService', () => {
     });
   });
 
-  it('falls back to provided Sapo ids when a mapping row is missing', async () => {
+  it('does not use Pancake fallback ids as Sapo address ids when a mapping row is missing', async () => {
     const { service, prisma } = createService();
     prisma.provinceMapping.findFirst.mockResolvedValue(null);
     prisma.districtMapping.findFirst.mockResolvedValue(null);
@@ -83,9 +83,9 @@ describe('AddressMappingService', () => {
         fallbackWardName: 'Xa fallback',
       }),
     ).resolves.toEqual({
-      provinceId: 1,
-      districtId: 688,
-      wardId: 12345,
+      provinceId: null,
+      districtId: null,
+      wardId: null,
       wardName: 'Xa fallback',
       cityName: null,
       districtName: null,

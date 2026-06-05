@@ -492,7 +492,13 @@ export class SapoClient {
         return {} as T;
       }
 
-      throw new Error(`${label} failed with status ${response.status}`);
+      const responseSummary =
+        responseText.length > 1000
+          ? `${responseText.slice(0, 1000)}...`
+          : responseText;
+      throw new Error(
+        `${label} failed with status ${response.status}: ${responseSummary}`,
+      );
     }
 
     return (await response.json()) as T;

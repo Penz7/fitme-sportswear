@@ -111,6 +111,48 @@ describe('OrderWebhookProcessingService', () => {
     expect(result.quantityEffect).toBe('remain_only');
   });
 
+  it('ignores Pancake orders that do not match the configured test marker', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'pancake.testOrderFilter' ? 'WEBHOOK_TEST' : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      sourcePlatform: 'pancake',
+      eventType: 'order_created',
+      externalEventId: 'real-order-1',
+      payload: { id: 'real-order-1', status: 0, note: 'normal order' },
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        externalOrderId: 'real-order-1',
+        statusDescription: 'PANCAKE_TEST_FILTER_IGNORED',
+        nextActions: ['ignore'],
+      }),
+    );
+  });
+
+  it('processes Pancake orders that match the configured test marker', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'pancake.testOrderFilter' ? 'WEBHOOK_TEST' : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      sourcePlatform: 'pancake',
+      eventType: 'order_created',
+      externalEventId: 'test-order-1',
+      payload: { id: 'test-order-1', status: 0, note_print: ' WEBHOOK_TEST ' },
+    });
+
+    expect(result.nextActions).toEqual([
+      'create_sapo_order',
+      'finalize_sapo_order',
+      'upsert_order_mapping',
+    ]);
+  });
+
   it('plans Shopify order webhook using the legacy order-to-Sapo plus fulfillment flow', () => {
     const result = service.buildProcessingPlan({
       id: 'event-6',

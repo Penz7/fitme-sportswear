@@ -38,6 +38,7 @@ export const envValidationSchema = Joi.object({
   WEBHOOK_INGESTION_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   PANCAKE_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   SHOPIFY_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
+  QUEUE_PROCESSORS_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   SYNC_API_TOKEN: Joi.when('APP_ENV', {
     is: 'production',
     then: Joi.string().required(),

@@ -35,6 +35,7 @@ export default () => ({
     clientId: process.env.SAPO_CLIENT_ID as string,
     shopDomain: process.env.SAPO_SHOP_DOMAIN as string,
     locationId: process.env.SAPO_LOCATION_ID ?? '572310',
+    pancakeSourceId: Number(process.env.SAPO_PANCAKE_SOURCE_ID ?? 307258),
     locationIdByPancakeWarehouseId: parseStringMap(
       process.env.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID,
     ),
@@ -47,6 +48,7 @@ export default () => ({
     shopId: process.env.PANCAKE_SHOP_ID as string,
     webhookSecret: process.env.PANCAKE_WEBHOOK_SECRET,
     defaultWarehouseId: process.env.PANCAKE_DEFAULT_WAREHOUSE_ID,
+    testOrderFilter: process.env.PANCAKE_TEST_ORDER_FILTER,
   },
   shopify: {
     baseUrl: process.env.SHOPIFY_BASE_URL as string,

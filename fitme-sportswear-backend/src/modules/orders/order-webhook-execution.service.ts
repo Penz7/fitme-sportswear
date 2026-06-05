@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ProductMappingStatus } from '@prisma/client';
 import { AddressMappingService } from '../address/address-mapping.service';
 import { PrismaService } from '../database/prisma.service';
 import { SapoClient } from '../sapo/sapo.client';
@@ -313,8 +314,8 @@ export class OrderWebhookExecutionService {
         addresses: [address],
       },
       order_line_items: lineItems,
-      status: 'placed',
-      source_id: 307258,
+      status: 'draft',
+      source_id: this.configNumber('sapo.pancakeSourceId', 307258),
       location_id: Number(sapoLocationId),
     };
   }
@@ -364,7 +365,22 @@ export class OrderWebhookExecutionService {
       return order;
     }
 
-    const response = await this.sapoClient.fetchCustomers(1, 1, phoneNumber);
+    let response: Awaited<ReturnType<SapoClient['fetchCustomers']>>;
+    try {
+      response = await this.sapoClient.fetchCustomers(1, 1, phoneNumber);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('Sapo customers fetch failed with status 403')
+      ) {
+        this.logger.warn(
+          'Skipping Sapo customer lookup because customer API returned 403',
+        );
+        return order;
+      }
+
+      throw error;
+    }
     const existingCustomerId = this.firstString(response.customers?.[0]?.id);
 
     if (existingCustomerId) {
@@ -404,9 +420,7 @@ export class OrderWebhookExecutionService {
           throw new Error('Missing SKU for Sapo order line item');
         }
 
-        const productMapping = sku
-          ? await this.prisma.productMapping.findUnique({ where: { sku } })
-          : null;
+        const productMapping = await this.resolveSapoProductMapping(sku);
         if (!productMapping?.sapoProductId || !productMapping?.sapoVariantId) {
           throw new Error(`Missing Sapo product mapping for SKU ${sku}`);
         }
@@ -423,6 +437,37 @@ export class OrderWebhookExecutionService {
         };
       }),
     );
+  }
+
+  private async resolveSapoProductMapping(sku: string) {
+    const productMapping = await this.prisma.productMapping.findUnique({
+      where: { sku },
+    });
+    if (productMapping?.sapoProductId && productMapping?.sapoVariantId) {
+      return productMapping;
+    }
+
+    const sapoProduct = await this.prisma.sapoProduct.findUnique({
+      where: { sku },
+    });
+    if (!sapoProduct?.productId || !sapoProduct?.variantId) {
+      return productMapping;
+    }
+
+    return this.prisma.productMapping.upsert({
+      where: { sku },
+      create: {
+        sku,
+        sapoProductId: sapoProduct.productId,
+        sapoVariantId: sapoProduct.variantId,
+        status: ProductMappingStatus.partial,
+      },
+      update: {
+        sapoProductId: sapoProduct.productId,
+        sapoVariantId: sapoProduct.variantId,
+        status: ProductMappingStatus.partial,
+      },
+    });
   }
 
   private async toSapoFulfillment(
@@ -486,12 +531,22 @@ export class OrderWebhookExecutionService {
       fallbackWardId: this.numberValue(warehouse.commune_id ?? warehouse.communeId),
       fallbackWardName: null,
     });
-    const senderProvinceId =
-      senderAddress.provinceId ?? this.configNumber('shipping.sender.provinceId', 2);
-    const senderDistrictId =
-      senderAddress.districtId ?? this.configNumber('shipping.sender.districtId', 55);
-    const receiverProvinceId = receiverAddress.provinceId ?? 1;
-    const receiverDistrictId = receiverAddress.districtId ?? 688;
+    const senderProvinceId = this.requiredAddressId(
+      senderAddress.provinceId,
+      'sender province',
+    );
+    const senderDistrictId = this.requiredAddressId(
+      senderAddress.districtId,
+      'sender district',
+    );
+    const receiverProvinceId = this.requiredAddressId(
+      receiverAddress.provinceId,
+      'receiver province',
+    );
+    const receiverDistrictId = this.requiredAddressId(
+      receiverAddress.districtId,
+      'receiver district',
+    );
     const freightAmount = await this.sapoClient.getFreightAmount({
       senderProvinceId,
       senderDistrictId,
@@ -861,6 +916,15 @@ export class OrderWebhookExecutionService {
     }
 
     return normalized;
+  }
+
+  private requiredAddressId(value: unknown, label: string): number {
+    const parsed = this.numberValue(value);
+    if (!parsed || parsed <= 0) {
+      throw new Error(`Missing Sapo address mapping for ${label}`);
+    }
+
+    return parsed;
   }
 
   private logUnsupportedAction(action: OrderProcessingAction): void {
