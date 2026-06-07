@@ -147,6 +147,26 @@ model ProductMapping {
   @@map("product_mappings")
 }
 
+model ProductSyncConflict {
+  id               String   @id @default(uuid())
+  normalizedSku    String
+  conflictType     String
+  platform         String
+  originalSkus     Json
+  involvedEntities Json
+  message          String
+  firstSeenAt      DateTime @default(now())
+  lastSeenAt       DateTime @updatedAt
+  resolvedAt       DateTime?
+  lastNotifiedAt   DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([normalizedSku, conflictType, platform])
+  @@index([resolvedAt])
+  @@map("product_sync_conflicts")
+}
+
 model OrderMapping {
   id                       String   @id @default(uuid())
   sapoOrderId              String?

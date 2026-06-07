@@ -4,11 +4,13 @@ import { ProductMappingCandidate } from './types/platform-product-snapshot';
 function sapoOnlyMapping(): ProductMappingCandidate {
   return {
     sku: 'SKU-NEW',
+    normalizedSku: 'SKU-NEW',
     sapo: sapoSnapshot('SKU-NEW'),
     pancake: null,
     shopify: null,
     status: 'partial',
     conflictReason: 'Missing Pancake and Shopify records',
+    conflictDetail: null,
   };
 }
 
@@ -16,6 +18,7 @@ function sapoSnapshot(sku: string, overrides: Record<string, any> = {}) {
   return {
     platform: 'sapo' as const,
     sku,
+    normalizedSku: sku.trim().toUpperCase(),
     productId: 'sapo-product-1',
     variantId: 'sapo-variant-1',
     name: 'New Shirt',
@@ -32,6 +35,7 @@ function targetSnapshot(platform: 'pancake' | 'shopify', sku: string, overrides:
   return {
     platform,
     sku,
+    normalizedSku: sku.trim().toUpperCase(),
     productId: `${platform}-product-1`,
     variantId: `${platform}-variant-1`,
     name: 'New Shirt',
@@ -48,6 +52,8 @@ describe('InventorySyncService missing product creation', () => {
   function createService(values: Record<string, unknown> = {}) {
     const prisma = {
       pancakeProduct: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
         upsert: jest.fn().mockResolvedValue({}),
         update: jest.fn().mockResolvedValue({}),
       },
@@ -56,6 +62,8 @@ describe('InventorySyncService missing product creation', () => {
         update: jest.fn().mockResolvedValue({}),
       },
       productMapping: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
         upsert: jest.fn().mockResolvedValue({}),
       },
     };
@@ -125,6 +133,163 @@ describe('InventorySyncService missing product creation', () => {
     expect(result.createdPancake).toBe(1);
   });
 
+  it('updates existing Pancake product instead of creating when Sapo-only mapping now has Pancake snapshot', async () => {
+    const { service, pancakeClient, prisma } = createService();
+    prisma.pancakeProduct.findUnique.mockResolvedValueOnce({
+      sku: 'SKU-NEW',
+      productId: 'existing-pancake-product',
+      variantId: 'existing-pancake-variant',
+      warehouseId: 'existing-warehouse',
+      available: 3,
+    });
+
+    const result = await service.syncMappings([sapoOnlyMapping()]);
+
+    expect(prisma.pancakeProduct.findUnique).toHaveBeenCalledWith({
+      where: { sku: 'SKU-NEW' },
+    });
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(pancakeClient.updateInventory).toHaveBeenCalledWith({
+      variantId: 'existing-pancake-variant',
+      warehouseId: 'existing-warehouse',
+      available: 7,
+    });
+    expect(prisma.pancakeProduct.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-NEW' },
+      create: expect.objectContaining({
+        sku: 'SKU-NEW',
+        productId: 'existing-pancake-product',
+        variantId: 'existing-pancake-variant',
+        available: 7,
+        retailPrice: 150000,
+        updatedBy: 'SAPO',
+      }),
+      update: expect.objectContaining({
+        productId: 'existing-pancake-product',
+        variantId: 'existing-pancake-variant',
+        available: 7,
+        retailPrice: 150000,
+        updatedBy: 'SAPO',
+      }),
+    });
+    expect(prisma.productMapping.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-NEW' },
+      create: expect.objectContaining({
+        sku: 'SKU-NEW',
+        sapoProductId: 'sapo-product-1',
+        pancakeProductId: 'existing-pancake-product',
+        pancakeVariantId: 'existing-pancake-variant',
+        pancakeWarehouseId: 'existing-warehouse',
+      }),
+      update: expect.objectContaining({
+        pancakeProductId: 'existing-pancake-product',
+        pancakeVariantId: 'existing-pancake-variant',
+        pancakeWarehouseId: 'existing-warehouse',
+      }),
+    });
+    expect(result.updatedPancake).toBe(1);
+    expect(result.createdPancake).toBe(0);
+  });
+
+  it('uses normalized SKU lookup before creating a Pancake product', async () => {
+    const { service, pancakeClient, prisma } = createService();
+    const mapping = {
+      ...sapoOnlyMapping(),
+      sku: ' sku-new ',
+      normalizedSku: 'SKU-NEW',
+      sapo: sapoSnapshot(' sku-new '),
+    };
+    prisma.pancakeProduct.findMany.mockResolvedValueOnce([
+      {
+        sku: 'SKU-NEW',
+        productId: 'existing-pancake-product',
+        variantId: 'existing-pancake-variant',
+        warehouseId: 'existing-warehouse',
+        available: 3,
+      },
+    ]);
+
+    const result = await service.syncMappings([mapping]);
+
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(pancakeClient.updateInventory).toHaveBeenCalledWith({
+      variantId: 'existing-pancake-variant',
+      warehouseId: 'existing-warehouse',
+      available: 7,
+    });
+    expect(result.updatedPancake).toBe(1);
+    expect(result.createdPancake).toBe(0);
+  });
+
+  it('uses normalized product mapping lookup before creating a Pancake product', async () => {
+    const { service, pancakeClient, prisma } = createService();
+    const mapping = {
+      ...sapoOnlyMapping(),
+      sku: ' sku-new ',
+      normalizedSku: 'SKU-NEW',
+      sapo: sapoSnapshot(' sku-new '),
+    };
+    prisma.productMapping.findMany.mockResolvedValueOnce([
+      {
+        sku: 'SKU-NEW',
+        pancakeProductId: 'mapped-pancake-product',
+        pancakeVariantId: 'mapped-pancake-variant',
+        pancakeWarehouseId: 'mapped-warehouse',
+      },
+    ]);
+
+    const result = await service.syncMappings([mapping]);
+
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(pancakeClient.updateInventory).toHaveBeenCalledWith({
+      variantId: 'mapped-pancake-variant',
+      warehouseId: 'mapped-warehouse',
+      available: 7,
+    });
+    expect(prisma.pancakeProduct.upsert).toHaveBeenCalledWith({
+      where: { sku: ' sku-new ' },
+      create: expect.objectContaining({
+        productId: 'mapped-pancake-product',
+        variantId: 'mapped-pancake-variant',
+      }),
+      update: expect.objectContaining({
+        productId: 'mapped-pancake-product',
+        variantId: 'mapped-pancake-variant',
+      }),
+    });
+    expect(result.updatedPancake).toBe(1);
+    expect(result.createdPancake).toBe(0);
+  });
+
+  it('does not create or update Pancake for conflict mappings', async () => {
+    const { service, pancakeClient, prisma } = createService();
+    const conflictMapping: ProductMappingCandidate = {
+      ...sapoOnlyMapping(),
+      status: 'conflict',
+      conflictReason: 'duplicate_pancake_sku',
+      conflictDetail: {
+        type: 'duplicate_pancake_sku',
+        platform: 'pancake',
+        message: 'Duplicate Pancake SKU',
+        sapoVariantCount: 1,
+        pancakeVariantCount: 2,
+        shopifyVariantCount: 0,
+        entries: [],
+      },
+    };
+
+    const result = await service.syncMappings([conflictMapping]);
+
+    expect(prisma.pancakeProduct.findUnique).not.toHaveBeenCalled();
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
+    expect(prisma.pancakeProduct.update).not.toHaveBeenCalled();
+    expect(prisma.pancakeProduct.upsert).not.toHaveBeenCalled();
+    expect(prisma.productMapping.upsert).not.toHaveBeenCalled();
+    expect(result.updatedPancake).toBe(0);
+    expect(result.createdPancake).toBe(0);
+  });
+
   it('uses configured Pancake warehouse fallback when create response has no warehouse', async () => {
     const { service, pancakeClient, prisma } = createService({
       'pancake.defaultWarehouseId': 'fallback-warehouse',
@@ -150,6 +315,62 @@ describe('InventorySyncService missing product creation', () => {
     expect(result.createdPancake).toBe(1);
   });
 
+  it('persists created Pancake IDs when inventory update fails after create', async () => {
+    const { service, pancakeClient, prisma } = createService();
+    pancakeClient.updateInventory.mockRejectedValueOnce(
+      new Error('Pancake inventory failed'),
+    );
+
+    const result = await service.syncMappings([sapoOnlyMapping()]);
+
+    expect(pancakeClient.createProductFromSapo).toHaveBeenCalledTimes(1);
+    expect(prisma.pancakeProduct.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-NEW' },
+      create: expect.objectContaining({
+        sku: 'SKU-NEW',
+        productId: 'pancake-product-1',
+        variantId: 'pancake-variant-1',
+        name: 'New Shirt',
+        available: 7,
+        remain: 9,
+        retailPrice: 150000,
+        warehouseId: 'warehouse-1',
+        updatedBy: 'SAPO',
+      }),
+      update: expect.objectContaining({
+        productId: 'pancake-product-1',
+        variantId: 'pancake-variant-1',
+        available: 7,
+        remain: 9,
+        warehouseId: 'warehouse-1',
+        updatedBy: 'SAPO',
+      }),
+    });
+    expect(prisma.productMapping.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-NEW' },
+      create: expect.objectContaining({
+        sku: 'SKU-NEW',
+        pancakeProductId: 'pancake-product-1',
+        pancakeVariantId: 'pancake-variant-1',
+        pancakeWarehouseId: 'warehouse-1',
+      }),
+      update: expect.objectContaining({
+        pancakeProductId: 'pancake-product-1',
+        pancakeVariantId: 'pancake-variant-1',
+        pancakeWarehouseId: 'warehouse-1',
+      }),
+    });
+    expect(result.createdPancake).toBe(0);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        sku: 'SKU-NEW',
+        platform: 'pancake',
+        operation: 'createProductFromSapo',
+        message: 'Pancake inventory failed',
+      }),
+    ]);
+  });
+
   it('skips unchanged external inventory updates shortly after Sapo changed', async () => {
     const { service, pancakeClient, shopifyClient } = createService();
     const sourceUpdatedAt = new Date();
@@ -157,11 +378,13 @@ describe('InventorySyncService missing product creation', () => {
     const result = await service.syncMappings([
       {
         sku: 'SKU-SAME',
+        normalizedSku: 'SKU-SAME',
         sapo: sapoSnapshot('SKU-SAME', { sourceUpdatedAt }),
         pancake: targetSnapshot('pancake', 'SKU-SAME'),
         shopify: targetSnapshot('shopify', 'SKU-SAME'),
         status: 'matched',
         conflictReason: null,
+        conflictDetail: null,
       },
     ]);
 
@@ -186,5 +409,59 @@ describe('InventorySyncService missing product creation', () => {
     });
     expect(prisma.shopifyProduct.upsert).toHaveBeenCalled();
     expect(result.createdShopify).toBe(1);
+  });
+
+  it('persists created Shopify IDs when inventory and price update fails after create', async () => {
+    const { service, shopifyClient, prisma } = createService({
+      'sync.products.createMissingShopify': true,
+    });
+    shopifyClient.updateInventoryAndPrice.mockRejectedValueOnce(
+      new Error('Shopify inventory failed'),
+    );
+
+    const result = await service.syncMappings([sapoOnlyMapping()]);
+
+    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledTimes(1);
+    expect(prisma.shopifyProduct.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-NEW' },
+      create: expect.objectContaining({
+        sku: 'SKU-NEW',
+        productId: 'shopify-product-1',
+        variantId: 'shopify-variant-1',
+        name: 'New Shirt',
+        available: BigInt(7),
+        remain: BigInt(9),
+        retailPrice: 150000,
+        updatedBy: 'SAPO',
+      }),
+      update: expect.objectContaining({
+        productId: 'shopify-product-1',
+        variantId: 'shopify-variant-1',
+        available: BigInt(7),
+        remain: BigInt(9),
+        updatedBy: 'SAPO',
+      }),
+    });
+    expect(prisma.productMapping.upsert).toHaveBeenCalledWith({
+      where: { sku: 'SKU-NEW' },
+      create: expect.objectContaining({
+        sku: 'SKU-NEW',
+        shopifyProductId: 'shopify-product-1',
+        shopifyVariantId: 'shopify-variant-1',
+      }),
+      update: expect.objectContaining({
+        shopifyProductId: 'shopify-product-1',
+        shopifyVariantId: 'shopify-variant-1',
+      }),
+    });
+    expect(result.createdShopify).toBe(0);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        sku: 'SKU-NEW',
+        platform: 'shopify',
+        operation: 'createProductFromSapo',
+        message: 'Shopify inventory failed',
+      }),
+    ]);
   });
 });

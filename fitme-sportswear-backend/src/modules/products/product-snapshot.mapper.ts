@@ -1,4 +1,5 @@
 import { PlatformProductSnapshot } from './types/platform-product-snapshot';
+import { normalizeSku } from './sku-normalizer';
 
 interface SapoInventoryInput {
   available?: number | null;
@@ -97,6 +98,7 @@ export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProdu
       return {
         platform: 'sapo',
         sku,
+        normalizedSku: normalizeSku(sku),
         productId: toNullableString(product.id),
         variantId: toNullableString(variant.id),
         name: product.name ?? null,
@@ -130,6 +132,7 @@ export const mapPancakeProductSnapshot = (product: PancakeProductInput): Platfor
   return {
     platform: 'pancake',
     sku,
+    normalizedSku: normalizeSku(sku),
     productId: toNullableString(product.productId),
     variantId: toNullableString(product.id),
     name: product.product?.name ?? null,
@@ -152,6 +155,7 @@ export const mapShopifyProductSnapshots = (product: ShopifyProductInput): Platfo
       return {
         platform: 'shopify',
         sku,
+        normalizedSku: normalizeSku(sku),
         productId: toNullableString(product.id),
         variantId: toNullableString(variant.id),
         name: [product.title, variant.title].filter(Boolean).join(' - ').trim() || null,

@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prisma.service';
 import { PancakeClient } from '../pancake/pancake.client';
 import { ShopifyClient } from '../shopify/shopify.client';
 import { ProductMappingCandidate } from './types/platform-product-snapshot';
+import { normalizeSku } from './sku-normalizer';
 
 export interface ProductSyncError {
   sku: string;
@@ -74,48 +75,101 @@ export class InventorySyncService {
 
       if (!mapping.pancake?.variantId && this.createMissingPancakeProducts()) {
         try {
-          const created = await this.pancakeClient.createProductFromSapo({
-            sku: mapping.sku,
-            name: mapping.sapo.name,
-            available: mapping.sapo.available,
-            retailPrice: mapping.sapo.retailPrice,
-          });
-          const warehouseId = this.resolvePancakeWarehouseId(created.warehouseId);
-          await this.pancakeClient.updateInventory({
-            variantId: created.variantId,
-            warehouseId,
-            available: mapping.sapo.available,
-          });
-          await this.prisma.pancakeProduct.upsert({
-            where: { sku: mapping.sku },
-            create: {
+          const existingMapping = await this.findExistingProductMapping(mapping);
+          const existingPancake = await this.findExistingPancakeProduct(mapping);
+
+          if (existingMapping?.pancakeVariantId || existingPancake?.variantId) {
+            const variantId =
+              existingMapping?.pancakeVariantId ?? existingPancake?.variantId;
+            const productId =
+              existingMapping?.pancakeProductId ?? existingPancake?.productId;
+            if (!variantId) {
+              continue;
+            }
+            const warehouseId = this.resolvePancakeWarehouseId(
+              existingMapping?.pancakeWarehouseId ??
+                existingPancake?.warehouseId ??
+                null,
+            );
+            await this.pancakeClient.updateInventory({
+              variantId,
+              warehouseId,
+              available: mapping.sapo.available,
+            });
+            await this.prisma.pancakeProduct.upsert({
+              where: { sku: mapping.sku },
+              create: {
+                sku: mapping.sku,
+                productId,
+                variantId,
+                name: mapping.sapo.name,
+                available: mapping.sapo.available,
+                remain: mapping.sapo.remain,
+                retailPrice: mapping.sapo.retailPrice,
+                warehouseId,
+                updatedBy: 'SAPO',
+              },
+              update: {
+                productId,
+                variantId,
+                name: mapping.sapo.name,
+                available: mapping.sapo.available,
+                remain: mapping.sapo.remain,
+                retailPrice: mapping.sapo.retailPrice,
+                warehouseId,
+                updatedBy: 'SAPO',
+              },
+            });
+            await this.upsertProductMapping(mapping, {
+              pancakeProductId: productId,
+              pancakeVariantId: variantId,
+              pancakeWarehouseId: warehouseId,
+            });
+            result.updatedPancake += 1;
+          } else {
+            const created = await this.pancakeClient.createProductFromSapo({
               sku: mapping.sku,
-              productId: created.productId,
-              variantId: created.variantId,
               name: mapping.sapo.name,
               available: mapping.sapo.available,
-              remain: mapping.sapo.remain,
               retailPrice: mapping.sapo.retailPrice,
-              warehouseId,
-              updatedBy: 'SAPO',
-            },
-            update: {
-              productId: created.productId,
+            });
+            const warehouseId = this.resolvePancakeWarehouseId(created.warehouseId);
+            await this.prisma.pancakeProduct.upsert({
+              where: { sku: mapping.sku },
+              create: {
+                sku: mapping.sku,
+                productId: created.productId,
+                variantId: created.variantId,
+                name: mapping.sapo.name,
+                available: mapping.sapo.available,
+                remain: mapping.sapo.remain,
+                retailPrice: mapping.sapo.retailPrice,
+                warehouseId,
+                updatedBy: 'SAPO',
+              },
+              update: {
+                productId: created.productId,
+                variantId: created.variantId,
+                name: mapping.sapo.name,
+                available: mapping.sapo.available,
+                remain: mapping.sapo.remain,
+                retailPrice: mapping.sapo.retailPrice,
+                warehouseId,
+                updatedBy: 'SAPO',
+              },
+            });
+            await this.upsertProductMapping(mapping, {
+              pancakeProductId: created.productId,
+              pancakeVariantId: created.variantId,
+              pancakeWarehouseId: warehouseId,
+            });
+            await this.pancakeClient.updateInventory({
               variantId: created.variantId,
-              name: mapping.sapo.name,
-              available: mapping.sapo.available,
-              remain: mapping.sapo.remain,
-              retailPrice: mapping.sapo.retailPrice,
               warehouseId,
-              updatedBy: 'SAPO',
-            },
-          });
-          await this.upsertProductMapping(mapping, {
-            pancakeProductId: created.productId,
-            pancakeVariantId: created.variantId,
-            pancakeWarehouseId: warehouseId,
-          });
-          result.createdPancake += 1;
+              available: mapping.sapo.available,
+            });
+            result.createdPancake += 1;
+          }
         } catch (error) {
           result.errors.push(
             this.toError(mapping.sku, 'pancake', 'createProductFromSapo', error),
@@ -159,11 +213,6 @@ export class InventorySyncService {
             available: mapping.sapo.available,
             retailPrice: mapping.sapo.retailPrice,
           });
-          await this.shopifyClient.updateInventoryAndPrice({
-            variantId: created.variantId,
-            available: mapping.sapo.available,
-            retailPrice: mapping.sapo.retailPrice,
-          });
           await this.prisma.shopifyProduct.upsert({
             where: { sku: mapping.sku },
             create: {
@@ -191,6 +240,11 @@ export class InventorySyncService {
           await this.upsertProductMapping(mapping, {
             shopifyProductId: created.productId,
             shopifyVariantId: created.variantId,
+          });
+          await this.shopifyClient.updateInventoryAndPrice({
+            variantId: created.variantId,
+            available: mapping.sapo.available,
+            retailPrice: mapping.sapo.retailPrice,
           });
           result.createdShopify += 1;
         } catch (error) {
@@ -221,11 +275,11 @@ export class InventorySyncService {
   private async upsertProductMapping(
     mapping: ProductMappingCandidate,
     created: {
-      pancakeProductId?: string;
-      pancakeVariantId?: string;
+      pancakeProductId?: string | null;
+      pancakeVariantId?: string | null;
       pancakeWarehouseId?: string | null;
-      shopifyProductId?: string;
-      shopifyVariantId?: string;
+      shopifyProductId?: string | null;
+      shopifyVariantId?: string | null;
     },
   ): Promise<void> {
     await this.prisma.productMapping.upsert({
@@ -256,6 +310,57 @@ export class InventorySyncService {
         conflictReason: null,
       },
     });
+  }
+
+  private async findExistingProductMapping(
+    mapping: ProductMappingCandidate,
+  ): Promise<{
+    pancakeProductId: string | null;
+    pancakeVariantId: string | null;
+    pancakeWarehouseId: string | null;
+  } | null> {
+    const exact = await this.prisma.productMapping.findUnique({
+      where: { sku: mapping.sku },
+    });
+
+    if (exact?.pancakeVariantId) {
+      return exact;
+    }
+
+    const mappings = await this.prisma.productMapping.findMany();
+    return (
+      mappings.find(
+        (productMapping) =>
+          normalizeSku(productMapping.sku) === mapping.normalizedSku &&
+          Boolean(productMapping.pancakeVariantId),
+      ) ?? null
+    );
+  }
+
+  private async findExistingPancakeProduct(
+    mapping: ProductMappingCandidate,
+  ): Promise<{
+    sku: string;
+    productId: string | null;
+    variantId: string | null;
+    warehouseId: string | null;
+  } | null> {
+    const exact = await this.prisma.pancakeProduct.findUnique({
+      where: { sku: mapping.sku },
+    });
+
+    if (exact?.variantId) {
+      return exact;
+    }
+
+    const products = await this.prisma.pancakeProduct.findMany();
+    return (
+      products.find(
+        (product) =>
+          normalizeSku(product.sku) === mapping.normalizedSku &&
+          Boolean(product.variantId),
+      ) ?? null
+    );
   }
 
   private unchangedPancakeInventory(mapping: ProductMappingCandidate): boolean {

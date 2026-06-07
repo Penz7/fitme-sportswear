@@ -11,6 +11,7 @@ describe('ProductSyncOrchestratorService', () => {
     const sapoSnapshot: PlatformProductSnapshot = {
       platform: 'sapo',
       sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
       productId: 'sapo-product-1',
       variantId: 'sapo-variant-1',
       name: 'Product 1',
@@ -23,11 +24,13 @@ describe('ProductSyncOrchestratorService', () => {
     const snapshots = [sapoSnapshot];
     const mapping: ProductMappingCandidate = {
       sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
       sapo: sapoSnapshot,
       pancake: null,
       shopify: null,
       status: 'partial',
       conflictReason: 'Missing Pancake and Shopify records',
+      conflictDetail: null,
     };
     const syncResult = {
       updatedPancake: 0,
@@ -35,7 +38,14 @@ describe('ProductSyncOrchestratorService', () => {
       errors: [],
     };
     const prisma = {
-      productMapping: { upsert: jest.fn().mockResolvedValue({}) },
+      productMapping: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      productSyncConflict: {
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn().mockResolvedValue({}),
+      },
       syncRun: { update: jest.fn().mockResolvedValue({}) },
     };
     const snapshotService = {
@@ -101,18 +111,27 @@ describe('ProductSyncOrchestratorService', () => {
     expect(notifier.sendMessage).not.toHaveBeenCalled();
   });
 
-  it('notifies when product sync succeeds with conflicts or partial errors', async () => {
+  it('notifies when product sync succeeds with sync errors', async () => {
     const syncRunId = 'sync-run-1';
     const mapping: ProductMappingCandidate = {
       sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
       sapo: null,
       pancake: null,
       shopify: null,
       status: 'conflict',
       conflictReason: 'Duplicate SKU',
+      conflictDetail: null,
     };
     const prisma = {
-      productMapping: { upsert: jest.fn().mockResolvedValue({}) },
+      productMapping: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      productSyncConflict: {
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn().mockResolvedValue({}),
+      },
       syncRun: { update: jest.fn().mockResolvedValue({}) },
     };
     const snapshotService = {
@@ -147,5 +166,485 @@ describe('ProductSyncOrchestratorService', () => {
       'Product sync completed with issues: sync-run-1',
       expect.stringContaining('conflict=1'),
     );
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Product sync completed with issues: sync-run-1',
+      expect.stringContaining('errors=1'),
+    );
+  });
+
+  it('does not mark sync failed when Telegram summary notification fails', async () => {
+    const syncRunId = 'sync-run-1';
+    const mapping: ProductMappingCandidate = {
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      sapo: null,
+      pancake: null,
+      shopify: null,
+      status: 'partial',
+      conflictReason: 'Missing Pancake record',
+      conflictDetail: null,
+    };
+    const prisma = {
+      productMapping: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      productSyncConflict: {
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn().mockResolvedValue({}),
+      },
+      syncRun: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const snapshotService = {
+      refreshAllSnapshots: jest.fn().mockResolvedValue([]),
+    } as unknown as ProductSnapshotService;
+    const matchingService = {
+      buildMappings: jest.fn().mockReturnValue([mapping]),
+    } as unknown as ProductMatchingService;
+    const inventorySyncService = {
+      syncMappings: jest.fn().mockResolvedValue({
+        updatedPancake: 0,
+        updatedShopify: 0,
+        errors: [{ sku: 'SKU-1', platform: 'pancake', operation: 'update', message: 'failed' }],
+      }),
+    } as unknown as InventorySyncService;
+    const notifier = {
+      sendMessage: jest.fn().mockRejectedValue(new Error('Telegram unavailable')),
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const service = new ProductSyncOrchestratorService(
+      prisma as any,
+      snapshotService,
+      matchingService,
+      inventorySyncService,
+      notifier as any,
+    );
+
+    await expect(service.run(syncRunId)).resolves.toBeUndefined();
+
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Product sync completed with issues: sync-run-1',
+      expect.stringContaining('errors=1'),
+    );
+    expect(prisma.syncRun.update).toHaveBeenCalledWith({
+      where: { id: syncRunId },
+      data: expect.objectContaining({
+        status: 'succeeded',
+        finishedAt: expect.any(Date),
+      }),
+    });
+    expect(prisma.syncRun.update).not.toHaveBeenCalledWith({
+      where: { id: syncRunId },
+      data: expect.objectContaining({
+        status: 'failed',
+      }),
+    });
+    expect(notifier.sendException).not.toHaveBeenCalled();
+  });
+
+  it('persists a new conflict and sends first-seen conflict Telegram', async () => {
+    const syncRunId = 'sync-run-1';
+    const sapoSnapshot: PlatformProductSnapshot = {
+      platform: 'sapo',
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      productId: 'sapo-product-1',
+      variantId: 'sapo-variant-1',
+      name: 'Sapo Product',
+      available: 5,
+      remain: 5,
+      retailPrice: 100000,
+      warehouseId: null,
+      warehouseCount: null,
+    };
+    const pancakeSnapshot: PlatformProductSnapshot = {
+      platform: 'pancake',
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      productId: 'pancake-product-1',
+      variantId: 'pancake-variant-1',
+      name: 'Pancake Product',
+      available: 2,
+      remain: 2,
+      retailPrice: 100000,
+      warehouseId: 'warehouse-1',
+      warehouseCount: 1,
+    };
+    const mapping: ProductMappingCandidate = {
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      sapo: sapoSnapshot,
+      pancake: pancakeSnapshot,
+      shopify: null,
+      status: 'conflict',
+      conflictReason: 'Duplicate Pancake SKU',
+      conflictDetail: {
+        type: 'duplicate_pancake_sku',
+        platform: 'pancake',
+        message: 'Duplicate Pancake SKU',
+        sapoVariantCount: 1,
+        pancakeVariantCount: 2,
+        shopifyVariantCount: 0,
+        entries: [
+          {
+            platform: 'sapo',
+            sku: 'SKU-1',
+            productId: 'sapo-product-1',
+            variantId: 'sapo-variant-1',
+            warehouseId: null,
+            name: 'Sapo Product',
+          },
+          {
+            platform: 'pancake',
+            sku: 'SKU-1',
+            productId: 'pancake-product-1',
+            variantId: 'pancake-variant-1',
+            warehouseId: 'warehouse-1',
+            name: 'Pancake Product',
+          },
+        ],
+      },
+    };
+    const prisma = {
+      productMapping: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      productSyncConflict: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({
+          id: 'conflict-1',
+          lastNotifiedAt: null,
+        }),
+        update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({}),
+      },
+      syncRun: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const snapshotService = {
+      refreshAllSnapshots: jest.fn().mockResolvedValue([sapoSnapshot, pancakeSnapshot]),
+    } as unknown as ProductSnapshotService;
+    const matchingService = {
+      buildMappings: jest.fn().mockReturnValue([mapping]),
+    } as unknown as ProductMatchingService;
+    const inventorySyncService = {
+      syncMappings: jest.fn().mockResolvedValue({
+        updatedPancake: 0,
+        updatedShopify: 0,
+        errors: [],
+      }),
+    } as unknown as InventorySyncService;
+    const notifier = {
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const service = new ProductSyncOrchestratorService(
+      prisma as any,
+      snapshotService,
+      matchingService,
+      inventorySyncService,
+      notifier as any,
+    );
+
+    await service.run(syncRunId);
+
+    expect(prisma.productSyncConflict.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        normalizedSku_conflictType_platform: {
+          normalizedSku: 'SKU-1',
+          conflictType: 'duplicate_pancake_sku',
+          platform: 'pancake',
+        },
+      },
+    }));
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      '[Fitme Sync] SKU conflict detected',
+      expect.stringContaining('SKU: SKU-1'),
+    );
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      '[Fitme Sync] SKU conflict detected',
+      expect.stringContaining('Action: skipped inventory sync.'),
+    );
+    expect(prisma.productSyncConflict.update).toHaveBeenCalledWith({
+      where: { id: 'conflict-1' },
+      data: { lastNotifiedAt: expect.any(Date) },
+    });
+  });
+
+  it('does not send duplicate conflict Telegram for an unresolved notified conflict', async () => {
+    const syncRunId = 'sync-run-1';
+    const mapping: ProductMappingCandidate = {
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      sapo: null,
+      pancake: null,
+      shopify: null,
+      status: 'conflict',
+      conflictReason: 'Duplicate Pancake SKU',
+      conflictDetail: {
+        type: 'duplicate_pancake_sku',
+        platform: 'pancake',
+        message: 'Duplicate Pancake SKU',
+        sapoVariantCount: 1,
+        pancakeVariantCount: 2,
+        shopifyVariantCount: 0,
+        entries: [],
+      },
+    };
+    const prisma = {
+      productMapping: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      productSyncConflict: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({
+          id: 'conflict-1',
+          lastNotifiedAt: new Date('2026-06-07T00:00:00.000Z'),
+        }),
+        update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({}),
+      },
+      syncRun: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const snapshotService = {
+      refreshAllSnapshots: jest.fn().mockResolvedValue([]),
+    } as unknown as ProductSnapshotService;
+    const matchingService = {
+      buildMappings: jest.fn().mockReturnValue([mapping]),
+    } as unknown as ProductMatchingService;
+    const inventorySyncService = {
+      syncMappings: jest.fn().mockResolvedValue({
+        updatedPancake: 0,
+        updatedShopify: 0,
+        errors: [],
+      }),
+    } as unknown as InventorySyncService;
+    const notifier = {
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const service = new ProductSyncOrchestratorService(
+      prisma as any,
+      snapshotService,
+      matchingService,
+      inventorySyncService,
+      notifier as any,
+    );
+
+    await service.run(syncRunId);
+
+    expect(notifier.sendMessage).not.toHaveBeenCalledWith(
+      '[Fitme Sync] SKU conflict detected',
+      expect.any(String),
+    );
+    expect(notifier.sendMessage).not.toHaveBeenCalled();
+    expect(prisma.productSyncConflict.update).not.toHaveBeenCalled();
+  });
+
+  it('blocks sync when existing mapping points to a different Pancake variant', async () => {
+    const syncRunId = 'sync-run-1';
+    const sapoSnapshot: PlatformProductSnapshot = {
+      platform: 'sapo',
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      productId: 'sapo-product-1',
+      variantId: 'sapo-variant-1',
+      name: 'Sapo Product',
+      available: 5,
+      remain: 5,
+      retailPrice: 100000,
+      warehouseId: null,
+      warehouseCount: null,
+    };
+    const pancakeSnapshot: PlatformProductSnapshot = {
+      platform: 'pancake',
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      productId: 'new-pancake-product',
+      variantId: 'new-pancake-variant',
+      name: 'Pancake Product',
+      available: 2,
+      remain: 2,
+      retailPrice: 100000,
+      warehouseId: 'warehouse-1',
+      warehouseCount: 1,
+    };
+    const mapping: ProductMappingCandidate = {
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      sapo: sapoSnapshot,
+      pancake: pancakeSnapshot,
+      shopify: null,
+      status: 'matched',
+      conflictReason: null,
+      conflictDetail: null,
+    };
+    const prisma = {
+      productMapping: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            sku: 'SKU-1',
+            sapoProductId: 'sapo-product-1',
+            sapoVariantId: 'sapo-variant-1',
+            pancakeProductId: 'old-pancake-product',
+            pancakeVariantId: 'old-pancake-variant',
+            pancakeWarehouseId: 'warehouse-1',
+            shopifyProductId: null,
+            shopifyVariantId: null,
+          },
+        ]),
+        update: jest.fn().mockResolvedValue({}),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      productSyncConflict: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({
+          id: 'conflict-1',
+          lastNotifiedAt: new Date('2026-06-07T00:00:00.000Z'),
+        }),
+        update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({}),
+      },
+      syncRun: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const snapshotService = {
+      refreshAllSnapshots: jest.fn().mockResolvedValue([sapoSnapshot, pancakeSnapshot]),
+    } as unknown as ProductSnapshotService;
+    const matchingService = {
+      buildMappings: jest.fn().mockReturnValue([mapping]),
+    } as unknown as ProductMatchingService;
+    const inventorySyncService = {
+      syncMappings: jest.fn().mockResolvedValue({
+        updatedPancake: 0,
+        updatedShopify: 0,
+        errors: [],
+      }),
+    } as unknown as InventorySyncService;
+    const notifier = {
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const service = new ProductSyncOrchestratorService(
+      prisma as any,
+      snapshotService,
+      matchingService,
+      inventorySyncService,
+      notifier as any,
+    );
+
+    await service.run(syncRunId);
+
+    expect(prisma.productMapping.update).toHaveBeenCalledWith({
+      where: { sku: 'SKU-1' },
+      data: {
+        status: ProductMappingStatus.conflict,
+        conflictReason: expect.stringContaining('old-pancake-variant'),
+      },
+    });
+    expect(prisma.productMapping.upsert).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          pancakeVariantId: 'new-pancake-variant',
+        }),
+      }),
+    );
+    expect(inventorySyncService.syncMappings).toHaveBeenCalledWith([
+      expect.objectContaining({
+        status: 'conflict',
+        conflictDetail: expect.objectContaining({
+          type: 'ambiguous_mapping',
+          platform: 'mapping',
+        }),
+      }),
+    ]);
+    expect(prisma.productSyncConflict.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          normalizedSku_conflictType_platform: {
+            normalizedSku: 'SKU-1',
+            conflictType: 'ambiguous_mapping',
+            platform: 'mapping',
+          },
+        },
+      }),
+    );
+  });
+
+  it('marks previously unresolved conflicts resolved when absent from the current run', async () => {
+    const syncRunId = 'sync-run-1';
+    const sapoSnapshot: PlatformProductSnapshot = {
+      platform: 'sapo',
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      productId: 'sapo-product-1',
+      variantId: 'sapo-variant-1',
+      name: 'Sapo Product',
+      available: 5,
+      remain: 5,
+      retailPrice: 100000,
+      warehouseId: null,
+      warehouseCount: null,
+    };
+    const mapping: ProductMappingCandidate = {
+      sku: 'SKU-1',
+      normalizedSku: 'SKU-1',
+      sapo: sapoSnapshot,
+      pancake: null,
+      shopify: null,
+      status: 'partial',
+      conflictReason: 'Missing Pancake and Shopify records',
+      conflictDetail: null,
+    };
+    const prisma = {
+      productMapping: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+      productSyncConflict: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'conflict-1',
+            normalizedSku: 'SKU-OLD',
+            conflictType: 'duplicate_pancake_sku',
+            platform: 'pancake',
+          },
+        ]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      syncRun: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const snapshotService = {
+      refreshAllSnapshots: jest.fn().mockResolvedValue([sapoSnapshot]),
+    } as unknown as ProductSnapshotService;
+    const matchingService = {
+      buildMappings: jest.fn().mockReturnValue([mapping]),
+    } as unknown as ProductMatchingService;
+    const inventorySyncService = {
+      syncMappings: jest.fn().mockResolvedValue({
+        updatedPancake: 0,
+        updatedShopify: 0,
+        errors: [],
+      }),
+    } as unknown as InventorySyncService;
+
+    const service = new ProductSyncOrchestratorService(
+      prisma as any,
+      snapshotService,
+      matchingService,
+      inventorySyncService,
+      undefined,
+    );
+
+    await service.run(syncRunId);
+
+    expect(prisma.productSyncConflict.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['conflict-1'] } },
+      data: { resolvedAt: expect.any(Date) },
+    });
   });
 });

@@ -6,6 +6,7 @@ import { InventorySyncService } from './inventory-sync.service';
 import { ProductMappingCandidate } from './types/platform-product-snapshot';
 import { ProductMatchingService } from './product-matching.service';
 import { ProductSnapshotService } from './product-snapshot.service';
+import { normalizeSku } from './sku-normalizer';
 
 @Injectable()
 export class ProductSyncOrchestratorService {
@@ -28,11 +29,15 @@ export class ProductSyncOrchestratorService {
 
     try {
       const snapshots = await this.snapshotService.refreshAllSnapshots();
-      const mappings = this.matchingService.buildMappings(snapshots);
+      const mappings = await this.applyAmbiguousMappingConflicts(
+        this.matchingService.buildMappings(snapshots),
+      );
 
       for (const mapping of mappings) {
         await this.upsertMapping(mapping);
       }
+
+      await this.recordConflicts(mappings);
 
       const syncResult = await this.inventorySyncService.syncMappings(mappings);
       const counts = this.countMappingStatuses(mappings);
@@ -79,7 +84,7 @@ export class ProductSyncOrchestratorService {
     counts: { matched: number; partial: number; conflict: number },
     errors: Array<{ sku?: string; platform?: string; operation?: string; message?: string }>,
   ): Promise<void> {
-    if (!this.notifier || (counts.conflict === 0 && errors.length === 0)) {
+    if (!this.notifier || errors.length === 0) {
       return;
     }
 
@@ -92,20 +97,35 @@ export class ProductSyncOrchestratorService {
       )
       .join('\n');
 
-    await this.notifier.sendMessage(
-      `Product sync completed with issues: ${syncRunId}`,
-      [
-        `conflict=${counts.conflict}`,
-        `partial=${counts.partial}`,
-        `errors=${errors.length}`,
-        sampleErrors ? `sample errors:\n${sampleErrors}` : null,
-      ]
-        .filter(Boolean)
-        .join('\n'),
-    );
+    try {
+      await this.notifier.sendMessage(
+        `Product sync completed with issues: ${syncRunId}`,
+        [
+          `conflict=${counts.conflict}`,
+          `partial=${counts.partial}`,
+          `errors=${errors.length}`,
+          sampleErrors ? `sample errors:\n${sampleErrors}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
+    } catch {
+      return;
+    }
   }
 
   private async upsertMapping(mapping: ProductMappingCandidate) {
+    if (mapping.conflictDetail?.type === 'ambiguous_mapping') {
+      await this.prisma.productMapping.update({
+        where: { sku: mapping.sku },
+        data: {
+          status: ProductMappingStatus.conflict,
+          conflictReason: mapping.conflictReason,
+        },
+      });
+      return;
+    }
+
     const data = this.toMappingData(mapping);
 
     await this.prisma.productMapping.upsert({
@@ -115,6 +135,232 @@ export class ProductSyncOrchestratorService {
         ...data,
       },
       update: data,
+    });
+  }
+
+  private async applyAmbiguousMappingConflicts(
+    mappings: ProductMappingCandidate[],
+  ): Promise<ProductMappingCandidate[]> {
+    const existingMappings = await this.prisma.productMapping.findMany();
+    const byNormalizedSku = new Map<string, typeof existingMappings>();
+
+    for (const existing of existingMappings) {
+      const normalizedSku = normalizeSku(existing.sku);
+      const entries = byNormalizedSku.get(normalizedSku) ?? [];
+      entries.push(existing);
+      byNormalizedSku.set(normalizedSku, entries);
+    }
+
+    return mappings.map((mapping) => {
+      const existingEntries = byNormalizedSku.get(mapping.normalizedSku) ?? [];
+      if (existingEntries.length === 0) {
+        return mapping;
+      }
+
+      const existing = existingEntries.find((entry) => entry.sku === mapping.sku) ?? existingEntries[0];
+      const mismatch = this.findAmbiguousMappingMismatch(mapping, existing);
+
+      if (!mismatch && existingEntries.length === 1) {
+        return mapping;
+      }
+
+      const message =
+        mismatch ??
+        `Multiple existing product mappings normalize to SKU ${mapping.normalizedSku}`;
+
+      return {
+        ...mapping,
+        sku: existing.sku,
+        status: 'conflict' as const,
+        conflictReason: message,
+        conflictDetail: {
+          type: 'ambiguous_mapping' as const,
+          platform: 'mapping' as const,
+          message,
+          sapoVariantCount: mapping.sapo ? 1 : 0,
+          pancakeVariantCount: mapping.pancake ? 1 : 0,
+          shopifyVariantCount: mapping.shopify ? 1 : 0,
+          entries: [
+            mapping.sapo,
+            mapping.pancake,
+            mapping.shopify,
+          ]
+            .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+            .map((entry) => ({
+              platform: entry.platform,
+              sku: entry.sku,
+              productId: entry.productId,
+              variantId: entry.variantId,
+              warehouseId: entry.warehouseId,
+              name: entry.name,
+            })),
+        },
+      };
+    });
+  }
+
+  private findAmbiguousMappingMismatch(
+    mapping: ProductMappingCandidate,
+    existing: {
+      sapoProductId: string | null;
+      sapoVariantId: string | null;
+      pancakeProductId: string | null;
+      pancakeVariantId: string | null;
+      shopifyProductId: string | null;
+      shopifyVariantId: string | null;
+    },
+  ): string | null {
+    const checks: Array<[string, string | null | undefined, string | null]> = [
+      ['sapoVariantId', mapping.sapo?.variantId, existing.sapoVariantId],
+      ['sapoProductId', mapping.sapo?.productId, existing.sapoProductId],
+      ['pancakeVariantId', mapping.pancake?.variantId, existing.pancakeVariantId],
+      ['pancakeProductId', mapping.pancake?.productId, existing.pancakeProductId],
+      ['shopifyVariantId', mapping.shopify?.variantId, existing.shopifyVariantId],
+      ['shopifyProductId', mapping.shopify?.productId, existing.shopifyProductId],
+    ];
+
+    const mismatch = checks.find(
+      ([, latest, previous]) => Boolean(latest) && Boolean(previous) && latest !== previous,
+    );
+
+    return mismatch
+      ? `Existing product mapping ${mismatch[0]}=${mismatch[2]} differs from latest ${mismatch[0]}=${mismatch[1]}`
+      : null;
+  }
+
+  private async recordConflicts(
+    mappings: ProductMappingCandidate[],
+  ): Promise<void> {
+    const conflictMappings = mappings.filter(
+      (mapping) => mapping.status === 'conflict' && mapping.conflictDetail,
+    );
+
+    for (const mapping of conflictMappings) {
+      await this.recordConflict(mapping);
+    }
+
+    await this.resolveAbsentConflicts(conflictMappings);
+  }
+
+  private async resolveAbsentConflicts(
+    conflictMappings: ProductMappingCandidate[],
+  ): Promise<void> {
+    const productSyncConflict = (this.prisma as any).productSyncConflict;
+    const unresolved = await productSyncConflict.findMany({
+      where: { resolvedAt: null },
+      select: {
+        id: true,
+        normalizedSku: true,
+        conflictType: true,
+        platform: true,
+      },
+    });
+    const currentKeys = new Set(
+      conflictMappings
+        .filter((mapping) => mapping.conflictDetail)
+        .map(
+          (mapping) =>
+            `${mapping.normalizedSku}:${mapping.conflictDetail!.type}:${mapping.conflictDetail!.platform}`,
+        ),
+    );
+    const resolvedIds = unresolved
+      .filter(
+        (conflict: {
+          id: string;
+          normalizedSku: string;
+          conflictType: string;
+          platform: string;
+        }) =>
+          !currentKeys.has(
+            `${conflict.normalizedSku}:${conflict.conflictType}:${conflict.platform}`,
+          ),
+      )
+      .map((conflict: { id: string }) => conflict.id);
+
+    if (resolvedIds.length === 0) {
+      return;
+    }
+
+    await productSyncConflict.updateMany({
+      where: { id: { in: resolvedIds } },
+      data: { resolvedAt: new Date() },
+    });
+  }
+
+  private async recordConflict(mapping: ProductMappingCandidate): Promise<void> {
+    const conflictDetail = mapping.conflictDetail;
+
+    if (!conflictDetail) {
+      return;
+    }
+
+    const now = new Date();
+    const originalSkus = {
+      sapo: conflictDetail.entries
+        .filter((entry) => entry.platform === 'sapo')
+        .map((entry) => entry.sku),
+      pancake: conflictDetail.entries
+        .filter((entry) => entry.platform === 'pancake')
+        .map((entry) => entry.sku),
+      shopify: conflictDetail.entries
+        .filter((entry) => entry.platform === 'shopify')
+        .map((entry) => entry.sku),
+    };
+    const involvedEntities = conflictDetail.entries.map((entry) => ({
+      platform: entry.platform,
+      sku: entry.sku,
+      productId: entry.productId,
+      variantId: entry.variantId,
+      warehouseId: entry.warehouseId,
+      name: entry.name,
+    }));
+    const data = {
+      originalSkus,
+      involvedEntities,
+      message: conflictDetail.message,
+      lastSeenAt: now,
+      resolvedAt: null,
+    };
+    const productSyncConflict = (this.prisma as any).productSyncConflict;
+    const conflict = await productSyncConflict.upsert({
+      where: {
+        normalizedSku_conflictType_platform: {
+          normalizedSku: mapping.normalizedSku,
+          conflictType: conflictDetail.type,
+          platform: conflictDetail.platform,
+        },
+      },
+      create: {
+        normalizedSku: mapping.normalizedSku,
+        conflictType: conflictDetail.type,
+        platform: conflictDetail.platform,
+        ...data,
+      },
+      update: data,
+    });
+
+    if (conflict.lastNotifiedAt || !this.notifier) {
+      return;
+    }
+
+    try {
+      await this.notifier.sendMessage(
+        '[Fitme Sync] SKU conflict detected',
+        [
+          `SKU: ${mapping.normalizedSku}`,
+          `Issue: ${conflictDetail.type}`,
+          `Sapo variants: ${conflictDetail.sapoVariantCount}`,
+          `Pancake variants: ${conflictDetail.pancakeVariantCount}`,
+          'Action: skipped inventory sync.',
+        ].join('\n'),
+      );
+    } catch {
+      return;
+    }
+
+    await productSyncConflict.update({
+      where: { id: conflict.id },
+      data: { lastNotifiedAt: new Date() },
     });
   }
 
