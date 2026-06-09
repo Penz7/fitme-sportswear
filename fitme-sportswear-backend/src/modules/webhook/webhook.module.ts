@@ -8,6 +8,10 @@ import { WebhookIngestionService } from './webhook-ingestion.service';
 @Module({
   imports: [QueueModule],
   controllers: [WebhookController],
-  providers: [WebhookIngestionService, ShopifyHmacService, PancakeWebhookSecretService],
+  providers: [
+    WebhookIngestionService,
+    ShopifyHmacService,
+    PancakeWebhookSecretService,
+  ],
 })
 export class WebhookModule {}

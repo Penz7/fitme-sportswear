@@ -15,6 +15,7 @@ export const envValidationSchema = Joi.object({
   SAPO_CLIENT_ID: Joi.string().required(),
   SAPO_SHOP_DOMAIN: Joi.string().required(),
   SAPO_LOCATION_ID: Joi.string().default('572310'),
+  SAPO_PRODUCT_REQUEST_TIMEOUT_MS: Joi.number().integer().min(1000).default(30000),
 
   PANCAKE_BASE_URL: Joi.string().uri().required(),
   PANCAKE_API_KEY: Joi.string().required(),
@@ -25,6 +26,9 @@ export const envValidationSchema = Joi.object({
     otherwise: Joi.string().allow('').optional(),
   }),
   PANCAKE_DEFAULT_WAREHOUSE_ID: Joi.string().allow('').optional(),
+  PANCAKE_PRODUCT_REQUEST_TIMEOUT_MS: Joi.number().integer().min(1000).default(15000),
+  PANCAKE_PRODUCT_RETRY_ATTEMPTS: Joi.number().integer().min(1).default(3),
+  PANCAKE_PRODUCT_RETRY_BACKOFF_MS: Joi.number().integer().min(0).default(1000),
 
   SHOPIFY_BASE_URL: Joi.string().uri().required(),
   SHOPIFY_ACCESS_TOKEN: Joi.string().required(),
@@ -65,6 +69,35 @@ export const envValidationSchema = Joi.object({
     .falsy('false')
     .default(false),
   SYNC_PRODUCT_CRON: Joi.string().allow('').optional(),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_CRON: Joi.string().allow('').optional(),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_CIRCUIT_BREAKER: Joi.number()
+    .integer()
+    .min(1)
+    .default(500),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_BATCH_SIZE: Joi.number()
+    .integer()
+    .min(1)
+    .max(500)
+    .default(100),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_DELAY_MS: Joi.number()
+    .integer()
+    .min(0)
+    .default(50),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_RETRY_ATTEMPTS: Joi.number()
+    .integer()
+    .min(1)
+    .max(10)
+    .default(3),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_MAX_UPDATES_PER_RUN: Joi.number()
+    .integer()
+    .min(1)
+    .max(1000)
+    .default(200),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_HOT_WINDOW_MINUTES: Joi.number()
+    .integer()
+    .min(1)
+    .max(1440)
+    .default(30),
   SYNC_ADDRESS_MAPPING_CRON: Joi.string().allow('').optional(),
   SYNC_SAPO_TO_PANCAKE_ORDER_CRON: Joi.string().allow('').optional(),
   SYNC_SAPO_TO_PANCAKE_ORDER_STATUS: Joi.string().allow('').optional(),
@@ -76,6 +109,8 @@ export const envValidationSchema = Joi.object({
     .truthy('true')
     .falsy('false')
     .default(true),
+  SYNC_PRODUCT_SYNC_SKU_BLOCKLIST: Joi.string().allow('').optional(),
+  SYNC_PRODUCT_SYNC_SKU_BLOCKLIST_FILE: Joi.string().allow('').optional(),
   SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS: Joi.boolean()
     .truthy('true')
     .falsy('false')

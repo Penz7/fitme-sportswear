@@ -37,6 +37,35 @@ describe('product snapshot mapper', () => {
     expect(result).toEqual({ platform: 'pancake', sku: 'SKU-2', normalizedSku: 'SKU-2', productId: 'p-1', variantId: 'v-1', name: 'Quần tập', available: 10, remain: 14, retailPrice: 200000, warehouseId: 'w-1', warehouseCount: 2 });
   });
 
+  it('maps Pancake barcode/custom_id and snake_case warehouse fields from live API shape', () => {
+    const result = mapPancakeProductSnapshot({
+      display_id: '1',
+      custom_id: '',
+      barcode: ' FM-QSBL01-XA-L ',
+      product_id: 'p-1',
+      id: 'v-1',
+      product: { name: 'Quần short' },
+      retail_price: '219000',
+      variations_warehouses: [
+        { warehouse_id: 'w-1', remain_quantity: 91, actual_remain_quantity: 91 },
+      ],
+    });
+
+    expect(result).toEqual({
+      platform: 'pancake',
+      sku: 'FM-QSBL01-XA-L',
+      normalizedSku: 'FM-QSBL01-XA-L',
+      productId: 'p-1',
+      variantId: 'v-1',
+      name: 'Quần short',
+      available: 91,
+      remain: 91,
+      retailPrice: 219000,
+      warehouseId: 'w-1',
+      warehouseCount: 1,
+    });
+  });
+
   it('maps Shopify variants with SKU', () => {
     const result = mapShopifyProductSnapshots({
       id: 'shop-product-1', title: 'Giày chạy',

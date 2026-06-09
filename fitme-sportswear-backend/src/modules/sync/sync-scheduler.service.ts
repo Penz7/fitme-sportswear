@@ -21,6 +21,10 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
       this.configString('sync.scheduler.productCron'),
     );
     await this.scheduleIfConfigured(
+      'sapo-to-pancake-inventory-sync',
+      this.configString('sync.scheduler.sapoToPancakeInventoryCron'),
+    );
+    await this.scheduleIfConfigured(
       'address-mapping-sync',
       this.configString('sync.scheduler.addressCron'),
     );
@@ -44,6 +48,7 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
   private async scheduleIfConfigured(
     syncType:
       | 'product-inventory-sync'
+      | 'sapo-to-pancake-inventory-sync'
       | 'address-mapping-sync'
       | 'sapo-to-pancake-order-sync'
       | 'sapo-top-order-sync'

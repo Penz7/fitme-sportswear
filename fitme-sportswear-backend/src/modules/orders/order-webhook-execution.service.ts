@@ -99,13 +99,20 @@ export class OrderWebhookExecutionService {
               action !== 'ensure_sapo_fulfillment' ||
               this.fulfillments(sapoOrder).length === 0
             ) {
-              await this.sapoClient.createFulfillment(
+              const created = await this.createSapoFulfillmentIfAllowed(
                 sapoOrderId,
                 await this.toSapoFulfillment(orderPayload, sapoOrder),
                 { locationId: sapoLocationId, tolerateIdempotent422: true },
               );
-              sapoOrder = await this.fetchSapoOrder(sapoOrderId);
-              await this.updateShopifyMappingStatus(plan, sapoOrderId, 'PACKING', sapoOrder);
+              if (created) {
+                sapoOrder = await this.fetchSapoOrder(sapoOrderId);
+                await this.updateShopifyMappingStatus(
+                  plan,
+                  sapoOrderId,
+                  'PACKING',
+                  sapoOrder,
+                );
+              }
             }
           }
           break;
@@ -567,7 +574,7 @@ export class OrderWebhookExecutionService {
       receiverAddress.districtId,
       'receiver district',
     );
-    const freightAmount = await this.sapoClient.getFreightAmount({
+    const freightAmount = await this.safeFreightAmount({
       senderProvinceId,
       senderDistrictId,
       receiverProvinceId,
@@ -619,6 +626,59 @@ export class OrderWebhookExecutionService {
         },
       },
     };
+  }
+
+  private async safeFreightAmount(input: {
+    senderProvinceId: number;
+    senderDistrictId: number;
+    receiverProvinceId: number;
+    receiverDistrictId: number;
+    codAmount: number;
+    freightPayer: string;
+  }): Promise<number> {
+    try {
+      return (
+        (await this.sapoClient.getFreightAmount(input)) ?? 0
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Falling back to freight_amount=0 because Sapo freight fetch failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return 0;
+    }
+  }
+
+  private async createSapoFulfillmentIfAllowed(
+    sapoOrderId: string,
+    fulfillmentData: Record<string, any>,
+    options: { locationId?: string; tolerateIdempotent422?: boolean },
+  ): Promise<boolean> {
+    try {
+      await this.sapoClient.createFulfillment(
+        sapoOrderId,
+        fulfillmentData,
+        options,
+      );
+      return true;
+    } catch (error) {
+      if (this.isMissingFulfillmentPermission(error)) {
+        this.logger.warn(
+          'Skipping Sapo fulfillment creation because token is missing add_fulfillment_order permission',
+        );
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  private isMissingFulfillmentPermission(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes('status 403') &&
+      message.includes('add_fulfillment_order')
+    );
   }
 
   private toViettelShipmentDetail(input: {

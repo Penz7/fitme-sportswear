@@ -32,6 +32,24 @@ export class SyncController {
     return this.syncService.getProductSync(id);
   }
 
+  @Post('sapo-to-pancake-inventory')
+  createSapoToPancakeInventorySync(
+    @Body()
+    body: {
+      dryRun?: boolean;
+      approved?: boolean;
+      productIds?: string[];
+      skus?: string[];
+    },
+  ) {
+    return this.syncService.createSapoToPancakeInventorySync(body ?? {});
+  }
+
+  @Get('sapo-to-pancake-inventory/:id')
+  getSapoToPancakeInventorySync(@Param('id') id: string) {
+    return this.syncService.getSapoToPancakeInventorySync(id);
+  }
+
   @Post('address-mappings')
   createAddressMappingSync() {
     return this.syncService.createAddressMappingSync();

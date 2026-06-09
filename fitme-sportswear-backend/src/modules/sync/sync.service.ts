@@ -3,6 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { AddressMappingSyncProducer } from '../queue/producers/address-mapping-sync.producer';
 import { ProductSyncProducer } from '../queue/producers/product-sync.producer';
 import { SapoToPancakeOrderSyncProducer } from '../queue/producers/sapo-to-pancake-order-sync.producer';
+import { SapoToPancakeInventorySyncProducer } from '../queue/producers/sapo-to-pancake-inventory-sync.producer';
 import { TestSyncProducer } from '../queue/producers/test-sync.producer';
 import { ShopifyProductCleanupService } from '../products/shopify-product-cleanup.service';
 import { CreateSapoToPancakeOrderBulkSyncDto } from './dto/sapo-to-pancake-order-sync.dto';
@@ -15,6 +16,7 @@ export class SyncService {
     private readonly productSyncProducer: ProductSyncProducer,
     private readonly addressMappingSyncProducer: AddressMappingSyncProducer,
     private readonly sapoToPancakeOrderSyncProducer: SapoToPancakeOrderSyncProducer,
+    private readonly sapoToPancakeInventorySyncProducer: SapoToPancakeInventorySyncProducer,
     private readonly shopifyProductCleanupService: ShopifyProductCleanupService,
   ) {}
 
@@ -71,6 +73,40 @@ export class SyncService {
       throw new NotFoundException('Product sync run not found');
     }
 
+    return syncRun;
+  }
+
+  async createSapoToPancakeInventorySync(input: {
+    dryRun?: boolean;
+    approved?: boolean;
+    productIds?: string[];
+    skus?: string[];
+  } = {}) {
+    const syncRun = await this.prisma.syncRun.create({
+      data: {
+        syncType: 'sapo-to-pancake-inventory-sync',
+        status: 'queued',
+        metadata: input as any,
+      },
+    });
+
+    await this.sapoToPancakeInventorySyncProducer.enqueue({
+      syncRunId: syncRun.id,
+      ...input,
+    });
+
+    return {
+      id: syncRun.id,
+      status: syncRun.status,
+      syncType: syncRun.syncType,
+    };
+  }
+
+  async getSapoToPancakeInventorySync(id: string) {
+    const syncRun = await this.prisma.syncRun.findUnique({ where: { id } });
+    if (!syncRun || syncRun.syncType !== 'sapo-to-pancake-inventory-sync') {
+      throw new NotFoundException('Sapo to Pancake inventory sync run not found');
+    }
     return syncRun;
   }
 

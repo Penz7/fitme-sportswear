@@ -2,6 +2,10 @@ export const TEST_SYNC_QUEUE = 'test-sync';
 export const TEST_SYNC_JOB = 'test-sync.run';
 export const PRODUCT_SYNC_QUEUE = 'product-sync';
 export const PRODUCT_SYNC_JOB = 'product-sync.run';
+export const SAPO_TO_PANCAKE_INVENTORY_SYNC_QUEUE =
+  'sapo-to-pancake-inventory-sync';
+export const SAPO_TO_PANCAKE_INVENTORY_SYNC_JOB =
+  'sapo-to-pancake-inventory-sync.run';
 export const ADDRESS_MAPPING_SYNC_QUEUE = 'address-mapping-sync';
 export const ADDRESS_MAPPING_SYNC_JOB = 'address-mapping-sync.run';
 export const WEBHOOK_EVENT_QUEUE = 'webhook-event';

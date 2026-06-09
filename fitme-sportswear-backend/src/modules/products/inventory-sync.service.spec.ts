@@ -1,16 +1,21 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { InventorySyncService } from './inventory-sync.service';
 import { ProductMappingCandidate } from './types/platform-product-snapshot';
 
-function sapoOnlyMapping(): ProductMappingCandidate {
+function sapoOnlyMapping(overrides: Partial<ProductMappingCandidate> = {}): ProductMappingCandidate {
+  const sku = overrides.sku ?? 'SKU-NEW';
   return {
-    sku: 'SKU-NEW',
-    normalizedSku: 'SKU-NEW',
-    sapo: sapoSnapshot('SKU-NEW'),
+    sku,
+    normalizedSku: overrides.normalizedSku ?? sku.trim().toUpperCase(),
+    sapo: sapoSnapshot(sku),
     pancake: null,
     shopify: null,
     status: 'partial',
     conflictReason: 'Missing Pancake and Shopify records',
     conflictDetail: null,
+    ...overrides,
   };
 }
 
@@ -131,6 +136,82 @@ describe('InventorySyncService missing product creation', () => {
       }),
     });
     expect(result.createdPancake).toBe(1);
+  });
+
+  it('does not create missing Pancake products when SKU is blocklisted', async () => {
+    const { service, pancakeClient } = createService({
+      'sync.products.createMissingPancake': true,
+      'sync.products.skuBlocklist': ['SKU-SKIP'],
+    });
+
+    const result = await service.syncMappings([
+      sapoOnlyMapping({ sku: 'SKU-NEW', normalizedSku: 'SKU-NEW' }),
+      sapoOnlyMapping({ sku: 'SKU-SKIP', normalizedSku: 'SKU-SKIP' }),
+    ]);
+
+    expect(pancakeClient.createProductFromSapo).toHaveBeenCalledTimes(1);
+    expect(pancakeClient.createProductFromSapo).toHaveBeenCalledWith({
+      sku: 'SKU-NEW',
+      name: 'New Shirt',
+      available: 7,
+      retailPrice: 150000,
+    });
+    expect(result.createdPancake).toBe(1);
+  });
+
+  it('does not update existing Pancake products when SKU is blocklisted', async () => {
+    const { service, pancakeClient, prisma } = createService({
+      'sync.products.skuBlocklist': ['SKU-NEW'],
+    });
+
+    const result = await service.syncMappings([
+      {
+        ...sapoOnlyMapping(),
+        pancake: targetSnapshot('pancake', 'SKU-NEW', {
+          available: 1,
+          remain: 1,
+        }),
+      },
+    ]);
+
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(prisma.pancakeProduct.update).not.toHaveBeenCalled();
+    expect(result.updatedPancake).toBe(0);
+    expect(result.createdPancake).toBe(0);
+  });
+
+  it('loads product sync SKU blocklist from JSON file', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'fitme-blocklist-'));
+    const blocklistFile = join(tempDir, 'product-sync-sku-blocklist.json');
+    writeFileSync(
+      blocklistFile,
+      JSON.stringify({ blockedSkus: ['SKU-SKIP'] }),
+      'utf8',
+    );
+
+    try {
+      const { service, pancakeClient } = createService({
+        'sync.products.createMissingPancake': true,
+        'sync.products.skuBlocklistFile': blocklistFile,
+      });
+
+      const result = await service.syncMappings([
+        sapoOnlyMapping({ sku: 'SKU-NEW', normalizedSku: 'SKU-NEW' }),
+        sapoOnlyMapping({ sku: 'SKU-SKIP', normalizedSku: 'SKU-SKIP' }),
+      ]);
+
+      expect(pancakeClient.createProductFromSapo).toHaveBeenCalledTimes(1);
+      expect(pancakeClient.createProductFromSapo).toHaveBeenCalledWith({
+        sku: 'SKU-NEW',
+        name: 'New Shirt',
+        available: 7,
+        retailPrice: 150000,
+      });
+      expect(result.createdPancake).toBe(1);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('updates existing Pancake product instead of creating when Sapo-only mapping now has Pancake snapshot', async () => {

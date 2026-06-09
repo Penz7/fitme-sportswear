@@ -565,6 +565,127 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.createFulfillment).not.toHaveBeenCalled();
   });
 
+  it('continues Pancake fulfillment with zero freight amount when Sapo freight API rejects the estimate', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    sapoClient.getFreightAmount.mockRejectedValueOnce(
+      new Error('Sapo freight amount fetch failed with status 422'),
+    );
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        eventType: 'order_updated',
+        statusCode: 1,
+        nextActions: ['create_sapo_fulfillment', 'upsert_order_mapping'],
+      },
+      {
+        id: 'pancake-order-1',
+        bill_full_name: 'Nguyen Van A',
+        bill_phone_number: '0909000000',
+        money_to_collect: 300000,
+        is_free_shipping: false,
+        shipping_address: {
+          full_name: 'Nguyen Van A',
+          phone_number: '0909000000',
+          full_address: 'Ho Chi Minh',
+          province_id: 707,
+          district_id: 70708,
+          commune_id: 7070802,
+          commune_name: 'Xa Thanh Tam',
+        },
+        warehouse_info: {
+          province_id: 701,
+          district_id: 70137,
+          commune_id: 7013717,
+        },
+        items: [
+          {
+            quantity: 1,
+            variation_info: {
+              barcode: 'SKU-1',
+              name: 'Size M',
+              retail_price: 150000,
+            },
+          },
+        ],
+      },
+    );
+
+    expect(sapoClient.createFulfillment).toHaveBeenCalledWith(
+      'sapo-order-1',
+      {
+        fulfillment: expect.objectContaining({
+          shipment: expect.objectContaining({
+            freight_amount: 0,
+          }),
+        }),
+      },
+      { locationId: '572310', tolerateIdempotent422: true },
+    );
+  });
+
+  it('skips Sapo fulfillment without failing the webhook when token lacks fulfillment permission', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    sapoClient.createFulfillment.mockRejectedValueOnce(
+      new Error(
+        'Sapo fulfillment create failed with status 403: {"permission":"add_fulfillment_order"}',
+      ),
+    );
+
+    await expect(
+      service.executePlan(
+        {
+          ...basePlan,
+          eventType: 'order_updated',
+          statusCode: 1,
+          nextActions: ['create_sapo_fulfillment', 'upsert_order_mapping'],
+        },
+        {
+          id: 'pancake-order-1',
+          bill_full_name: 'Nguyen Van A',
+          bill_phone_number: '0909000000',
+          money_to_collect: 300000,
+          is_free_shipping: false,
+          shipping_address: {
+            full_name: 'Nguyen Van A',
+            phone_number: '0909000000',
+            full_address: 'Ho Chi Minh',
+            province_id: 707,
+            district_id: 70708,
+            commune_id: 7070802,
+            commune_name: 'Xa Thanh Tam',
+          },
+          warehouse_info: {
+            province_id: 701,
+            district_id: 70137,
+            commune_id: 7013717,
+          },
+          items: [
+            {
+              quantity: 1,
+              variation_info: {
+                barcode: 'SKU-1',
+                name: 'Size M',
+                retail_price: 150000,
+              },
+            },
+          ],
+        },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(sapoClient.createFulfillment).toHaveBeenCalled();
+    expect(sapoClient.fetchOrder).toHaveBeenCalledTimes(1);
+  });
+
   it('creates Shopify fulfillment after Sapo shipment produces a tracking code', async () => {
     const { service, shopifyClient } = createService();
 

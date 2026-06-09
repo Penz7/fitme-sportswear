@@ -24,7 +24,6 @@ describe('WebhookController', () => {
         return undefined;
       }),
     };
-
     return {
       controller: new WebhookController(
         ingestionService as any,

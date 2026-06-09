@@ -103,6 +103,7 @@ export class SapoClient {
     while (true) {
       const response = await this.sessionService.fetchWithSession(
         this.buildProductsUrl(page),
+        { signal: this.productTimeoutSignal() },
       );
 
       if (!response.ok) {
@@ -131,6 +132,21 @@ export class SapoClient {
     }
 
     return products;
+  }
+
+  async fetchProduct(productId: string): Promise<SapoProductResponse> {
+    const response = await this.request<
+      SapoProductResponse | { product?: SapoProductResponse }
+    >(
+      `/admin/products/${encodeURIComponent(productId)}.json`,
+      'GET',
+      undefined,
+      'Sapo product fetch',
+    );
+
+    return 'product' in response && response.product
+      ? response.product
+      : (response as SapoProductResponse);
   }
 
   async fetchOrder(orderId: string): Promise<SapoOrderResponse> {
@@ -545,5 +561,10 @@ export class SapoClient {
   private configNumber(key: string, fallback: number): number {
     const parsed = Number(this.configService.get<number | string | undefined>(key));
     return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private productTimeoutSignal(): AbortSignal {
+    const timeoutMs = this.configNumber('sapo.productRequestTimeoutMs', 30000);
+    return AbortSignal.timeout(timeoutMs > 0 ? timeoutMs : 30000);
   }
 }

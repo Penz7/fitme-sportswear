@@ -72,10 +72,12 @@ describe('SapoClient', () => {
     expect(fetchWithSession).toHaveBeenNthCalledWith(
       1,
       'https://fitme-sportswear.mysapogo.com/admin/products/search.json?page=1&limit=50',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(fetchWithSession).toHaveBeenNthCalledWith(
       2,
       'https://fitme-sportswear.mysapogo.com/admin/products/search.json?page=2&limit=50',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 

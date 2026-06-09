@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { isAbsolute, resolve } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
@@ -40,8 +42,13 @@ export class InventorySyncService {
       createdShopify: 0,
       errors: [],
     };
+    const blockedSkus = this.productSyncSkuBlocklist();
 
     for (const mapping of mappings) {
+      if (this.blockedSku(mapping.sku, blockedSkus)) {
+        continue;
+      }
+
       if (
         mapping.status === 'conflict' ||
         !mapping.sapo ||
@@ -73,7 +80,10 @@ export class InventorySyncService {
         }
       }
 
-      if (!mapping.pancake?.variantId && this.createMissingPancakeProducts()) {
+      if (
+        !mapping.pancake?.variantId &&
+        this.createMissingPancakeProducts()
+      ) {
         try {
           const existingMapping = await this.findExistingProductMapping(mapping);
           const existingPancake = await this.findExistingPancakeProduct(mapping);
@@ -401,6 +411,24 @@ export class InventorySyncService {
     return fallback && fallback.trim() !== '' ? fallback : null;
   }
 
+  private blockedSku(sku: string, blocklist: string[]): boolean {
+    if (blocklist.length === 0) {
+      return false;
+    }
+
+    const normalizedSku = normalizeSku(sku);
+    return blocklist.some(
+      (blockedSku) => normalizeSku(blockedSku) === normalizedSku,
+    );
+  }
+
+  private productSyncSkuBlocklist(): string[] {
+    return [
+      ...this.configStringList('sync.products.skuBlocklist'),
+      ...this.configJsonStringList('sync.products.skuBlocklistFile'),
+    ];
+  }
+
   private createMissingPancakeProducts(): boolean {
     return this.configBoolean('sync.products.createMissingPancake', true);
   }
@@ -416,5 +444,90 @@ export class InventorySyncService {
     }
 
     return value === true || value === 'true';
+  }
+
+  private configStringList(key: string): string[] {
+    const value = this.configService.get<string[] | string | undefined>(key);
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (!value) {
+      return [];
+    }
+
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private configJsonStringList(key: string): string[] {
+    const filePath = this.configService.get<string | undefined>(key);
+    if (!filePath) {
+      return [];
+    }
+
+    const resolvedPath = this.resolveConfiguredFilePath(filePath);
+    if (!existsSync(resolvedPath)) {
+      throw new Error(`Product sync SKU blocklist file not found: ${resolvedPath}`);
+    }
+
+    const parsed = JSON.parse(readFileSync(resolvedPath, 'utf8')) as unknown;
+    const values = this.asStringArray(parsed)
+      ? parsed
+      : this.firstJsonStringArray(parsed, ['blockedSkus', 'skus', 'blocklist']);
+
+    if (!values) {
+      throw new Error(
+        `Product sync SKU blocklist file must be a string array or contain blockedSkus: ${resolvedPath}`,
+      );
+    }
+
+    return values
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  private firstJsonStringArray(
+    value: unknown,
+    keys: string[],
+  ): string[] | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    const objectValue = value as Record<string, unknown>;
+    for (const key of keys) {
+      const candidate = objectValue[key];
+      if (
+        Array.isArray(candidate) &&
+        candidate.every((item) => typeof item === 'string')
+      ) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private resolveConfiguredFilePath(filePath: string): string {
+    if (isAbsolute(filePath)) {
+      return filePath;
+    }
+
+    const candidates = [
+      resolve(process.cwd(), filePath),
+      resolve(__dirname, '../../..', filePath),
+    ];
+
+    return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
+  }
+
+  private asStringArray(value: unknown): value is string[] {
+    return (
+      Array.isArray(value) &&
+      value.every((item) => typeof item === 'string')
+    );
   }
 }

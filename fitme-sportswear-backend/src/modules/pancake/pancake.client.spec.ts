@@ -78,12 +78,41 @@ describe('PancakeClient', () => {
     expect(products).toHaveLength(2);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      'https://pos.pages.fm/api/v1/shops/shop-1/products/variations?page_size=100&page_number=1&api_key=pancake-key',
+      'https://pos.pages.fm/api/v1/shops/shop-1/products/variations?page_size=1000&page_number=1&api_key=pancake-key',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'https://pos.pages.fm/api/v1/shops/shop-1/products/variations?page_size=100&page_number=2&api_key=pancake-key',
+      'https://pos.pages.fm/api/v1/shops/shop-1/products/variations?page_size=1000&page_number=2&api_key=pancake-key',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+  });
+
+  it('retries transient Pancake product fetch failures before failing the sync', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: 'temporary' }, false, 500))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: [
+            {
+              id: 'v1',
+              displayId: 'SKU-1',
+              productId: 'p1',
+              product: { name: 'Shirt' },
+              retailPrice: 100000,
+              variationsWarehouses: [],
+            },
+          ],
+          total_pages: 1,
+        }),
+      );
+
+    const products = await createClient({
+      'pancake.productRetryBackoffMs': '1',
+    }).fetchProducts();
+
+    expect(products).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('stops pagination when data is empty', async () => {
@@ -106,7 +135,7 @@ describe('PancakeClient', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://pos.pages.fm/api/v1/shops/shop-1/variations/variant-1/update_quantity?api_key=pancake-key',
-      {
+      expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,7 +143,7 @@ describe('PancakeClient', () => {
             { warehouse_id: 'warehouse-1', remain_quantity: 12 },
           ],
         }),
-      },
+      }),
     );
   });
 
@@ -126,6 +155,54 @@ describe('PancakeClient', () => {
         available: 12,
       }),
     ).rejects.toThrow('Pancake warehouseId is required for inventory update');
+  });
+
+  it('creates Pancake products with custom_id and barcode from Sapo SKU', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      data: {
+        id: 'product-1',
+        variations: [
+          {
+            id: 'variant-1',
+            product_id: 'product-1',
+            variations_warehouses: [{ warehouse_id: 'warehouse-1' }],
+          },
+        ],
+      },
+    }, true, 201));
+
+    await expect(createClient().createProductFromSapo({
+      sku: 'FM-QSBL01-XA-L',
+      name: 'Quần short',
+      available: 91,
+      retailPrice: 219000,
+    })).resolves.toEqual({
+      productId: 'product-1',
+      variantId: 'variant-1',
+      warehouseId: 'warehouse-1',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://pos.pages.fm/api/v1/shops/shop-1/products?api_key=pancake-key',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: {
+            name: 'Quần short',
+            custom_id: 'FM-QSBL01-XA-L',
+            variations: [
+              {
+                custom_id: 'FM-QSBL01-XA-L',
+                is_edit_custom_id: true,
+                barcode: 'FM-QSBL01-XA-L',
+                retail_price: 219000,
+              },
+            ],
+          },
+        }),
+      },
+    );
   });
 
   it('throws a clear error for non-2xx product responses', async () => {

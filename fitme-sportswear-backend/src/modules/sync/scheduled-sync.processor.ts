@@ -40,6 +40,10 @@ export class ScheduledSyncProcessor extends WorkerHost {
     switch (job.data.syncType) {
       case 'product-inventory-sync':
         return await this.syncService.createProductSync();
+      case 'sapo-to-pancake-inventory-sync':
+        return await this.syncService.createSapoToPancakeInventorySync({
+          dryRun: false,
+        });
       case 'address-mapping-sync':
         return await this.syncService.createAddressMappingSync();
       case 'sapo-to-pancake-order-sync':

@@ -8,6 +8,8 @@ import { ProductMatchingService } from './product-matching.service';
 import { ProductSnapshotService } from './product-snapshot.service';
 import { ProductSyncOrchestratorService } from './product-sync-orchestrator.service';
 import { ShopifyProductCleanupService } from './shopify-product-cleanup.service';
+import { ProductSyncBlocklistService } from './product-sync-blocklist.service';
+import { SapoToPancakeInventorySyncService } from './sapo-to-pancake-inventory-sync.service';
 
 @Module({
   imports: [SapoModule, PancakeModule, ShopifyModule, NotificationsModule],
@@ -17,7 +19,13 @@ import { ShopifyProductCleanupService } from './shopify-product-cleanup.service'
     InventorySyncService,
     ProductSyncOrchestratorService,
     ShopifyProductCleanupService,
+    ProductSyncBlocklistService,
+    SapoToPancakeInventorySyncService,
   ],
-  exports: [ProductSyncOrchestratorService, ShopifyProductCleanupService],
+  exports: [
+    ProductSyncOrchestratorService,
+    ShopifyProductCleanupService,
+    SapoToPancakeInventorySyncService,
+  ],
 })
 export class ProductsModule {}

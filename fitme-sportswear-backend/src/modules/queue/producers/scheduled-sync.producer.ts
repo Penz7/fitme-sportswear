@@ -5,6 +5,7 @@ import { SCHEDULED_SYNC_JOB, SCHEDULED_SYNC_QUEUE } from '../queue.constants';
 
 export type ScheduledSyncType =
   | 'product-inventory-sync'
+  | 'sapo-to-pancake-inventory-sync'
   | 'address-mapping-sync'
   | 'sapo-to-pancake-order-sync'
   | 'sapo-top-order-sync'

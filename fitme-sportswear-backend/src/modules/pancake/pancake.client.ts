@@ -2,17 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface PancakeProductResponse {
-  displayId: string;
-  productId: string;
+  displayId?: string;
+  display_id?: string;
+  customId?: string;
+  custom_id?: string;
+  barcode?: string;
+  productId?: string;
+  product_id?: string;
   id: string;
   product: {
     name: string;
   };
-  retailPrice: number;
-  variationsWarehouses: Array<{
-    warehouseId: string;
-    remainQuantity: number;
-    actualRemainQuantity: number;
+  retailPrice?: number;
+  retail_price?: number;
+  variationsWarehouses?: Array<{
+    warehouseId?: string;
+    warehouse_id?: string;
+    remainQuantity?: number;
+    remain_quantity?: number;
+    actualRemainQuantity?: number;
+    actual_remain_quantity?: number;
+  }>;
+  variations_warehouses?: Array<{
+    warehouseId?: string;
+    warehouse_id?: string;
+    remainQuantity?: number;
+    remain_quantity?: number;
+    actualRemainQuantity?: number;
+    actual_remain_quantity?: number;
   }>;
 }
 
@@ -56,7 +73,7 @@ interface PancakeVariationsPage {
 
 @Injectable()
 export class PancakeClient {
-  private readonly pageSize = 100;
+  private readonly pageSize = 1000;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -76,11 +93,20 @@ export class PancakeClient {
       url.searchParams.set('page_number', String(pageNumber));
       url.searchParams.set('api_key', this.requiredConfig('pancake.apiKey'));
 
-      const response = await fetch(url.toString());
+      let response: Response;
+      try {
+        response = await this.fetchProductRequest(url.toString());
+      } catch (error) {
+        throw new Error(
+          `Pancake product fetch failed on page ${pageNumber}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
 
       if (!response.ok) {
         throw new Error(
-          `Pancake product fetch failed with status ${response.status}`,
+          `Pancake product fetch failed with status ${response.status} on page ${pageNumber}`,
         );
       }
 
@@ -102,6 +128,27 @@ export class PancakeClient {
     return products;
   }
 
+  async fetchProductsBySku(sku: string): Promise<PancakeProductResponse[]> {
+    const url = new URL(
+      `/api/v1/shops/${this.requiredConfig('pancake.shopId')}/products/variations`,
+      this.normalizedBaseUrl(),
+    );
+    url.searchParams.set('page_size', '100');
+    url.searchParams.set('page_number', '1');
+    url.searchParams.set('search', sku);
+    url.searchParams.set('api_key', this.requiredConfig('pancake.apiKey'));
+
+    const response = await this.fetchProductRequest(url.toString());
+    if (!response.ok) {
+      throw new Error(
+        `Pancake product search failed with status ${response.status}`,
+      );
+    }
+
+    const body = (await response.json()) as PancakeVariationsPage;
+    return body.data ?? [];
+  }
+
   async updateInventory(input: PancakeInventoryUpdateInput): Promise<void> {
     if (!input.warehouseId) {
       throw new Error('Pancake warehouseId is required for inventory update');
@@ -113,7 +160,7 @@ export class PancakeClient {
     );
     url.searchParams.set('api_key', this.requiredConfig('pancake.apiKey'));
 
-    const response = await fetch(url.toString(), {
+    const response = await this.fetchProductRequest(url.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -145,9 +192,11 @@ export class PancakeClient {
       body: JSON.stringify({
         product: {
           name: input.name ?? input.sku,
+          custom_id: input.sku,
           variations: [
             {
-              display_id: input.sku,
+              custom_id: input.sku,
+              is_edit_custom_id: true,
               barcode: input.sku,
               retail_price: input.retailPrice,
             },
@@ -286,6 +335,57 @@ export class PancakeClient {
     }
 
     return (await response.json()) as PancakeOrderResponse;
+  }
+
+  private async fetchProductRequest(
+    url: string,
+    init: RequestInit = {},
+  ): Promise<Response> {
+    const attempts = this.configNumber('pancake.productRetryAttempts', 3);
+    const backoffMs = this.configNumber('pancake.productRetryBackoffMs', 1000);
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          ...init,
+          signal: this.timeoutSignal('pancake.productRequestTimeoutMs', 15000),
+        });
+
+        if (!this.isRetryableProductResponse(response) || attempt === attempts) {
+          return response;
+        }
+
+        lastError = new Error(`Pancake product request returned status ${response.status}`);
+      } catch (error) {
+        lastError = error;
+        if (attempt === attempts) {
+          throw error;
+        }
+      }
+
+      await this.sleep(backoffMs * attempt);
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }
+
+  private timeoutSignal(key: string, fallbackMs: number): AbortSignal {
+    const timeoutMs = this.configNumber(key, fallbackMs);
+    return AbortSignal.timeout(timeoutMs);
+  }
+
+  private configNumber(key: string, fallback: number): number {
+    const configured = Number(this.configService.get<number | string | undefined>(key));
+    return Number.isFinite(configured) && configured > 0 ? configured : fallback;
+  }
+
+  private isRetryableProductResponse(response: Response): boolean {
+    return response.status === 429 || response.status >= 500;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private shopUrl(path: string): URL {

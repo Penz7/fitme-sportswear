@@ -20,6 +20,9 @@ describe('SyncService', () => {
     const sapoToPancakeOrderSyncProducer = {
       enqueue: jest.fn().mockResolvedValue({}),
     };
+    const sapoToPancakeInventorySyncProducer = {
+      enqueue: jest.fn().mockResolvedValue({}),
+    };
     const shopifyProductCleanupService = {
       cleanupEmptyProducts: jest.fn().mockResolvedValue({
         checked: 1,
@@ -41,6 +44,7 @@ describe('SyncService', () => {
         productSyncProducer as any,
         addressMappingSyncProducer as any,
         sapoToPancakeOrderSyncProducer as any,
+        sapoToPancakeInventorySyncProducer as any,
         shopifyProductCleanupService as any,
       ),
     };

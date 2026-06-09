@@ -29,17 +29,27 @@ interface SapoProductInput {
 
 interface PancakeWarehouseInput {
   warehouseId?: string | null;
+  warehouse_id?: string | null;
   remainQuantity?: number | null;
+  remain_quantity?: number | null;
   actualRemainQuantity?: number | null;
+  actual_remain_quantity?: number | null;
 }
 
 interface PancakeProductInput {
   displayId?: string | null;
+  display_id?: string | null;
+  customId?: string | null;
+  custom_id?: string | null;
+  barcode?: string | null;
   productId?: string | number | null;
+  product_id?: string | number | null;
   id?: string | number | null;
   product?: { name?: string | null } | null;
   retailPrice?: string | number | null;
+  retail_price?: string | number | null;
   variationsWarehouses?: PancakeWarehouseInput[] | null;
+  variations_warehouses?: PancakeWarehouseInput[] | null;
 }
 
 interface ShopifyVariantInput {
@@ -87,6 +97,17 @@ const toNullableDate = (...values: Array<string | null | undefined>): Date | nul
   return null;
 };
 
+const firstTrimmedString = (...values: Array<string | null | undefined>): string | null => {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return null;
+};
+
 export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProductSnapshot[] =>
   (product.variants ?? [])
     .map((variant): PlatformProductSnapshot | null => {
@@ -122,24 +143,30 @@ export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProdu
     .filter((snapshot): snapshot is PlatformProductSnapshot => snapshot !== null);
 
 export const mapPancakeProductSnapshot = (product: PancakeProductInput): PlatformProductSnapshot | null => {
-  const sku = product.displayId?.trim();
+  const sku = firstTrimmedString(
+    product.customId,
+    product.custom_id,
+    product.barcode,
+    product.displayId,
+    product.display_id,
+  );
   if (!sku) {
     return null;
   }
 
-  const warehouses = product.variationsWarehouses ?? [];
+  const warehouses = product.variationsWarehouses ?? product.variations_warehouses ?? [];
 
   return {
     platform: 'pancake',
     sku,
     normalizedSku: normalizeSku(sku),
-    productId: toNullableString(product.productId),
+    productId: toNullableString(product.productId ?? product.product_id),
     variantId: toNullableString(product.id),
     name: product.product?.name ?? null,
-    available: sumValues(warehouses, (warehouse) => warehouse.remainQuantity),
-    remain: sumValues(warehouses, (warehouse) => warehouse.actualRemainQuantity),
-    retailPrice: toNullableNumber(product.retailPrice),
-    warehouseId: warehouses[0]?.warehouseId ?? null,
+    available: sumValues(warehouses, (warehouse) => warehouse.remainQuantity ?? warehouse.remain_quantity),
+    remain: sumValues(warehouses, (warehouse) => warehouse.actualRemainQuantity ?? warehouse.actual_remain_quantity),
+    retailPrice: toNullableNumber(product.retailPrice ?? product.retail_price),
+    warehouseId: warehouses[0]?.warehouseId ?? warehouses[0]?.warehouse_id ?? null,
     warehouseCount: warehouses.length,
   };
 };
