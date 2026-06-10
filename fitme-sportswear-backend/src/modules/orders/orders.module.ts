@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AddressModule } from '../address/address.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PancakeModule } from '../pancake/pancake.module';
 import { SapoModule } from '../sapo/sapo.module';
 import { ShopifyModule } from '../shopify/shopify.module';
@@ -12,7 +13,13 @@ import { SapoToPancakeOrderMapper } from './sapo-to-pancake-order.mapper';
 import { SapoToPancakeOrderSyncService } from './sapo-to-pancake-order-sync.service';
 
 @Module({
-  imports: [AddressModule, PancakeModule, SapoModule, ShopifyModule],
+  imports: [
+    AddressModule,
+    NotificationsModule,
+    PancakeModule,
+    SapoModule,
+    ShopifyModule,
+  ],
   providers: [
     OrderWebhookProcessingService,
     OrderWebhookExecutionService,

@@ -95,6 +95,9 @@ describe('OrderWebhookExecutionService', () => {
         return values[key];
       }),
     };
+    const notifier = {
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+    };
 
     return {
       prisma,
@@ -102,12 +105,14 @@ describe('OrderWebhookExecutionService', () => {
       shopifyClient,
       addressMappingService,
       configService,
+      notifier,
       service: new OrderWebhookExecutionService(
         prisma as any,
         sapoClient as any,
         shopifyClient as any,
         addressMappingService as any,
         configService as any,
+        notifier as any,
       ),
     };
   }
@@ -504,20 +509,30 @@ describe('OrderWebhookExecutionService', () => {
     });
   });
 
-  it('rejects Pancake fulfillment when address mapping is missing before calling Sapo freight API', async () => {
-    const { service, sapoClient, prisma, addressMappingService } = createService();
+  it('bypasses Pancake fulfillment and notifies when receiver district mapping is missing', async () => {
+    const { service, sapoClient, prisma, addressMappingService, notifier } =
+      createService();
     prisma.orderMapping.findUnique.mockResolvedValue({
       sapoOrderId: 'sapo-order-1',
       pancakeOrderId: 'pancake-order-1',
     });
-    addressMappingService.resolvePancakeAddress.mockResolvedValue({
-      provinceId: null,
-      districtId: null,
-      wardId: null,
-      wardName: null,
-      cityName: null,
-      districtName: null,
-    });
+    addressMappingService.resolvePancakeAddress
+      .mockResolvedValueOnce({
+        provinceId: 48,
+        districtId: null,
+        wardId: null,
+        wardName: null,
+        cityName: 'Quang Ngai',
+        districtName: null,
+      })
+      .mockResolvedValueOnce({
+        provinceId: 79,
+        districtId: 784,
+        wardId: 27523,
+        wardName: 'Xa mapped',
+        cityName: 'TP Ho Chi Minh',
+        districtName: 'Hoc Mon',
+      });
 
     await expect(
       service.executePlan(
@@ -559,10 +574,19 @@ describe('OrderWebhookExecutionService', () => {
           ],
         },
       ),
-    ).rejects.toThrow('Missing Sapo address mapping');
+    ).resolves.toBeUndefined();
 
     expect(sapoClient.getFreightAmount).not.toHaveBeenCalled();
     expect(sapoClient.createFulfillment).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).toHaveBeenCalled();
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Bypassed Sapo fulfillment because address mapping is incomplete',
+      expect.stringContaining('pancakeOrderId=pancake-order-1'),
+    );
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Bypassed Sapo fulfillment because address mapping is incomplete',
+      expect.stringContaining('missing=receiver district'),
+    );
   });
 
   it('continues Pancake fulfillment with zero freight amount when Sapo freight API rejects the estimate', async () => {

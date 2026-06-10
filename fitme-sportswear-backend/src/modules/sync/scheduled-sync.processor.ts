@@ -19,7 +19,7 @@ export class ScheduledSyncProcessor extends WorkerHost {
   async process(job: Job<ScheduledSyncPayload>) {
     try {
       const run = () => this.runSync(job);
-      const lockKey = `lock:sync:${job.data.syncType}`;
+      const lockKey = `lock:schedule:${job.data.syncType}`;
       const lockedResult = await this.lockService?.withLock(lockKey, 30 * 60 * 1000, run);
 
       if (this.lockService && lockedResult === null) {

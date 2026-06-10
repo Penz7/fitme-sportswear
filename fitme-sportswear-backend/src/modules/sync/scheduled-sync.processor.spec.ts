@@ -4,6 +4,9 @@ describe('ScheduledSyncProcessor', () => {
   function createProcessor() {
     const syncService = {
       createProductSync: jest.fn().mockResolvedValue({ id: 'product-run' }),
+      createSapoToPancakeInventorySync: jest
+        .fn()
+        .mockResolvedValue({ id: 'inventory-run' }),
       createAddressMappingSync: jest.fn().mockResolvedValue({ id: 'address-run' }),
       createSapoToPancakeOrderBulkSync: jest
         .fn()
@@ -35,6 +38,20 @@ describe('ScheduledSyncProcessor', () => {
     } as any);
 
     expect(syncService.createProductSync).toHaveBeenCalledWith();
+  });
+
+  it('uses a scheduler-specific lock key for inventory schedule triggers', async () => {
+    const { processor, lockService } = createProcessor();
+
+    await processor.process({
+      data: { syncType: 'sapo-to-pancake-inventory-sync' },
+    } as any);
+
+    expect(lockService.withLock).toHaveBeenCalledWith(
+      'lock:schedule:sapo-to-pancake-inventory-sync',
+      30 * 60 * 1000,
+      expect.any(Function),
+    );
   });
 
   it('creates address mapping sync run for address schedule triggers', async () => {

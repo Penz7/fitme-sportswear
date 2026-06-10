@@ -6,6 +6,7 @@ describe('SapoToPancakeInventorySyncProcessor', () => {
       set: jest.fn().mockResolvedValue(lockResult),
       get: jest.fn().mockResolvedValue(`${process.pid}:job-1:1000`),
       del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue(1),
     };
     const queue = { client: Promise.resolve(redisClient) };
     const inventorySyncService = {
@@ -51,5 +52,36 @@ describe('SapoToPancakeInventorySyncProcessor', () => {
       syncRunId: 'run-2',
     });
     expect(redisClient.del).not.toHaveBeenCalled();
+  });
+
+  it('renews the inventory lock while the sync is still running', async () => {
+    jest.useFakeTimers();
+    jest.spyOn(Date, 'now').mockReturnValue(1000);
+    let finishRun: ((value: { updated: number }) => void) | undefined;
+    const { processor, inventorySyncService, redisClient } = createProcessor('OK');
+    inventorySyncService.run.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRun = resolve;
+      }),
+    );
+
+    const processing = processor.process({
+      id: 'job-1',
+      data: { syncRunId: 'run-1' },
+    } as any);
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(30_000);
+
+    expect(redisClient.eval).toHaveBeenCalledWith(
+      expect.stringContaining('pexpire'),
+      1,
+      'lock:sync:sapo-to-pancake-inventory-sync',
+      `${process.pid}:job-1:1000`,
+      120_000,
+    );
+
+    finishRun?.({ updated: 1 });
+    await processing;
+    jest.useRealTimers();
   });
 });

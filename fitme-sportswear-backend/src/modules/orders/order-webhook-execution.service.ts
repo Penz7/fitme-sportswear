@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ProductMappingStatus } from '@prisma/client';
 import { AddressMappingService } from '../address/address-mapping.service';
 import { PrismaService } from '../database/prisma.service';
+import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
 import { SapoClient } from '../sapo/sapo.client';
 import { ShopifyClient } from '../shopify/shopify.client';
 import {
@@ -20,6 +21,7 @@ export class OrderWebhookExecutionService {
     private readonly shopifyClient: ShopifyClient,
     private readonly addressMappingService: AddressMappingService,
     private readonly configService: ConfigService,
+    private readonly notifier: TelegramNotifierService,
   ) {}
 
   async executePlan(
@@ -99,9 +101,19 @@ export class OrderWebhookExecutionService {
               action !== 'ensure_sapo_fulfillment' ||
               this.fulfillments(sapoOrder).length === 0
             ) {
+              const fulfillmentData = await this.safeSapoFulfillmentData(
+                action,
+                plan,
+                orderPayload,
+                sapoOrderId,
+                sapoOrder,
+              );
+              if (!fulfillmentData) {
+                break;
+              }
               const created = await this.createSapoFulfillmentIfAllowed(
                 sapoOrderId,
-                await this.toSapoFulfillment(orderPayload, sapoOrder),
+                fulfillmentData,
                 { locationId: sapoLocationId, tolerateIdempotent422: true },
               );
               if (created) {
@@ -671,6 +683,86 @@ export class OrderWebhookExecutionService {
       }
       throw error;
     }
+  }
+
+  private async safeSapoFulfillmentData(
+    action: OrderProcessingAction,
+    plan: OrderWebhookProcessingPlan,
+    orderPayload: Record<string, any>,
+    sapoOrderId: string,
+    sapoOrder: Record<string, any>,
+  ): Promise<Record<string, any> | null> {
+    try {
+      return await this.toSapoFulfillment(orderPayload, sapoOrder);
+    } catch (error) {
+      if (!this.isMissingSapoAddressMapping(error)) {
+        throw error;
+      }
+
+      await this.notifyFulfillmentBypassed({
+        action,
+        plan,
+        orderPayload,
+        sapoOrderId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  private isMissingSapoAddressMapping(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.startsWith('Missing Sapo address mapping for ');
+  }
+
+  private async notifyFulfillmentBypassed(input: {
+    action: OrderProcessingAction;
+    plan: OrderWebhookProcessingPlan;
+    orderPayload: Record<string, any>;
+    sapoOrderId: string;
+    reason: string;
+  }): Promise<void> {
+    const shipping = this.objectPayload(
+      input.orderPayload.shipping_address ?? input.orderPayload.shippingAddress,
+    );
+    const missing = input.reason.replace('Missing Sapo address mapping for ', '');
+    const pancakeOrderId =
+      input.plan.platform === 'pancake' ? input.plan.externalOrderId : null;
+
+    this.logger.warn(
+      `Bypassing Sapo fulfillment for ${input.plan.platform} order ${
+        input.plan.externalOrderId
+      }: ${input.reason}`,
+    );
+
+    await this.notifier.sendMessage(
+      'Bypassed Sapo fulfillment because address mapping is incomplete',
+      [
+        `platform=${input.plan.platform}`,
+        `action=${input.action}`,
+        `pancakeOrderId=${pancakeOrderId ?? ''}`,
+        `sapoOrderId=${input.sapoOrderId}`,
+        `missing=${missing}`,
+        `province=${this.firstString(shipping.province_name, shipping.provinceName) ?? ''}`,
+        `provinceId=${this.firstString(shipping.province_id, shipping.provinceId) ?? ''}`,
+        `district=${this.firstString(shipping.district_name, shipping.districtName) ?? ''}`,
+        `districtId=${this.firstString(shipping.district_id, shipping.districtId) ?? ''}`,
+        `ward=${this.firstString(
+          shipping.commune_name,
+          shipping.commnue_name,
+          shipping.communeName,
+          shipping.commnueName,
+        ) ?? ''}`,
+        `wardId=${this.firstString(shipping.commune_id, shipping.communeId) ?? ''}`,
+        `fullAddress=${this.firstString(
+          shipping.full_address,
+          shipping.fullAddress,
+          shipping.new_full_address,
+          shipping.newFullAddress,
+        ) ?? ''}`,
+        'status=order mapping kept; fulfillment/freight skipped until address is fixed',
+      ].join('\n'),
+    );
   }
 
   private isMissingFulfillmentPermission(error: unknown): boolean {
