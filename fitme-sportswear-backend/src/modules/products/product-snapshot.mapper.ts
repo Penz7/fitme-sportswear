@@ -10,6 +10,10 @@ interface SapoVariantInput {
   id?: string | number | null;
   sku?: string | null;
   variantRetailPrice?: number | null;
+  createdOn?: string | null;
+  created_on?: string | null;
+  createdAt?: string | null;
+  created_at?: string | null;
   updatedAt?: string | null;
   updated_at?: string | null;
   modifiedOn?: string | null;
@@ -20,6 +24,10 @@ interface SapoVariantInput {
 interface SapoProductInput {
   id?: string | number | null;
   name?: string | null;
+  createdOn?: string | null;
+  created_on?: string | null;
+  createdAt?: string | null;
+  created_at?: string | null;
   updatedAt?: string | null;
   updated_at?: string | null;
   modifiedOn?: string | null;
@@ -128,6 +136,16 @@ export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProdu
         retailPrice: variant.variantRetailPrice ?? null,
         warehouseId: null,
         warehouseCount: null,
+        sourceCreatedAt: toNullableDate(
+          variant.createdOn,
+          variant.created_on,
+          variant.createdAt,
+          variant.created_at,
+          product.createdOn,
+          product.created_on,
+          product.createdAt,
+          product.created_at,
+        ),
         sourceUpdatedAt: toNullableDate(
           variant.updatedAt,
           variant.updated_at,

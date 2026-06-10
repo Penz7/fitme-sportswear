@@ -98,6 +98,20 @@ export const envValidationSchema = Joi.object({
     .min(1)
     .max(1440)
     .default(30),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_CREATE_RECENT_MISSING_PANCAKE_PRODUCTS: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(false),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_CREATE_RECENT_MISSING_PANCAKE_WINDOW_MINUTES: Joi.number()
+    .integer()
+    .min(1)
+    .max(1440)
+    .default(60),
+  SYNC_SAPO_TO_PANCAKE_INVENTORY_CREATE_RECENT_MISSING_PANCAKE_MAX_PER_RUN: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(20),
   SYNC_ADDRESS_MAPPING_CRON: Joi.string().allow('').optional(),
   SYNC_SAPO_TO_PANCAKE_ORDER_CRON: Joi.string().allow('').optional(),
   SYNC_SAPO_TO_PANCAKE_ORDER_STATUS: Joi.string().allow('').optional(),

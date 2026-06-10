@@ -52,6 +52,14 @@ export interface PancakeProductCreateResult {
   warehouseId: string | null;
 }
 
+export interface PancakeCompositeProductUpdateInput {
+  comboVariantId: string;
+  components: Array<{
+    variationId: string;
+    quantity: number;
+  }>;
+}
+
 export interface PancakeAddressUnit {
   id: number;
   name: string;
@@ -186,7 +194,7 @@ export class PancakeClient {
     const url = this.shopUrl('/products');
     this.addApiKey(url);
 
-    const response = await fetch(url.toString(), {
+    const response = await this.fetchProductRequest(url.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -224,6 +232,31 @@ export class PancakeClient {
           ? null
           : String(warehouse.warehouse_id ?? warehouse.warehouseId),
     };
+  }
+
+  async updateCompositeProduct(
+    input: PancakeCompositeProductUpdateInput,
+  ): Promise<void> {
+    const url = this.shopUrl('/variations/update_composite_product');
+    this.addApiKey(url);
+
+    const response = await this.fetchProductRequest(url.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        variation_id: input.comboVariantId,
+        composite_products: input.components.map((component) => ({
+          variation_id: component.variationId,
+          quantity: component.quantity,
+        })),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Pancake composite product update failed with status ${response.status}`,
+      );
+    }
   }
 
   async fetchProvinces(): Promise<PancakeAddressUnit[]> {

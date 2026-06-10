@@ -184,7 +184,7 @@ describe('PancakeClient', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://pos.pages.fm/api/v1/shops/shop-1/products?api_key=pancake-key',
-      {
+      expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,8 +201,40 @@ describe('PancakeClient', () => {
             ],
           },
         }),
-      },
+      }),
     );
+  });
+
+  it('retries transient Pancake product create failures', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ error: 'temporary' }, false, 500))
+      .mockResolvedValueOnce(jsonResponse({
+        data: {
+          id: 'product-1',
+          variations: [
+            {
+              id: 'variant-1',
+              product_id: 'product-1',
+              variations_warehouses: [{ warehouse_id: 'warehouse-1' }],
+            },
+          ],
+        },
+      }, true, 201));
+
+    await expect(createClient({
+      'pancake.productRetryBackoffMs': '1',
+    }).createProductFromSapo({
+      sku: 'FM-QSBL01-XA-L',
+      name: 'Quần short',
+      available: 91,
+      retailPrice: 219000,
+    })).resolves.toEqual({
+      productId: 'product-1',
+      variantId: 'variant-1',
+      warehouseId: 'warehouse-1',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('throws a clear error for non-2xx product responses', async () => {
@@ -213,6 +245,46 @@ describe('PancakeClient', () => {
     await expect(createClient().fetchProducts()).rejects.toThrow(
       'Pancake product fetch failed with status 401',
     );
+  });
+
+  it('updates a Pancake variation into a composite product', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true }));
+
+    await createClient().updateCompositeProduct({
+      comboVariantId: 'combo-variant-1',
+      components: [
+        { variationId: 'component-1', quantity: 1 },
+        { variationId: 'component-2', quantity: 1 },
+      ],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://pos.pages.fm/api/v1/shops/shop-1/variations/update_composite_product?api_key=pancake-key',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variation_id: 'combo-variant-1',
+          composite_products: [
+            { variation_id: 'component-1', quantity: 1 },
+            { variation_id: 'component-2', quantity: 1 },
+          ],
+        }),
+      }),
+    );
+  });
+
+  it('throws a clear error when composite product update fails', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ error: 'Invalid composite' }, false, 422),
+    );
+
+    await expect(
+      createClient().updateCompositeProduct({
+        comboVariantId: 'combo-variant-1',
+        components: [{ variationId: 'component-1', quantity: 1 }],
+      }),
+    ).rejects.toThrow('Pancake composite product update failed with status 422');
   });
 
   it('fetches Pancake provinces, districts, and communes with api key', async () => {

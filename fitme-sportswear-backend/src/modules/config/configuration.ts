@@ -144,6 +144,14 @@ export default () => ({
       hotWindowMinutes: Number(
         process.env.SYNC_SAPO_TO_PANCAKE_INVENTORY_HOT_WINDOW_MINUTES ?? 30,
       ),
+      createRecentMissingPancake:
+        process.env.SYNC_SAPO_TO_PANCAKE_INVENTORY_CREATE_RECENT_MISSING_PANCAKE_PRODUCTS === 'true',
+      createRecentMissingPancakeWindowMinutes: Number(
+        process.env.SYNC_SAPO_TO_PANCAKE_INVENTORY_CREATE_RECENT_MISSING_PANCAKE_WINDOW_MINUTES ?? 60,
+      ),
+      createRecentMissingPancakeMaxPerRun: Number(
+        process.env.SYNC_SAPO_TO_PANCAKE_INVENTORY_CREATE_RECENT_MISSING_PANCAKE_MAX_PER_RUN ?? 20,
+      ),
     },
     orders: {
       updatePancakeInventoryByOrder:

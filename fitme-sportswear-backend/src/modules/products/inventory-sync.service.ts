@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
 import { PancakeClient } from '../pancake/pancake.client';
 import { ShopifyClient } from '../shopify/shopify.client';
+import { isComboSku } from './combo-sku';
 import { ProductMappingCandidate } from './types/platform-product-snapshot';
 import { normalizeSku } from './sku-normalizer';
 
@@ -136,7 +137,7 @@ export class InventorySyncService {
               pancakeWarehouseId: warehouseId,
             });
             result.updatedPancake += 1;
-          } else {
+          } else if (!isComboSku(mapping.sku)) {
             const created = await this.pancakeClient.createProductFromSapo({
               sku: mapping.sku,
               name: mapping.sapo.name,

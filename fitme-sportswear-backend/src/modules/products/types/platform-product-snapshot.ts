@@ -36,6 +36,7 @@ export interface PlatformProductSnapshot {
   retailPrice: number | null;
   warehouseId: string | null;
   warehouseCount: number | null;
+  sourceCreatedAt?: Date | null;
   sourceUpdatedAt?: Date | null;
 }
 

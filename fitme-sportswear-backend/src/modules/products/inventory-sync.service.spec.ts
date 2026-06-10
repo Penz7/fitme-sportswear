@@ -138,6 +138,49 @@ describe('InventorySyncService missing product creation', () => {
     expect(result.createdPancake).toBe(1);
   });
 
+  it('does not create missing combo SKU on Pancake when missing product creation is enabled', async () => {
+    const { service, pancakeClient } = createService({
+      'sync.products.createMissingPancake': true,
+    });
+
+    const result = await service.syncMappings([
+      sapoOnlyMapping({
+        sku: 'FM-ATSO01-DO-L-FM-VSFM01-TR-L',
+        normalizedSku: 'FM-ATSO01-DO-L-FM-VSFM01-TR-L',
+      }),
+    ]);
+
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
+    expect(result.createdPancake).toBe(0);
+  });
+
+  it('continues Shopify creation when a missing combo SKU is skipped on Pancake', async () => {
+    const { service, pancakeClient, shopifyClient } = createService({
+      'sync.products.createMissingPancake': true,
+      'sync.products.createMissingShopify': true,
+    });
+    const comboSku = 'FM-ATSO01-DO-L-FM-VSFM01-TR-L';
+
+    const result = await service.syncMappings([
+      sapoOnlyMapping({
+        sku: comboSku,
+        normalizedSku: comboSku,
+      }),
+    ]);
+
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledWith({
+      sku: comboSku,
+      name: 'New Shirt',
+      available: 7,
+      retailPrice: 150000,
+    });
+    expect(shopifyClient.updateInventoryAndPrice).toHaveBeenCalled();
+    expect(result.createdPancake).toBe(0);
+    expect(result.createdShopify).toBe(1);
+  });
+
   it('does not create missing Pancake products when SKU is blocklisted', async () => {
     const { service, pancakeClient } = createService({
       'sync.products.createMissingPancake': true,
