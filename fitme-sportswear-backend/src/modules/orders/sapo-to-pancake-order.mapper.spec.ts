@@ -104,6 +104,22 @@ describe('SapoToPancakeOrderMapper', () => {
     expect(payload!.status_name).toBe(name);
   });
 
+  it('builds a status-only payload without requiring line item mappings', () => {
+    const { mapper, prisma } = createMapper();
+
+    expect(
+      mapper.toPancakeStatusPayload({
+        status: 'finalized',
+        fulfillment_status: 'shipped',
+        order_line_items: [{ sku: 'SKU-MISSING', quantity: 1 }],
+      }),
+    ).toEqual({
+      status: 2,
+      status_name: 'Da gui hang',
+    });
+    expect(prisma.productMapping.findUnique).not.toHaveBeenCalled();
+  });
+
   it('returns null when a Sapo line item has no Pancake product mapping', async () => {
     const { mapper, prisma } = createMapper();
     prisma.productMapping.findUnique.mockResolvedValue(null);

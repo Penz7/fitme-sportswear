@@ -69,6 +69,15 @@ export class SapoToPancakeOrderMapper {
     };
   }
 
+  toPancakeStatusPayload(sapoOrder: SapoOrderSnapshot): PancakeOrderPayload {
+    const status = this.resolveStatus(sapoOrder);
+
+    return {
+      status: status.code,
+      status_name: status.description,
+    };
+  }
+
   private async toPancakeItems(
     sapoLineItems: Record<string, any>[],
   ): Promise<Array<Record<string, any> & { warehouse_id: string | null }> | null> {

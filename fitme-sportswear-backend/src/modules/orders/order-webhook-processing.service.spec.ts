@@ -31,7 +31,7 @@ describe('OrderWebhookProcessingService', () => {
     });
   });
 
-  it('plans Pancake confirmed update as Sapo order update and shipping handoff preparation', () => {
+  it('plans Pancake confirmed update as Sapo order update only', () => {
     const result = service.buildProcessingPlan({
       id: 'event-2',
       sourcePlatform: 'pancake',
@@ -43,18 +43,14 @@ describe('OrderWebhookProcessingService', () => {
       },
     } as any);
 
-    expect(result.nextActions).toEqual([
-      'update_sapo_order',
-      'prepare_viettelpost_handoff',
-      'upsert_order_mapping',
-    ]);
+    expect(result.nextActions).toEqual(['update_sapo_order', 'upsert_order_mapping']);
     expect(result.sapoStatuses).toEqual([
       { key: 'GIAO_DICH', field: 'status', value: 'finalized' },
       { key: 'CHUA_DONG_GOI', field: 'packed_status', value: 'unpacked' },
     ]);
   });
 
-  it('plans Pancake packing and shipped updates with fulfillment actions', () => {
+  it('plans Pancake packing and shipped updates as Sapo fulfillment state changes', () => {
     expect(
       service.buildProcessingPlan({
         id: 'event-3',
@@ -62,7 +58,7 @@ describe('OrderWebhookProcessingService', () => {
         eventType: 'order_updated',
         payload: { id: 'pancake-order-3', status: 8 },
       } as any).nextActions,
-    ).toEqual(['create_sapo_fulfillment', 'upsert_order_mapping']);
+    ).toEqual(['ensure_sapo_fulfillment', 'upsert_order_mapping']);
 
     expect(
       service.buildProcessingPlan({
@@ -71,7 +67,11 @@ describe('OrderWebhookProcessingService', () => {
         eventType: 'order_updated',
         payload: { id: 'pancake-order-4', status: 2 },
       } as any).nextActions,
-    ).toEqual(['ensure_sapo_fulfillment', 'deliver_sapo_order', 'upsert_order_mapping']);
+    ).toEqual([
+      'ensure_sapo_fulfillment',
+      'deliver_sapo_order',
+      'upsert_order_mapping',
+    ]);
   });
 
   it('plans Pancake cancel update with cancellation actions', () => {

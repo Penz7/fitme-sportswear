@@ -34,15 +34,30 @@ export class SapoToPancakeOrderSyncService {
     const mapping = sapoOrderId
       ? await this.prisma.orderMapping.findFirst({ where: { sapoOrderId } })
       : null;
-    const cancelPayload = {
-      status: 6,
-      status_name: 'Huy don',
-    };
+    if (sapoOrderId && mapping?.pancakeOrderId) {
+      const statusPayload = this.mapper.toPancakeStatusPayload(sapoOrder);
+      if (this.shouldSkipPancakeStatusUpdate(mapping, statusPayload)) {
+        await this.upsertMapping({
+          sapoOrder,
+          sapoOrderId,
+          pancakeOrderId: mapping.pancakeOrderId,
+          pancakeOrder: {},
+          payload: {
+            status: mapping.pancakeStatus,
+            status_name: mapping.pancakeStatusDescription,
+          },
+        });
 
-    if (sapoOrderId && mapping?.pancakeOrderId && this.isCancelled(sapoOrder)) {
+        return {
+          action: 'skipped',
+          sapoOrderId,
+          pancakeOrderId: mapping.pancakeOrderId,
+        };
+      }
+
       const response = await this.pancakeClient.updateOrder(
         mapping.pancakeOrderId,
-        cancelPayload,
+        statusPayload,
       );
       const pancakeOrder = this.objectPayload(response.data);
       const pancakeOrderId =
@@ -53,7 +68,7 @@ export class SapoToPancakeOrderSyncService {
         sapoOrderId,
         pancakeOrderId,
         pancakeOrder,
-        payload: cancelPayload,
+        payload: statusPayload,
       });
 
       return {
@@ -236,7 +251,49 @@ export class SapoToPancakeOrderSyncService {
     return value === true || value === 'true';
   }
 
-  private isCancelled(sapoOrder: SapoOrderSnapshot): boolean {
-    return this.stringOrNull(sapoOrder.status)?.toLowerCase() === 'cancelled';
+  private shouldSkipPancakeStatusUpdate(
+    mapping: { pancakeStatus?: number | null },
+    payload: Record<string, any>,
+  ): boolean {
+    const currentStatus = this.numberOrNull(mapping.pancakeStatus);
+    const nextStatus = this.numberOrNull(payload.status);
+    if (currentStatus === null || nextStatus === null) {
+      return false;
+    }
+
+    const currentRank = this.pancakeStatusRank(currentStatus);
+    const nextRank = this.pancakeStatusRank(nextStatus);
+    if (currentRank === null || nextRank === null) {
+      return false;
+    }
+
+    if (nextStatus === 6) {
+      return false;
+    }
+
+    if (currentStatus === 6 && nextStatus !== 6) {
+      return true;
+    }
+
+    return nextRank < currentRank;
   }
+
+  private pancakeStatusRank(status: number): number | null {
+    const ranks: Record<number, number> = {
+      0: 0,
+      1: 1,
+      8: 2,
+      9: 2,
+      2: 3,
+      3: 4,
+      16: 4,
+      4: 5,
+      5: 6,
+      6: 99,
+      7: 99,
+    };
+
+    return ranks[status] ?? null;
+  }
+
 }

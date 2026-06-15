@@ -71,6 +71,12 @@ export class OrderWebhookExecutionService {
               sapoLocationId,
             );
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
+            await this.verifyPancakeSapoShippingAddress(
+              plan,
+              orderPayload,
+              sapoOrderId,
+              sapoOrder,
+            );
             await this.updateShopifyMappingStatus(plan, sapoOrderId, 'CONFIRMED', sapoOrder);
           }
           break;
@@ -88,6 +94,13 @@ export class OrderWebhookExecutionService {
                 ),
               },
               { locationId: sapoLocationId },
+            );
+            sapoOrder = await this.fetchSapoOrder(sapoOrderId);
+            await this.verifyPancakeSapoShippingAddress(
+              plan,
+              orderPayload,
+              sapoOrderId,
+              sapoOrder,
             );
             await this.updateShopifyMappingStatus(plan, sapoOrderId, 'CONFIRMED', sapoOrder);
           }
@@ -137,6 +150,7 @@ export class OrderWebhookExecutionService {
                 locationId: sapoLocationId,
                 tolerateIdempotent422: true,
               });
+              sapoOrder = await this.fetchSapoOrder(sapoOrderId);
             }
           }
           break;
@@ -145,12 +159,23 @@ export class OrderWebhookExecutionService {
             sapoOrder = sapoOrder ?? (await this.fetchSapoOrder(sapoOrderId));
             const fulfillmentId = this.lastFulfillmentId(sapoOrder);
             if (fulfillmentId) {
-              await this.sapoClient.cancelFulfillment(
-                sapoOrderId,
-                fulfillmentId,
-                undefined,
-                { locationId: sapoLocationId, tolerateIdempotent422: true },
-              );
+              try {
+                await this.sapoClient.cancelFulfillment(
+                  sapoOrderId,
+                  fulfillmentId,
+                  undefined,
+                  { locationId: sapoLocationId, tolerateIdempotent422: true },
+                );
+              } catch (error) {
+                if (!this.isMissingFulfillmentPermission(error)) {
+                  throw error;
+                }
+                await this.notifyFulfillmentPermissionBypassed(
+                  'cancel',
+                  sapoOrderId,
+                  fulfillmentId,
+                );
+              }
             }
           }
           break;
@@ -159,12 +184,23 @@ export class OrderWebhookExecutionService {
             sapoOrder = sapoOrder ?? (await this.fetchSapoOrder(sapoOrderId));
             const fulfillmentId = this.lastFulfillmentId(sapoOrder);
             if (fulfillmentId) {
-              await this.sapoClient.receiveAfterCancellation(
-                sapoOrderId,
-                fulfillmentId,
-                undefined,
-                { locationId: sapoLocationId, tolerateIdempotent422: true },
-              );
+              try {
+                await this.sapoClient.receiveAfterCancellation(
+                  sapoOrderId,
+                  fulfillmentId,
+                  undefined,
+                  { locationId: sapoLocationId, tolerateIdempotent422: true },
+                );
+              } catch (error) {
+                if (!this.isMissingFulfillmentPermission(error)) {
+                  throw error;
+                }
+                await this.notifyFulfillmentPermissionBypassed(
+                  'receive_after_cancellation',
+                  sapoOrderId,
+                  fulfillmentId,
+                );
+              }
             }
           }
           break;
@@ -174,6 +210,7 @@ export class OrderWebhookExecutionService {
               locationId: sapoLocationId,
               tolerateIdempotent422: true,
             });
+            sapoOrder = await this.fetchSapoOrder(sapoOrderId);
           }
           break;
         case 'create_shopify_fulfillment':
@@ -393,7 +430,7 @@ export class OrderWebhookExecutionService {
         error.message.includes('Sapo customers fetch failed with status 403')
       ) {
         this.logger.warn(
-          'Skipping Sapo customer lookup because customer API returned 403',
+          'Sapo customer lookup returned 403; continuing without customer_id and relying on order shipping_address',
         );
         return order;
       }
@@ -409,6 +446,32 @@ export class OrderWebhookExecutionService {
       };
     }
 
+    try {
+      return await this.createSapoCustomerForOrder(order, phoneNumber);
+    } catch (error) {
+      if (this.isMissingCustomerCreatePermission(error)) {
+        this.logger.warn(
+          'Continuing without Sapo customer_id because token is missing create_customer permission',
+        );
+        await this.notifier.sendMessage(
+          'Sapo customer create permission missing',
+          [
+            `phone=${phoneNumber}`,
+            `customerName=${this.objectPayload(order.customer_data).name ?? ''}`,
+            'status=order will be created from shipping_address only; keep Sapo source as WebOrder to avoid auto fulfillment address fallback',
+          ].join('\n'),
+        );
+        return order;
+      }
+
+      throw error;
+    }
+  }
+
+  private async createSapoCustomerForOrder(
+    order: Record<string, any>,
+    phoneNumber: string,
+  ): Promise<Record<string, any>> {
     const customerData = this.objectPayload(order.customer_data);
     const created = await this.sapoClient.createCustomer({
       customer: {
@@ -773,6 +836,31 @@ export class OrderWebhookExecutionService {
     );
   }
 
+  private async notifyFulfillmentPermissionBypassed(
+    action: string,
+    sapoOrderId: string,
+    fulfillmentId: string,
+  ): Promise<void> {
+    const message =
+      `Skipping Sapo fulfillment ${action} because token is missing add_fulfillment_order permission`;
+    this.logger.warn(message);
+    await this.notifier.sendMessage(
+      'Bypassed Sapo fulfillment action because Sapo token lacks permission',
+      [
+        `action=${action}`,
+        `sapoOrderId=${sapoOrderId}`,
+        `fulfillmentId=${fulfillmentId}`,
+        'permission=add_fulfillment_order',
+        'status=continuing order status sync',
+      ].join('\n'),
+    );
+  }
+
+  private isMissingCustomerCreatePermission(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('status 403') && message.includes('create_customer');
+  }
+
   private toViettelShipmentDetail(input: {
     payload: Record<string, any>;
     warehouse: Record<string, any>;
@@ -991,6 +1079,115 @@ export class OrderWebhookExecutionService {
     return this.objectPayload(response.order);
   }
 
+  private async verifyPancakeSapoShippingAddress(
+    plan: OrderWebhookProcessingPlan,
+    payload: Record<string, any>,
+    sapoOrderId: string,
+    sapoOrder: Record<string, any>,
+  ): Promise<void> {
+    if (plan.platform !== 'pancake') {
+      return;
+    }
+
+    const expected = this.pancakeAddress(payload);
+    const actual = this.objectPayload(
+      sapoOrder.shipping_address ?? sapoOrder.shippingAddress,
+    );
+    const customerData = this.objectPayload(
+      sapoOrder.customer_data ?? sapoOrder.customerData,
+    );
+    const shipmentMismatches = this.fulfillments(sapoOrder).flatMap((fulfillment) => {
+      const shipment = this.objectPayload(fulfillment.shipment);
+      const shipmentAddress = this.objectPayload(
+        shipment.shipping_address ?? shipment.shippingAddress,
+      );
+
+      return [
+        this.shippingFieldMismatch(
+          'shipment_full_name',
+          expected.full_name,
+          shipmentAddress.full_name,
+        ),
+        this.shippingFieldMismatch(
+          'shipment_phone_number',
+          expected.phone_number,
+          shipmentAddress.phone_number,
+          true,
+        ),
+        this.shippingFieldMismatch(
+          'shipment_address',
+          expected.full_address ?? expected.address1,
+          shipmentAddress.full_address ?? shipmentAddress.address1,
+        ),
+      ].filter((entry): entry is string => entry !== null);
+    });
+    const mismatches = [
+      this.shippingFieldMismatch('full_name', expected.full_name, actual.full_name),
+      this.shippingFieldMismatch(
+        'phone_number',
+        expected.phone_number,
+        actual.phone_number,
+        true,
+      ),
+      this.shippingFieldMismatch(
+        'address',
+        expected.full_address ?? expected.address1,
+        actual.full_address ?? actual.address1,
+      ),
+      ...shipmentMismatches,
+    ].filter((entry): entry is string => entry !== null);
+
+    if (mismatches.length === 0) {
+      return;
+    }
+
+    const message = [
+      `pancakeOrderId=${plan.externalOrderId ?? ''}`,
+      `sapoOrderId=${sapoOrderId}`,
+      `mismatches=${mismatches.join(', ')}`,
+      `expectedName=${expected.full_name ?? ''}`,
+      `actualName=${actual.full_name ?? ''}`,
+      `expectedPhone=${expected.phone_number ?? ''}`,
+      `actualPhone=${actual.phone_number ?? ''}`,
+      `expectedAddress=${expected.full_address ?? expected.address1 ?? ''}`,
+      `actualAddress=${actual.full_address ?? actual.address1 ?? ''}`,
+      `customerCode=${customerData.code ?? ''}`,
+      `customerName=${customerData.name ?? ''}`,
+      'status=Sapo order was created/updated but mapping was not advanced; check Sapo receiver before retrying',
+    ].join('\n');
+
+    this.logger.error(
+      `Blocked Pancake order ${plan.externalOrderId} because Sapo receiver differs from Pancake payload: ${mismatches.join(', ')}`,
+    );
+    await this.notifier.sendMessage(
+      'Blocked Pancake -> Sapo order sync because receiver differs',
+      message,
+    );
+    throw new Error(
+      `Sapo shipping address mismatch for Pancake order ${plan.externalOrderId}: ${mismatches.join(', ')}`,
+    );
+  }
+
+  private shippingFieldMismatch(
+    field: string,
+    expected: unknown,
+    actual: unknown,
+    digitsOnly = false,
+  ): string | null {
+    const expectedValue = digitsOnly
+      ? this.normalizeDigits(expected)
+      : this.normalizeComparableString(expected);
+    const actualValue = digitsOnly
+      ? this.normalizeDigits(actual)
+      : this.normalizeComparableString(actual);
+
+    if (!expectedValue || !actualValue || expectedValue === actualValue) {
+      return null;
+    }
+
+    return field;
+  }
+
   private pancakeAddress(payload: Record<string, any>): Record<string, any> {
     const shipping = this.objectPayload(payload.shipping_address ?? payload.shippingAddress);
     return {
@@ -1079,6 +1276,19 @@ export class OrderWebhookExecutionService {
     }
 
     return null;
+  }
+
+  private normalizeComparableString(value: unknown): string | null {
+    const normalized = this.firstString(value)
+      ?.toLowerCase()
+      .replace(/\s+/g, ' ');
+
+    return normalized && normalized.length > 0 ? normalized : null;
+  }
+
+  private normalizeDigits(value: unknown): string | null {
+    const normalized = this.firstString(value)?.replace(/\D+/g, '');
+    return normalized && normalized.length > 0 ? normalized : null;
   }
 
   private requiredString(value: unknown, label: string): string {

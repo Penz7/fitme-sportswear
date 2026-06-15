@@ -41,6 +41,12 @@ describe('OrderWebhookExecutionService', () => {
         order: {
           id: 'sapo-order-1',
           order_line_items: [{ id: 'sapo-line-1', sku: 'SKU-1', product_name: 'Shirt', price: 150000 }],
+          shipping_address: {
+            full_name: 'Nguyen Van A',
+            phone_number: '0909000000',
+            full_address: 'Ho Chi Minh',
+            address1: 'Ho Chi Minh',
+          },
           fulfillments: [{ id: 'fulfillment-1', shipment: { tracking_code: 'VTP123' } }],
           status: 'finalized',
           packed_status: 'packed',
@@ -262,6 +268,54 @@ describe('OrderWebhookExecutionService', () => {
     expect(prisma.orderMapping.upsert).not.toHaveBeenCalled();
   });
 
+  it('creates a Sapo order from shipping address when customer lookup is forbidden', async () => {
+    const { service, sapoClient } = createService();
+    sapoClient.fetchCustomers.mockRejectedValueOnce(
+      new Error('Sapo customers fetch failed with status 403'),
+    );
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-1',
+        shipping_address: {
+          full_name: 'Kha Nhi',
+          phone_number: '0935596310',
+          full_address: '92 Ngo Van So',
+          address1: '92 Ngo Van So',
+        },
+        customer_data: {
+          code: 'CUST-1',
+          name: 'Kha Nhi',
+          phone_number: '0935596310',
+        },
+      },
+    });
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Kha Nhi',
+      bill_phone_number: '0935596310',
+      shipping_address: {
+        full_name: 'Kha Nhi',
+        phone_number: '0935596310',
+        full_address: '92 Ngo Van So',
+      },
+      items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+    });
+
+    expect(sapoClient.createCustomer).not.toHaveBeenCalled();
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          shipping_address: expect.objectContaining({
+            full_name: 'Kha Nhi',
+            phone_number: '0935596310',
+          }),
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
   it('creates a missing product mapping from Sapo product snapshot before creating an order', async () => {
     const { service, sapoClient, prisma } = createService();
     prisma.productMapping.findUnique.mockResolvedValueOnce(null);
@@ -350,6 +404,133 @@ describe('OrderWebhookExecutionService', () => {
       create: expect.objectContaining({ sapoOrderId: 'existing-sapo-order-1' }),
       update: expect.objectContaining({ sapoOrderId: 'existing-sapo-order-1' }),
     });
+  });
+
+  it('blocks Pancake order mapping when Sapo receiver differs after finalize', async () => {
+    const { service, sapoClient, prisma, notifier } = createService();
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-1',
+        shipping_address: {
+          full_name: 'Ngoc Han',
+          phone_number: '0938637124',
+          full_address: 'CSC Pickleball so 4 duong 65',
+        },
+      },
+    });
+
+    await expect(
+      service.executePlan(basePlan, {
+        id: 'pancake-order-1',
+        bill_full_name: 'Kha Nhi',
+        bill_phone_number: '0935596310',
+        shipping_address: {
+          full_name: 'Kha Nhi',
+          phone_number: '0935596310',
+          full_address: '92 Ngo Van So',
+        },
+        items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+      }),
+    ).rejects.toThrow(
+      'Sapo shipping address mismatch for Pancake order pancake-order-1',
+    );
+
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Blocked Pancake -> Sapo order sync because receiver differs',
+      expect.stringContaining('actualName=Ngoc Han'),
+    );
+    expect(prisma.orderMapping.upsert).not.toHaveBeenCalled();
+  });
+
+  it('continues when Sapo attaches anonymous customer but order shipping address is still correct', async () => {
+    const { service, sapoClient, prisma } = createService();
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-1',
+        shipping_address: {
+          full_name: 'Kha Nhi',
+          phone_number: '0935596310',
+          full_address: '92 Ngo Van So',
+        },
+        customer_data: {
+          code: 'ANONYMOUS',
+          name: 'Khach le',
+          addresses: [
+            {
+              full_name: 'Ngoc Han',
+              phone_number: '0938637124',
+            },
+          ],
+        },
+      },
+    });
+
+    await expect(
+      service.executePlan(basePlan, {
+        id: 'pancake-order-1',
+        bill_full_name: 'Kha Nhi',
+        bill_phone_number: '0935596310',
+        shipping_address: {
+          full_name: 'Kha Nhi',
+          phone_number: '0935596310',
+          full_address: '92 Ngo Van So',
+        },
+        items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.orderMapping.upsert).toHaveBeenCalled();
+  });
+
+  it('blocks Pancake order mapping when Sapo shipment receiver differs after finalize', async () => {
+    const { service, sapoClient, prisma, notifier } = createService();
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-1',
+        shipping_address: {
+          full_name: 'Kha Nhi',
+          phone_number: '0935596310',
+          full_address: '92 Ngo Van So',
+        },
+        customer_data: {
+          code: 'ANONYMOUS',
+          name: 'Khach le',
+        },
+        fulfillments: [
+          {
+            shipment: {
+              shipping_address: {
+                full_name: 'Ngoc Han',
+                phone_number: '0938637124',
+                full_address: 'CSC Pickleball so 4 duong 65',
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    await expect(
+      service.executePlan(basePlan, {
+        id: 'pancake-order-1',
+        bill_full_name: 'Kha Nhi',
+        bill_phone_number: '0935596310',
+        shipping_address: {
+          full_name: 'Kha Nhi',
+          phone_number: '0935596310',
+          full_address: '92 Ngo Van So',
+        },
+        items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+      }),
+    ).rejects.toThrow(
+      'Sapo shipping address mismatch for Pancake order pancake-order-1',
+    );
+
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Blocked Pancake -> Sapo order sync because receiver differs',
+      expect.stringContaining('shipment_full_name'),
+    );
+    expect(prisma.orderMapping.upsert).not.toHaveBeenCalled();
   });
 
   it('falls back to default Sapo location when Pancake warehouse is unmapped', async () => {
@@ -708,6 +889,99 @@ describe('OrderWebhookExecutionService', () => {
 
     expect(sapoClient.createFulfillment).toHaveBeenCalled();
     expect(sapoClient.fetchOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it('continues Sapo order cancellation when fulfillment cancel permission is missing', async () => {
+    const { service, sapoClient, prisma, notifier } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    sapoClient.cancelFulfillment.mockRejectedValueOnce(
+      new Error(
+        'Sapo fulfillment cancel failed with status 403: {"permission":"add_fulfillment_order"}',
+      ),
+    );
+    sapoClient.receiveAfterCancellation.mockRejectedValueOnce(
+      new Error(
+        'Sapo fulfillment receive after cancellation failed with status 403: {"permission":"add_fulfillment_order"}',
+      ),
+    );
+    sapoClient.fetchOrder
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [{ id: 'fulfillment-1' }],
+          status: 'finalized',
+          packed_status: 'packed',
+          fulfillment_status: 'unshipped',
+        },
+      })
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [{ id: 'fulfillment-1' }],
+          status: 'cancelled',
+          packed_status: 'packed',
+          fulfillment_status: 'unshipped',
+        },
+      });
+
+    await expect(
+      service.executePlan(
+        {
+          ...basePlan,
+          eventType: 'order_updated',
+          statusCode: 6,
+          nextActions: [
+            'cancel_sapo_delivery_if_exists',
+            'receive_after_cancellation_if_needed',
+            'cancel_sapo_order',
+            'upsert_order_mapping',
+          ],
+        },
+        {
+          id: 'pancake-order-1',
+          status: 6,
+          status_name: 'canceled',
+        },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(sapoClient.cancelFulfillment).toHaveBeenCalledWith(
+      'sapo-order-1',
+      'fulfillment-1',
+      undefined,
+      { locationId: '572310', tolerateIdempotent422: true },
+    );
+    expect(sapoClient.receiveAfterCancellation).toHaveBeenCalledWith(
+      'sapo-order-1',
+      'fulfillment-1',
+      undefined,
+      { locationId: '572310', tolerateIdempotent422: true },
+    );
+    expect(sapoClient.cancelOrder).toHaveBeenCalledWith('sapo-order-1', {
+      locationId: '572310',
+      tolerateIdempotent422: true,
+    });
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Bypassed Sapo fulfillment action because Sapo token lacks permission',
+      expect.stringContaining('action=cancel'),
+    );
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { pancakeOrderId: 'pancake-order-1' },
+      create: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeOrderId: 'pancake-order-1',
+        pancakeStatus: 6,
+        sapoStatus: 'cancelled',
+      }),
+      update: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeStatus: 6,
+        sapoStatus: 'cancelled',
+      }),
+    });
   });
 
   it('creates Shopify fulfillment after Sapo shipment produces a tracking code', async () => {

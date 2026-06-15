@@ -149,11 +149,15 @@ export class OrderWebhookProcessingService {
   private pancakeUpdatedActions(statusCode: number | null): OrderProcessingAction[] {
     switch (statusCode) {
       case 1:
-        return ['update_sapo_order', 'prepare_viettelpost_handoff', 'upsert_order_mapping'];
+        return ['update_sapo_order', 'upsert_order_mapping'];
       case 8:
-        return ['create_sapo_fulfillment', 'upsert_order_mapping'];
+        return ['ensure_sapo_fulfillment', 'upsert_order_mapping'];
       case 2:
-        return ['ensure_sapo_fulfillment', 'deliver_sapo_order', 'upsert_order_mapping'];
+        return [
+          'ensure_sapo_fulfillment',
+          'deliver_sapo_order',
+          'upsert_order_mapping',
+        ];
       case 6:
         return [
           'cancel_sapo_delivery_if_exists',
