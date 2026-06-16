@@ -118,7 +118,7 @@ export class SapoToPancakeOrderMapper {
       return PANCAKE_ORDER_STATUSES.CANCEL_ORDER;
     }
 
-    if (sapoOrder.status === 'completed' || sapoOrder.payment_status === 'paid') {
+    if (sapoOrder.status === 'completed') {
       return PANCAKE_ORDER_STATUSES.MONEY_COLLECTED;
     }
 
@@ -128,8 +128,7 @@ export class SapoToPancakeOrderMapper {
 
     if (
       sapoOrder.status === 'finalized' &&
-      sapoOrder.packed_status === 'packed' &&
-      sapoOrder.fulfillment_status === 'unshipped'
+      sapoOrder.packed_status === 'packed'
     ) {
       return PANCAKE_ORDER_STATUSES.PACKING;
     }

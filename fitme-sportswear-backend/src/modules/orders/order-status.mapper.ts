@@ -114,6 +114,11 @@ export const ORDER_TYPE_MAPPINGS: OrderTypeMapping[] = [
     sapoStatuses: [SAPO_ORDER_STATUSES.GIAO_DICH, SAPO_ORDER_STATUSES.DA_XUAT_KHO],
   },
   {
+    key: 'PAID',
+    pancakeCode: PANCAKE_ORDER_STATUSES.MONEY_COLLECTED.code,
+    sapoStatuses: [SAPO_ORDER_STATUSES.DA_THANH_TOAN],
+  },
+  {
     key: 'COMPLETED',
     pancakeCode: PANCAKE_ORDER_STATUSES.MONEY_COLLECTED.code,
     sapoStatuses: [SAPO_ORDER_STATUSES.HOAN_THANH],
@@ -137,11 +142,6 @@ export const ORDER_TYPE_MAPPINGS: OrderTypeMapping[] = [
     key: 'RECEIVED',
     pancakeCode: PANCAKE_ORDER_STATUSES.RECEIVED.code,
     sapoStatuses: [SAPO_ORDER_STATUSES.DA_NHAN, SAPO_ORDER_STATUSES.CHUA_THANH_TOAN],
-  },
-  {
-    key: 'PAID',
-    pancakeCode: PANCAKE_ORDER_STATUSES.MONEY_COLLECTED.code,
-    sapoStatuses: [SAPO_ORDER_STATUSES.DA_THANH_TOAN],
   },
 ];
 

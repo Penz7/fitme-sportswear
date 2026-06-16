@@ -104,6 +104,53 @@ describe('SapoToPancakeOrderMapper', () => {
     expect(payload!.status_name).toBe(name);
   });
 
+  it('keeps a paid but unfulfilled Sapo order in the operational confirmed status', async () => {
+    const { mapper } = createMapper();
+
+    const payload = await mapper.toPancakeOrder({
+      status: 'finalized',
+      packed_status: 'unpacked',
+      fulfillment_status: 'unshipped',
+      payment_status: 'paid',
+      order_line_items: [],
+    });
+
+    expect(payload).not.toBeNull();
+    expect(payload!.status).toBe(1);
+    expect(payload!.status_name).toBe('Da xac nhan');
+  });
+
+  it('maps a finalized packed Sapo order without a fulfillment status to the operational packing status', async () => {
+    const { mapper } = createMapper();
+
+    const payload = await mapper.toPancakeOrder({
+      status: 'finalized',
+      packed_status: 'packed',
+      payment_status: 'paid',
+      order_line_items: [],
+    });
+
+    expect(payload).not.toBeNull();
+    expect(payload!.status).toBe(8);
+    expect(payload!.status_name).toBe('Dang dong hang');
+  });
+
+  it('maps a completed paid Sapo order to the Pancake money collected status', async () => {
+    const { mapper } = createMapper();
+
+    const payload = await mapper.toPancakeOrder({
+      status: 'completed',
+      packed_status: 'packed',
+      fulfillment_status: 'shipped',
+      payment_status: 'paid',
+      order_line_items: [],
+    });
+
+    expect(payload).not.toBeNull();
+    expect(payload!.status).toBe(16);
+    expect(payload!.status_name).toBe('Da thu tien');
+  });
+
   it('builds a status-only payload without requiring line item mappings', () => {
     const { mapper, prisma } = createMapper();
 

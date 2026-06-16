@@ -74,6 +74,21 @@ describe('OrderWebhookProcessingService', () => {
     ]);
   });
 
+  it('plans Pancake money-collected updates as payment-only mapping updates', () => {
+    const result = service.buildProcessingPlan({
+      id: 'event-money-collected',
+      sourcePlatform: 'pancake',
+      eventType: 'order_updated',
+      payload: { id: 'pancake-order-paid', status: 16 },
+    } as any);
+
+    expect(result.statusDescription).toBe('Da thu tien');
+    expect(result.sapoStatuses).toEqual([
+      { key: 'DA_THANH_TOAN', field: 'payment_status', value: 'paid' },
+    ]);
+    expect(result.nextActions).toEqual(['upsert_order_mapping']);
+  });
+
   it('plans Pancake cancel update with cancellation actions', () => {
     const result = service.buildProcessingPlan({
       id: 'event-5',

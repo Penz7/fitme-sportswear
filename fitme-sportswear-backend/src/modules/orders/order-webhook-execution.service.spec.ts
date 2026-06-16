@@ -911,7 +911,13 @@ describe('OrderWebhookExecutionService', () => {
       .mockResolvedValueOnce({
         order: {
           id: 'sapo-order-1',
-          fulfillments: [{ id: 'fulfillment-1' }],
+          fulfillments: [
+            {
+              id: 'fulfillment-1',
+              status: 'packed',
+              shipment: { tracking_code: 'VTP123' },
+            },
+          ],
           status: 'finalized',
           packed_status: 'packed',
           fulfillment_status: 'unshipped',
@@ -920,7 +926,13 @@ describe('OrderWebhookExecutionService', () => {
       .mockResolvedValueOnce({
         order: {
           id: 'sapo-order-1',
-          fulfillments: [{ id: 'fulfillment-1' }],
+          fulfillments: [
+            {
+              id: 'fulfillment-1',
+              status: 'packed',
+              shipment: { tracking_code: 'VTP123' },
+            },
+          ],
           status: 'cancelled',
           packed_status: 'packed',
           fulfillment_status: 'unshipped',
@@ -951,13 +963,29 @@ describe('OrderWebhookExecutionService', () => {
     expect(sapoClient.cancelFulfillment).toHaveBeenCalledWith(
       'sapo-order-1',
       'fulfillment-1',
-      undefined,
+      {
+        fulfillment: expect.objectContaining({
+          id: 'fulfillment-1',
+          status: 'cancelling',
+          composite_fulfillment_status: 'fulfilled_cancelling',
+          status_before_cancellation: 'fulfilled',
+          pushing_status: 'cancelled_pushed',
+        }),
+      },
       { locationId: '572310', tolerateIdempotent422: true },
     );
     expect(sapoClient.receiveAfterCancellation).toHaveBeenCalledWith(
       'sapo-order-1',
       'fulfillment-1',
-      undefined,
+      {
+        fulfillment: expect.objectContaining({
+          id: 'fulfillment-1',
+          status: 'cancelled',
+          composite_fulfillment_status: 'fulfilled_cancelled',
+          status_before_cancellation: 'fulfilled',
+          pushing_status: 'completed',
+        }),
+      },
       { locationId: '572310', tolerateIdempotent422: true },
     );
     expect(sapoClient.cancelOrder).toHaveBeenCalledWith('sapo-order-1', {
@@ -968,6 +996,193 @@ describe('OrderWebhookExecutionService', () => {
       'Bypassed Sapo fulfillment action because Sapo token lacks permission',
       expect.stringContaining('action=cancel'),
     );
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { pancakeOrderId: 'pancake-order-1' },
+      create: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeOrderId: 'pancake-order-1',
+        pancakeStatus: 6,
+        sapoStatus: 'cancelled',
+      }),
+      update: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeStatus: 6,
+        sapoStatus: 'cancelled',
+      }),
+    });
+  });
+
+  it('continues Sapo order cancellation when fulfillment cancel returns 500 after Sapo already cancelled it', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    sapoClient.cancelFulfillment.mockRejectedValueOnce(
+      new Error(
+        'Sapo fulfillment cancel failed with status 500: {"error": "invalid data or exception"}',
+      ),
+    );
+    sapoClient.fetchOrder
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [{ id: 'fulfillment-1', status: 'packed' }],
+          status: 'finalized',
+          packed_status: 'packed',
+          fulfillment_status: 'unshipped',
+        },
+      })
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [
+            {
+              id: 'fulfillment-1',
+              status: 'cancelled',
+              composite_fulfillment_status: 'packed_cancelled',
+              pushing_status: 'cancelled_pushed',
+            },
+          ],
+          status: 'cancelled',
+          packed_status: 'unpacked',
+          fulfillment_status: 'unshipped',
+        },
+      })
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [
+            {
+              id: 'fulfillment-1',
+              status: 'cancelled',
+              composite_fulfillment_status: 'packed_cancelled',
+              pushing_status: 'cancelled_pushed',
+            },
+          ],
+          status: 'cancelled',
+          packed_status: 'unpacked',
+          fulfillment_status: 'unshipped',
+        },
+      });
+
+    await expect(
+      service.executePlan(
+        {
+          ...basePlan,
+          eventType: 'order_updated',
+          statusCode: 6,
+          nextActions: [
+            'cancel_sapo_delivery_if_exists',
+            'receive_after_cancellation_if_needed',
+            'cancel_sapo_order',
+            'upsert_order_mapping',
+          ],
+        },
+        {
+          id: 'pancake-order-1',
+          status: 6,
+          status_name: 'canceled',
+        },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(sapoClient.cancelFulfillment).toHaveBeenCalled();
+    expect(sapoClient.receiveAfterCancellation).not.toHaveBeenCalled();
+    expect(sapoClient.cancelOrder).toHaveBeenCalledWith('sapo-order-1', {
+      locationId: '572310',
+      tolerateIdempotent422: true,
+    });
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { pancakeOrderId: 'pancake-order-1' },
+      create: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeOrderId: 'pancake-order-1',
+        pancakeStatus: 6,
+        sapoStatus: 'cancelled',
+      }),
+      update: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        pancakeStatus: 6,
+        sapoStatus: 'cancelled',
+      }),
+    });
+  });
+
+  it('falls back to Sapo order cancellation when fulfillment cancel returns 500 without cancelling the fulfillment', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: 'pancake-order-1',
+    });
+    sapoClient.cancelFulfillment.mockRejectedValueOnce(
+      new Error(
+        'Sapo fulfillment cancel failed with status 500: {"error": "invalid data or exception"}',
+      ),
+    );
+    sapoClient.fetchOrder
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [{ id: 'fulfillment-1', status: 'packed' }],
+          status: 'finalized',
+          packed_status: 'packed',
+          fulfillment_status: 'unshipped',
+        },
+      })
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [{ id: 'fulfillment-1', status: 'packed' }],
+          status: 'finalized',
+          packed_status: 'packed',
+          fulfillment_status: 'unshipped',
+        },
+      })
+      .mockResolvedValueOnce({
+        order: {
+          id: 'sapo-order-1',
+          fulfillments: [
+            {
+              id: 'fulfillment-1',
+              status: 'cancelled',
+              composite_fulfillment_status: 'packed_cancelled',
+              pushing_status: 'cancelled_pushed',
+            },
+          ],
+          status: 'cancelled',
+          packed_status: 'unpacked',
+          fulfillment_status: 'unshipped',
+        },
+      });
+
+    await expect(
+      service.executePlan(
+        {
+          ...basePlan,
+          eventType: 'order_updated',
+          statusCode: 6,
+          nextActions: [
+            'cancel_sapo_delivery_if_exists',
+            'receive_after_cancellation_if_needed',
+            'cancel_sapo_order',
+            'upsert_order_mapping',
+          ],
+        },
+        {
+          id: 'pancake-order-1',
+          status: 6,
+          status_name: 'canceled',
+        },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(sapoClient.cancelFulfillment).toHaveBeenCalled();
+    expect(sapoClient.receiveAfterCancellation).not.toHaveBeenCalled();
+    expect(sapoClient.cancelOrder).toHaveBeenCalledWith('sapo-order-1', {
+      locationId: '572310',
+      tolerateIdempotent422: true,
+    });
     expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
       where: { pancakeOrderId: 'pancake-order-1' },
       create: expect.objectContaining({

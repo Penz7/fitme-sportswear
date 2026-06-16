@@ -34,6 +34,9 @@ describe('order status mapper', () => {
       { key: 'DA_DONG_GOI', field: 'packed_status', value: 'packed' },
       { key: 'CHUA_XUAT_KHO', field: 'fulfillment_status', value: 'unshipped' },
     ]);
+    expect(findSapoStatusesByPancakeCode(16)).toEqual([
+      { key: 'DA_THANH_TOAN', field: 'payment_status', value: 'paid' },
+    ]);
     expect(findSapoStatusesByPancakeCode(999)).toBeNull();
   });
 

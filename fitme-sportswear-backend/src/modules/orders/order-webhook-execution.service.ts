@@ -36,6 +36,7 @@ export class OrderWebhookExecutionService {
     const sapoLocationId = this.resolveSapoLocationId(plan, orderPayload);
     let sapoOrderId = await this.findMappedSapoOrderId(plan);
     let sapoOrder: Record<string, any> | null = null;
+    let skipReceiveAfterCancellation = false;
 
     for (const action of plan.nextActions) {
       switch (action) {
@@ -157,16 +158,31 @@ export class OrderWebhookExecutionService {
         case 'cancel_sapo_delivery_if_exists':
           if (sapoOrderId) {
             sapoOrder = sapoOrder ?? (await this.fetchSapoOrder(sapoOrderId));
-            const fulfillmentId = this.lastFulfillmentId(sapoOrder);
-            if (fulfillmentId) {
+            const fulfillment = this.lastFulfillment(sapoOrder);
+            const fulfillmentId = this.fulfillmentId(fulfillment);
+            if (fulfillment && fulfillmentId) {
+              if (this.isFulfillmentCancelled(fulfillment)) {
+                break;
+              }
               try {
                 await this.sapoClient.cancelFulfillment(
                   sapoOrderId,
                   fulfillmentId,
-                  undefined,
+                  this.fulfillmentCancellationPayload(fulfillment, 'cancel'),
                   { locationId: sapoLocationId, tolerateIdempotent422: true },
                 );
+                sapoOrder = await this.fetchSapoOrder(sapoOrderId);
               } catch (error) {
+                if (this.isInvalidSapoFulfillmentCancellation(error)) {
+                  const latestSapoOrder = await this.fetchSapoOrder(sapoOrderId);
+                  if (this.isFulfillmentCancelled(this.lastFulfillment(latestSapoOrder))) {
+                    sapoOrder = latestSapoOrder;
+                    break;
+                  }
+                  sapoOrder = latestSapoOrder;
+                  skipReceiveAfterCancellation = true;
+                  break;
+                }
                 if (!this.isMissingFulfillmentPermission(error)) {
                   throw error;
                 }
@@ -180,18 +196,33 @@ export class OrderWebhookExecutionService {
           }
           break;
         case 'receive_after_cancellation_if_needed':
+          if (skipReceiveAfterCancellation) {
+            break;
+          }
           if (sapoOrderId) {
             sapoOrder = sapoOrder ?? (await this.fetchSapoOrder(sapoOrderId));
-            const fulfillmentId = this.lastFulfillmentId(sapoOrder);
-            if (fulfillmentId) {
+            const fulfillment = this.lastFulfillment(sapoOrder);
+            const fulfillmentId = this.fulfillmentId(fulfillment);
+            if (fulfillment && fulfillmentId) {
+              if (this.isFulfillmentCancelled(fulfillment)) {
+                break;
+              }
               try {
                 await this.sapoClient.receiveAfterCancellation(
                   sapoOrderId,
                   fulfillmentId,
-                  undefined,
+                  this.fulfillmentCancellationPayload(fulfillment, 'receive'),
                   { locationId: sapoLocationId, tolerateIdempotent422: true },
                 );
+                sapoOrder = await this.fetchSapoOrder(sapoOrderId);
               } catch (error) {
+                if (this.isInvalidSapoFulfillmentCancellation(error)) {
+                  const latestSapoOrder = await this.fetchSapoOrder(sapoOrderId);
+                  if (this.isFulfillmentCancelled(this.lastFulfillment(latestSapoOrder))) {
+                    sapoOrder = latestSapoOrder;
+                    break;
+                  }
+                }
                 if (!this.isMissingFulfillmentPermission(error)) {
                   throw error;
                 }
@@ -836,6 +867,15 @@ export class OrderWebhookExecutionService {
     );
   }
 
+  private isInvalidSapoFulfillmentCancellation(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes('Sapo fulfillment') &&
+      message.includes('status 500') &&
+      message.includes('invalid data or exception')
+    );
+  }
+
   private async notifyFulfillmentPermissionBypassed(
     action: string,
     sapoOrderId: string,
@@ -1243,11 +1283,105 @@ export class OrderWebhookExecutionService {
     return this.arrayPayload(sapoOrder.fulfillments);
   }
 
+  private lastFulfillment(sapoOrder: Record<string, any>): Record<string, any> | null {
+    return this.fulfillments(sapoOrder).at(-1) ?? null;
+  }
+
   private lastFulfillmentId(sapoOrder: Record<string, any>): string | null {
-    const fulfillment = this.fulfillments(sapoOrder).at(-1);
+    return this.fulfillmentId(this.lastFulfillment(sapoOrder));
+  }
+
+  private fulfillmentId(fulfillment: Record<string, any> | null): string | null {
     return fulfillment?.id === undefined || fulfillment.id === null
       ? null
       : String(fulfillment.id);
+  }
+
+  private isFulfillmentCancelled(fulfillment: Record<string, any> | null): boolean {
+    if (!fulfillment) {
+      return false;
+    }
+
+    return [
+      fulfillment.status,
+      fulfillment.composite_fulfillment_status,
+      fulfillment.compositeFulfillmentStatus,
+      fulfillment.pushing_status,
+      fulfillment.pushingStatus,
+    ]
+      .map((value) => String(value ?? '').toLowerCase())
+      .some((value) => value.includes('cancel'));
+  }
+
+  private fulfillmentCancellationPayload(
+    fulfillment: Record<string, any>,
+    action: 'cancel' | 'receive',
+  ): Record<string, any> {
+    const statusBeforeCancellation = 'fulfilled';
+    const compositeStatus =
+      action === 'cancel'
+        ? 'fulfilled_cancelling'
+        : 'fulfilled_cancelled';
+    const payloadFulfillment = this.sapoFulfillmentPayloadFields(fulfillment);
+
+    return {
+      fulfillment: {
+        ...payloadFulfillment,
+        status: action === 'cancel' ? 'cancelling' : 'cancelled',
+        composite_fulfillment_status: compositeStatus,
+        status_before_cancellation: statusBeforeCancellation,
+        pushing_status: action === 'cancel' ? 'cancelled_pushed' : 'completed',
+      },
+    };
+  }
+
+  private sapoFulfillmentPayloadFields(
+    fulfillment: Record<string, any>,
+  ): Record<string, any> {
+    return {
+      id: fulfillment.id,
+      tenant_id: fulfillment.tenant_id,
+      stock_location_id: fulfillment.stock_location_id,
+      code: fulfillment.code,
+      order_id: fulfillment.order_id,
+      account_id: fulfillment.account_id,
+      assignee_id: fulfillment.assignee_id,
+      partner_id: fulfillment.partner_id,
+      billing_address: fulfillment.billing_address,
+      shipping_address: fulfillment.shipping_address,
+      delivery_type: fulfillment.delivery_type,
+      tax_treatment: fulfillment.tax_treatment,
+      discount_rate: fulfillment.discount_rate,
+      discount_value: fulfillment.discount_value,
+      discount_amount: fulfillment.discount_amount,
+      total: fulfillment.total,
+      total_tax: fulfillment.total_tax,
+      total_discount: fulfillment.total_discount,
+      notes: fulfillment.notes,
+      packed_on: fulfillment.packed_on,
+      received_on: fulfillment.received_on,
+      shipped_on: fulfillment.shipped_on,
+      cancel_date: fulfillment.cancel_date,
+      cancel_account_id: fulfillment.cancel_account_id,
+      created_on: fulfillment.created_on,
+      modified_on: fulfillment.modified_on,
+      print_status: fulfillment.print_status,
+      payment_status: fulfillment.payment_status,
+      stock_out_account_id: fulfillment.stock_out_account_id,
+      receive_account_id: fulfillment.receive_account_id,
+      receive_cancellation_account_id: fulfillment.receive_cancellation_account_id,
+      receive_cancellation_on: fulfillment.receive_cancellation_on,
+      fulfillment_line_items: fulfillment.fulfillment_line_items,
+      shipment: fulfillment.shipment,
+      payments: fulfillment.payments,
+      total_quantity: fulfillment.total_quantity,
+      reason_cancel_id: fulfillment.reason_cancel_id,
+      bill_of_lading_on: fulfillment.bill_of_lading_on,
+      packed_processing_account_id: fulfillment.packed_processing_account_id,
+      bill_of_lading_account_id: fulfillment.bill_of_lading_account_id,
+      late_pickup_date: fulfillment.late_pickup_date,
+      late_delivery_date: fulfillment.late_delivery_date,
+    };
   }
 
   private objectPayload(value: unknown): Record<string, any> {

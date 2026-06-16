@@ -55,9 +55,15 @@ export class SapoToPancakeOrderSyncService {
         };
       }
 
+      const addressMapping = await this.resolvePancakeAddressMapping(sapoOrder);
+      const fullPayload = await this.mapper.toPancakeOrder(
+        sapoOrder,
+        addressMapping,
+      );
+      const payload = fullPayload ?? statusPayload;
       const response = await this.pancakeClient.updateOrder(
         mapping.pancakeOrderId,
-        statusPayload,
+        payload,
       );
       const pancakeOrder = this.objectPayload(response.data);
       const pancakeOrderId =
@@ -68,7 +74,7 @@ export class SapoToPancakeOrderSyncService {
         sapoOrderId,
         pancakeOrderId,
         pancakeOrder,
-        payload: statusPayload,
+        payload,
       });
 
       return {
@@ -275,7 +281,19 @@ export class SapoToPancakeOrderSyncService {
       return true;
     }
 
+    if (
+      currentStatus === 16 &&
+      nextStatus !== 16 &&
+      this.isOperationalPancakeStatus(nextStatus)
+    ) {
+      return false;
+    }
+
     return nextRank < currentRank;
+  }
+
+  private isOperationalPancakeStatus(status: number): boolean {
+    return [1, 2, 3, 8, 9].includes(status);
   }
 
   private pancakeStatusRank(status: number): number | null {
