@@ -228,11 +228,11 @@ describe('SapoToPancakeInventorySyncService', () => {
 
     expect(notifier.sendMessage).toHaveBeenCalledWith(
       'Sapo -> Pancake inventory sync completed',
-      expect.stringContaining('updated=1'),
+      expect.stringContaining('updatedTotalThisRun=1'),
     );
     expect(notifier.sendMessage).toHaveBeenCalledWith(
       'Sapo -> Pancake inventory sync completed',
-      expect.stringContaining('updatedSkus=SKU-1'),
+      expect.stringContaining('updatedSkusSample=SKU-1'),
     );
   });
 

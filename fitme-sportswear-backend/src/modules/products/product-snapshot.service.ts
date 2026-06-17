@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { PancakeClient } from '../pancake/pancake.client';
@@ -18,6 +19,7 @@ export class ProductSnapshotService {
     private readonly sapoClient: SapoClient,
     private readonly pancakeClient: PancakeClient,
     private readonly shopifyClient: ShopifyClient,
+    private readonly configService: ConfigService,
   ) {}
 
   async refreshAllSnapshots() {
@@ -79,6 +81,10 @@ export class ProductSnapshotService {
   }
 
   async refreshShopifySnapshots() {
+    if (!this.configBoolean('sync.products.shopifyEnabled', false)) {
+      return [];
+    }
+
     const products = await this.shopifyClient.fetchProducts();
     const snapshots = products.flatMap((product) =>
       mapShopifyProductSnapshots(product),
@@ -100,6 +106,15 @@ export class ProductSnapshotService {
     }
 
     return snapshots;
+  }
+
+  private configBoolean(key: string, fallback: boolean): boolean {
+    const value = this.configService.get<boolean | string | undefined>(key);
+    if (value === undefined || value === null || value === '') {
+      return fallback;
+    }
+
+    return value === true || value === 'true';
   }
 
   private findDuplicateSkus(snapshots: PlatformProductSnapshot[]): Set<string> {

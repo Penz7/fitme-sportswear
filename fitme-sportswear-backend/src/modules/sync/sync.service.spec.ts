@@ -11,6 +11,7 @@ describe('SyncService', () => {
           syncType: 'address-mapping-sync',
         }),
         findUnique: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn().mockResolvedValue({}),
       },
     };
@@ -35,6 +36,7 @@ describe('SyncService', () => {
 
     return {
       prisma,
+      productSyncProducer,
       addressMappingSyncProducer,
       sapoToPancakeOrderSyncProducer,
       shopifyProductCleanupService,
@@ -69,6 +71,24 @@ describe('SyncService', () => {
     expect(addressMappingSyncProducer.enqueue).toHaveBeenCalledWith({
       syncRunId: 'sync-run-1',
     });
+  });
+
+  it('reuses an active product sync instead of enqueueing a duplicate', async () => {
+    const { service, prisma, productSyncProducer } = createService();
+    prisma.syncRun.findFirst.mockResolvedValueOnce({
+      id: 'active-product-sync',
+      status: 'running',
+      syncType: 'product-inventory-sync',
+    });
+
+    await expect(service.createProductSync()).resolves.toEqual({
+      id: 'active-product-sync',
+      status: 'running',
+      syncType: 'product-inventory-sync',
+    });
+
+    expect(prisma.syncRun.create).not.toHaveBeenCalled();
+    expect(productSyncProducer.enqueue).not.toHaveBeenCalled();
   });
 
   it('returns an address mapping sync run by id', async () => {

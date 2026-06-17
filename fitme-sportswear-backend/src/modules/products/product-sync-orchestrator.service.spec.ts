@@ -34,7 +34,9 @@ describe('ProductSyncOrchestratorService', () => {
     };
     const syncResult = {
       updatedPancake: 0,
-      updatedShopify: 0,
+      updatedShopify: 2,
+      createdPancake: 0,
+      createdShopify: 1,
       errors: [],
     };
     const prisma = {
@@ -100,7 +102,9 @@ describe('ProductSyncOrchestratorService', () => {
         conflictReason: 'Missing Pancake and Shopify records',
       },
     });
-    expect(inventorySyncService.syncMappings).toHaveBeenCalledWith([mapping]);
+    expect(inventorySyncService.syncMappings).toHaveBeenCalledWith([mapping], {
+      syncRunId,
+    });
     expect(prisma.syncRun.update).toHaveBeenCalledWith({
       where: { id: syncRunId },
       data: expect.objectContaining({
@@ -108,7 +112,14 @@ describe('ProductSyncOrchestratorService', () => {
         finishedAt: expect.any(Date),
       }),
     });
-    expect(notifier.sendMessage).not.toHaveBeenCalled();
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Sapo -> Shopify inventory sync completed: sync-run-1',
+      expect.stringContaining('updatedShopify=2'),
+    );
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'Sapo -> Shopify inventory sync completed: sync-run-1',
+      expect.stringContaining('createdShopify=1'),
+    );
   });
 
   it('notifies when product sync succeeds with sync errors', async () => {
@@ -144,6 +155,8 @@ describe('ProductSyncOrchestratorService', () => {
       syncMappings: jest.fn().mockResolvedValue({
         updatedPancake: 0,
         updatedShopify: 0,
+        createdPancake: 0,
+        createdShopify: 0,
         errors: [{ sku: 'SKU-1', platform: 'pancake', operation: 'update', message: 'failed' }],
       }),
     } as unknown as InventorySyncService;
@@ -205,6 +218,8 @@ describe('ProductSyncOrchestratorService', () => {
       syncMappings: jest.fn().mockResolvedValue({
         updatedPancake: 0,
         updatedShopify: 0,
+        createdPancake: 0,
+        createdShopify: 0,
         errors: [{ sku: 'SKU-1', platform: 'pancake', operation: 'update', message: 'failed' }],
       }),
     } as unknown as InventorySyncService;
@@ -332,6 +347,8 @@ describe('ProductSyncOrchestratorService', () => {
       syncMappings: jest.fn().mockResolvedValue({
         updatedPancake: 0,
         updatedShopify: 0,
+        createdPancake: 0,
+        createdShopify: 0,
         errors: [],
       }),
     } as unknown as InventorySyncService;
@@ -419,6 +436,8 @@ describe('ProductSyncOrchestratorService', () => {
       syncMappings: jest.fn().mockResolvedValue({
         updatedPancake: 0,
         updatedShopify: 0,
+        createdPancake: 0,
+        createdShopify: 0,
         errors: [],
       }),
     } as unknown as InventorySyncService;
@@ -441,7 +460,6 @@ describe('ProductSyncOrchestratorService', () => {
       '[Fitme Sync] SKU conflict detected',
       expect.any(String),
     );
-    expect(notifier.sendMessage).not.toHaveBeenCalled();
     expect(prisma.productSyncConflict.update).not.toHaveBeenCalled();
   });
 
@@ -521,6 +539,8 @@ describe('ProductSyncOrchestratorService', () => {
       syncMappings: jest.fn().mockResolvedValue({
         updatedPancake: 0,
         updatedShopify: 0,
+        createdPancake: 0,
+        createdShopify: 0,
         errors: [],
       }),
     } as unknown as InventorySyncService;
@@ -553,15 +573,18 @@ describe('ProductSyncOrchestratorService', () => {
         }),
       }),
     );
-    expect(inventorySyncService.syncMappings).toHaveBeenCalledWith([
-      expect.objectContaining({
-        status: 'conflict',
-        conflictDetail: expect.objectContaining({
-          type: 'ambiguous_mapping',
-          platform: 'mapping',
+    expect(inventorySyncService.syncMappings).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          status: 'conflict',
+          conflictDetail: expect.objectContaining({
+            type: 'ambiguous_mapping',
+            platform: 'mapping',
+          }),
         }),
-      }),
-    ]);
+      ],
+      { syncRunId },
+    );
     expect(prisma.productSyncConflict.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -628,6 +651,8 @@ describe('ProductSyncOrchestratorService', () => {
       syncMappings: jest.fn().mockResolvedValue({
         updatedPancake: 0,
         updatedShopify: 0,
+        createdPancake: 0,
+        createdShopify: 0,
         errors: [],
       }),
     } as unknown as InventorySyncService;

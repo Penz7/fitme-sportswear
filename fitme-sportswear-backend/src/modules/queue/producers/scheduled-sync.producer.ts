@@ -9,6 +9,7 @@ export type ScheduledSyncType =
   | 'address-mapping-sync'
   | 'sapo-to-pancake-order-sync'
   | 'sapo-top-order-sync'
+  | 'shopify-order-reconciliation-sync'
   | 'sapo-log-sync';
 
 export interface ScheduledSyncPayload {
@@ -20,6 +21,10 @@ export interface ScheduledSyncPayload {
     limit?: number;
   };
   topOrder?: {
+    prefix?: string;
+    limit?: number;
+  };
+  shopifyOrders?: {
     limit?: number;
   };
 }
@@ -37,9 +42,10 @@ export class ScheduledSyncProducer {
 
   async schedule(input: ScheduledSyncRegistration) {
     const { cron, ...payload } = input;
+    const suffix = input.topOrder?.prefix ? `:${input.topOrder.prefix}` : '';
 
     return this.queue.add(SCHEDULED_SYNC_JOB, payload, {
-      jobId: `scheduled-sync:${input.syncType}`,
+      jobId: `scheduled-sync:${input.syncType}${suffix}`,
       repeat: { pattern: cron },
       removeOnComplete: 100,
       removeOnFail: 100,

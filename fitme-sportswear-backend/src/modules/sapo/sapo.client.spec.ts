@@ -266,7 +266,7 @@ describe('SapoClient', () => {
 
     expect(fetchWithSession).toHaveBeenNthCalledWith(
       1,
-      'https://fitme-sportswear.mysapogo.com/admin/customers.json?page=1&limit=1&query=0909000000',
+      'https://fitme-sportswear.mysapogo.com/admin/customers/doSearch.json?page=1&limit=1&query.contains=0909000000&statuses.in=active&condition_type=must',
     );
     expect(fetchWithSession).toHaveBeenNthCalledWith(
       2,

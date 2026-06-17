@@ -36,3 +36,17 @@ export class CreateSapoToPancakeOrderBulkSyncDto {
   @Max(250)
   limit?: number;
 }
+
+export class CreateSapoTopOrderSyncDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(250)
+  limit?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  prefix?: string;
+}

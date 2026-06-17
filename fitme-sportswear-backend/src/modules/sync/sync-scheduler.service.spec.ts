@@ -38,13 +38,14 @@ describe('SyncSchedulerService', () => {
       'sync.scheduler.sapoOrderStatus': 'finalized',
       'sync.scheduler.sapoOrderLimit': 25,
       'sync.scheduler.sapoTopOrderCron': '*/10 * * * *',
+      'sync.scheduler.sapoTopOrderShopifyCron': '*/10 * * * *',
       'sync.scheduler.sapoTopOrderLimit': 30,
       'sync.scheduler.sapoLogCron': '*/1 * * * *',
     });
 
     await service.onApplicationBootstrap();
 
-    expect(scheduledSyncProducer.schedule).toHaveBeenCalledTimes(5);
+    expect(scheduledSyncProducer.schedule).toHaveBeenCalledTimes(6);
     expect(scheduledSyncProducer.schedule).toHaveBeenCalledWith({
       syncType: 'product-inventory-sync',
       cron: '*/15 * * * *',
@@ -62,6 +63,11 @@ describe('SyncSchedulerService', () => {
       syncType: 'sapo-top-order-sync',
       cron: '*/10 * * * *',
       topOrder: { limit: 30 },
+    });
+    expect(scheduledSyncProducer.schedule).toHaveBeenCalledWith({
+      syncType: 'sapo-top-order-sync',
+      cron: '*/10 * * * *',
+      topOrder: { limit: 30, prefix: 'AUTO_SHOPIFY' },
     });
     expect(scheduledSyncProducer.schedule).toHaveBeenCalledWith({
       syncType: 'sapo-log-sync',

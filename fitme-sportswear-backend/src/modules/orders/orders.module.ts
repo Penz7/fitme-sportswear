@@ -11,6 +11,7 @@ import { SapoLogSyncService } from './sapo-log-sync.service';
 import { SapoTopOrderSyncService } from './sapo-top-order-sync.service';
 import { SapoToPancakeOrderMapper } from './sapo-to-pancake-order.mapper';
 import { SapoToPancakeOrderSyncService } from './sapo-to-pancake-order-sync.service';
+import { ShopifyOrderReconciliationService } from './shopify-order-reconciliation.service';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SapoToPancakeOrderSyncService } from './sapo-to-pancake-order-sync.serv
     SapoTopOrderSyncService,
     SapoToPancakeOrderMapper,
     SapoToPancakeOrderSyncService,
+    ShopifyOrderReconciliationService,
   ],
   exports: [
     OrderWebhookProcessingService,
@@ -37,6 +39,7 @@ import { SapoToPancakeOrderSyncService } from './sapo-to-pancake-order-sync.serv
     SapoTopOrderSyncService,
     SapoToPancakeOrderMapper,
     SapoToPancakeOrderSyncService,
+    ShopifyOrderReconciliationService,
   ],
 })
 export class OrdersModule {}

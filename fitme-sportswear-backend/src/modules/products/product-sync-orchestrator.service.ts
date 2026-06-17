@@ -3,7 +3,10 @@ import { Prisma, ProductMappingStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
 import { InventorySyncService } from './inventory-sync.service';
-import { ProductMappingCandidate } from './types/platform-product-snapshot';
+import {
+  PlatformProductSnapshot,
+  ProductMappingCandidate,
+} from './types/platform-product-snapshot';
 import { ProductMatchingService } from './product-matching.service';
 import { ProductSnapshotService } from './product-snapshot.service';
 import { normalizeSku } from './sku-normalizer';
@@ -24,6 +27,8 @@ export class ProductSyncOrchestratorService {
       data: {
         status: 'running',
         startedAt: new Date(),
+        finishedAt: null,
+        errorMessage: null,
       },
     });
 
@@ -32,6 +37,7 @@ export class ProductSyncOrchestratorService {
       const mappings = await this.applyAmbiguousMappingConflicts(
         this.matchingService.buildMappings(snapshots),
       );
+      await this.notifyShopifyProgress(syncRunId, snapshots, mappings);
 
       for (const mapping of mappings) {
         await this.upsertMapping(mapping);
@@ -39,7 +45,9 @@ export class ProductSyncOrchestratorService {
 
       await this.recordConflicts(mappings);
 
-      const syncResult = await this.inventorySyncService.syncMappings(mappings);
+      const syncResult = await this.inventorySyncService.syncMappings(mappings, {
+        syncRunId,
+      });
       const counts = this.countMappingStatuses(mappings);
 
       await this.prisma.syncRun.update({
@@ -47,6 +55,7 @@ export class ProductSyncOrchestratorService {
         data: {
           status: 'succeeded',
           finishedAt: new Date(),
+          errorMessage: null,
           metadata: {
             snapshots: snapshots.length,
             mappings: mappings.length,
@@ -57,10 +66,13 @@ export class ProductSyncOrchestratorService {
             updatedShopify: syncResult.updatedShopify,
             createdPancake: syncResult.createdPancake,
             createdShopify: syncResult.createdShopify,
+            updatedShopifySkus: syncResult.updatedShopifySkus,
+            createdShopifySkus: syncResult.createdShopifySkus,
             errors: syncResult.errors,
           } as unknown as Prisma.InputJsonObject,
         },
       });
+      await this.notifyShopifySummary(syncRunId, counts, syncResult);
       await this.notifyPartialIssues(syncRunId, counts, syncResult.errors ?? []);
     } catch (error) {
       await this.prisma.syncRun.update({
@@ -77,6 +89,108 @@ export class ProductSyncOrchestratorService {
       );
       throw error;
     }
+  }
+
+  async skipBecauseAnotherRunActive(syncRunId: string): Promise<void> {
+    await this.prisma.syncRun.update({
+      where: { id: syncRunId },
+      data: {
+        status: 'succeeded',
+        startedAt: new Date(),
+        finishedAt: new Date(),
+        metadata: {
+          skipped: true,
+          reason: 'another_product_sync_run_active',
+        } as unknown as Prisma.InputJsonObject,
+      },
+    });
+  }
+
+  private async notifyShopifyProgress(
+    syncRunId: string,
+    snapshots: PlatformProductSnapshot[],
+    mappings: ProductMappingCandidate[],
+  ): Promise<void> {
+    if (!this.notifier) {
+      return;
+    }
+
+    const shopifySnapshots = snapshots.filter(
+      (snapshot) => snapshot.platform === 'shopify',
+    ).length;
+    const shopifyMappings = mappings.filter(
+      (mapping) => Boolean(mapping.shopify?.variantId),
+    ).length;
+
+    try {
+      await this.notifier.sendMessage(
+        `Sapo -> Shopify inventory sync running: ${syncRunId}`,
+        [
+          `stage=snapshots_refreshed`,
+          `shopifySnapshots=${shopifySnapshots}`,
+          `shopifyMappings=${shopifyMappings}`,
+          `totalMappings=${mappings.length}`,
+        ].join('\n'),
+      );
+    } catch {
+      return;
+    }
+  }
+
+  private async notifyShopifySummary(
+    syncRunId: string,
+    counts: { matched: number; partial: number; conflict: number },
+    syncResult: {
+      updatedShopify: number;
+      createdShopify?: number;
+      updatedShopifySkus?: string[];
+      createdShopifySkus?: string[];
+      errors?: Array<{
+        sku?: string;
+        platform?: string;
+        operation?: string;
+        message?: string;
+      }>;
+    },
+  ): Promise<void> {
+    if (!this.notifier) {
+      return;
+    }
+
+    const shopifyErrors = (syncResult.errors ?? []).filter(
+      (error) => error.platform === 'shopify',
+    );
+    const sampleErrors = shopifyErrors
+      .slice(0, 3)
+      .map((error) =>
+        [error.sku, error.operation, error.message].filter(Boolean).join(' | '),
+      )
+      .join('\n');
+
+    try {
+      await this.notifier.sendMessage(
+        `Sapo -> Shopify inventory sync completed: ${syncRunId}`,
+        [
+          `updatedShopify=${syncResult.updatedShopify}`,
+          `createdShopify=${syncResult.createdShopify ?? 0}`,
+          `shopifyErrors=${shopifyErrors.length}`,
+          `updatedShopifySkusSample=${this.sample(syncResult.updatedShopifySkus ?? [])}`,
+          `createdShopifySkusSample=${this.sample(syncResult.createdShopifySkus ?? [])}`,
+          `matched=${counts.matched}`,
+          `partial=${counts.partial}`,
+          `conflict=${counts.conflict}`,
+          sampleErrors ? `sample shopify errors:\n${sampleErrors}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
+    } catch {
+      return;
+    }
+  }
+
+  private sample(items: string[]): string {
+    return items.length > 0 ? items.join(', ') : 'none';
   }
 
   private async notifyPartialIssues(

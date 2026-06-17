@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { PrismaService } from '../../database/prisma.service';
 import { SapoLogSyncService } from '../../orders/sapo-log-sync.service';
 import { SapoTopOrderSyncService } from '../../orders/sapo-top-order-sync.service';
+import { ShopifyOrderReconciliationService } from '../../orders/shopify-order-reconciliation.service';
 import {
   SapoToPancakeOrderSyncResult,
   SapoToPancakeOrderSyncService,
@@ -21,6 +22,7 @@ export class SapoToPancakeOrderSyncProcessor extends WorkerHost {
     private readonly orderSyncService: SapoToPancakeOrderSyncService,
     private readonly topOrderSyncService: SapoTopOrderSyncService,
     private readonly logSyncService: SapoLogSyncService,
+    private readonly shopifyOrderReconciliationService: ShopifyOrderReconciliationService,
   ) {
     super();
   }
@@ -62,6 +64,12 @@ export class SapoToPancakeOrderSyncProcessor extends WorkerHost {
       return this.logSyncService.syncRecentLogs();
     }
 
+    if (payload.mode === 'shopify-order-reconciliation') {
+      return this.shopifyOrderReconciliationService.reconcile(
+        payload.shopifyOrders ?? {},
+      );
+    }
+
     if (payload.mode === 'top-orders') {
       if (payload.topOrder?.orderType) {
         return this.topOrderSyncService.syncOrderType({
@@ -71,7 +79,8 @@ export class SapoToPancakeOrderSyncProcessor extends WorkerHost {
         });
       }
 
-      return this.topOrderSyncService.syncAllPancakeOrderTypes({
+      return this.topOrderSyncService.syncAllOrderTypes({
+        prefix: payload.topOrder?.prefix,
         limit: payload.topOrder?.limit,
       });
     }

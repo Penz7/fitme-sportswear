@@ -38,6 +38,9 @@ export default () => ({
     host: process.env.REDIS_HOST as string,
     port: Number(process.env.REDIS_PORT),
   },
+  queue: {
+    processorsEnabled: process.env.QUEUE_PROCESSORS_ENABLED !== 'false',
+  },
   sapo: {
     baseUrl: process.env.SAPO_BASE_URL as string,
     accountBaseUrl: process.env.SAPO_ACCOUNT_BASE_URL ?? 'https://accounts.sapo.vn',
@@ -79,6 +82,10 @@ export default () => ({
     apiVersion: process.env.SHOPIFY_API_VERSION ?? '2024-04',
     locationId: process.env.SHOPIFY_LOCATION_ID,
     webhookSecret: process.env.SHOPIFY_WEBHOOK_SECRET,
+    testOrderFilter: process.env.SHOPIFY_TEST_ORDER_FILTER,
+    webhookPublicBaseUrl: process.env.SHOPIFY_WEBHOOK_PUBLIC_BASE_URL,
+    webhookAutoRegisterEnabled:
+      process.env.SHOPIFY_WEBHOOK_AUTO_REGISTER_ENABLED !== 'false',
   },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
@@ -88,6 +95,7 @@ export default () => ({
     sender: {
       provinceId: Number(process.env.SHIPPING_SENDER_PROVINCE_ID ?? 2),
       districtId: Number(process.env.SHIPPING_SENDER_DISTRICT_ID ?? 55),
+      wardId: Number(process.env.SHIPPING_SENDER_WARD_ID ?? 0),
     },
     package: {
       weight: Number(process.env.SHIPPING_PACKAGE_WEIGHT ?? 300),
@@ -124,6 +132,14 @@ export default () => ({
       skuBlocklistFile: process.env.SYNC_PRODUCT_SYNC_SKU_BLOCKLIST_FILE,
       createMissingShopify:
         process.env.SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS === 'true',
+      createMissingShopifyWindowMinutes: Number(
+        process.env.SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_WINDOW_MINUTES ?? 60,
+      ),
+      createMissingShopifyMaxPerRun: Number(
+        process.env.SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_MAX_PER_RUN ?? 20,
+      ),
+      shopifyEnabled:
+        process.env.SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED === 'true',
     },
     sapoToPancakeInventory: {
       circuitBreakerThreshold: Number(
@@ -156,6 +172,8 @@ export default () => ({
     orders: {
       updatePancakeInventoryByOrder:
         process.env.SYNC_UPDATE_PANCAKE_INVENTORY_BY_ORDER === 'true',
+      createPancakeOrdersFromSapo:
+        process.env.SYNC_CREATE_PANCAKE_ORDERS_FROM_SAPO === 'true',
     },
     address: {
       enabled: process.env.SYNC_ADDRESS_ENABLED !== 'false',
@@ -176,8 +194,13 @@ export default () => ({
         ? Number(process.env.SYNC_SAPO_TO_PANCAKE_ORDER_LIMIT)
         : undefined,
       sapoTopOrderCron: process.env.SYNC_SAPO_TOP_ORDER_CRON,
+      sapoTopOrderShopifyCron: process.env.SYNC_SAPO_TOP_ORDER_SHOPIFY_CRON,
       sapoTopOrderLimit: process.env.SYNC_SAPO_TOP_ORDER_LIMIT
         ? Number(process.env.SYNC_SAPO_TOP_ORDER_LIMIT)
+        : undefined,
+      shopifyOrderReconcileCron: process.env.SYNC_SHOPIFY_ORDER_RECONCILE_CRON,
+      shopifyOrderReconcileLimit: process.env.SYNC_SHOPIFY_ORDER_RECONCILE_LIMIT
+        ? Number(process.env.SYNC_SHOPIFY_ORDER_RECONCILE_LIMIT)
         : undefined,
       sapoLogCron: process.env.SYNC_SAPO_LOG_CRON,
     },

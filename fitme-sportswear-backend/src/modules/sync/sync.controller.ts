@@ -3,6 +3,7 @@ import { CreateTestSyncDto } from './dto/create-test-sync.dto';
 import {
   CreateSapoToPancakeOrderBulkSyncDto,
   CreateSapoToPancakeOrderSyncDto,
+  CreateSapoTopOrderSyncDto,
 } from './dto/sapo-to-pancake-order-sync.dto';
 import { SyncApiTokenGuard } from './sync-api-token.guard';
 import { SyncService } from './sync.service';
@@ -73,8 +74,8 @@ export class SyncController {
   }
 
   @Post('sapo-to-pancake-orders/top-orders')
-  createSapoTopOrderSync() {
-    return this.syncService.createSapoTopOrderSync();
+  createSapoTopOrderSync(@Body() dto: CreateSapoTopOrderSyncDto = {}) {
+    return this.syncService.createSapoTopOrderSync(dto);
   }
 
   @Post('sapo-logs')

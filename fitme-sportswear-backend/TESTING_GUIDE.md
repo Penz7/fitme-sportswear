@@ -473,6 +473,29 @@ Bật khi đã có webhook secret đúng:
 
 ```env
 WEBHOOK_INGESTION_ENABLED=true
+PANCAKE_WEBHOOK_ENABLED=false
+SHOPIFY_WEBHOOK_ENABLED=true
+SHOPIFY_TEST_ORDER_FILTER=WEBHOOK_TEST
+```
+
+Mode này chỉ xử lý Shopify + Sapo. Pancake webhook vẫn có thể bắn vào backend
+nhưng processor sẽ ignore và không tạo/cập nhật đơn Sapo từ Pancake.
+Nếu `SHOPIFY_TEST_ORDER_FILTER` có giá trị, Shopify order chỉ được xử lý khi
+`note`, `tags` hoặc `note_attributes` chứa marker đó.
+
+Khi muốn chạy lại Pancake + Sapo và tắt Shopify:
+
+```env
+WEBHOOK_INGESTION_ENABLED=true
+PANCAKE_WEBHOOK_ENABLED=true
+SHOPIFY_WEBHOOK_ENABLED=false
+```
+
+Khi muốn bật cả Pancake và Shopify:
+
+```env
+WEBHOOK_INGESTION_ENABLED=true
+PANCAKE_WEBHOOK_ENABLED=true
 SHOPIFY_WEBHOOK_ENABLED=true
 ```
 

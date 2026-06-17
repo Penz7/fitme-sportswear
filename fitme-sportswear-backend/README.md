@@ -400,6 +400,31 @@ PANCAKE_WEBHOOK_ENABLED=false
 SHOPIFY_WEBHOOK_ENABLED=false
 ```
 
+Khi test riêng Shopify + Sapo, tắt Pancake channel:
+
+```env
+WEBHOOK_INGESTION_ENABLED=true
+PANCAKE_WEBHOOK_ENABLED=false
+SHOPIFY_WEBHOOK_ENABLED=true
+SHOPIFY_TEST_ORDER_FILTER=WEBHOOK_TEST
+```
+
+Khi `SHOPIFY_TEST_ORDER_FILTER` được set, Shopify order webhook chỉ xử lý đơn
+có marker trong `note`, `tags` hoặc `note_attributes`; đơn khác sẽ được nhận
+webhook nhưng ignore trước khi tạo/cập nhật Sapo.
+
+Khi test riêng Pancake + Sapo, tắt Shopify channel:
+
+```env
+WEBHOOK_INGESTION_ENABLED=true
+PANCAKE_WEBHOOK_ENABLED=true
+SHOPIFY_WEBHOOK_ENABLED=false
+```
+
+Khi vận hành cả hai kênh, bật cả `PANCAKE_WEBHOOK_ENABLED` và
+`SHOPIFY_WEBHOOK_ENABLED`. Processor sẽ tách theo `sourcePlatform` và mapping
+đơn hàng để tránh đẩy nhầm đơn giữa Pancake và Shopify.
+
 Lưu ý hiện tại: Shopify order webhook được xử lý vào luồng order/fulfillment. Shopify product và fulfillment webhook đã có endpoint nhận/verify nhưng đang được ignore có chủ đích; đồng bộ sản phẩm hiện chạy qua manual trigger hoặc scheduler, chưa chạy trực tiếp theo product webhook để tránh tạo queue storm khi Shopify gửi nhiều webhook liên tiếp.
 
 ## Scheduler và worker

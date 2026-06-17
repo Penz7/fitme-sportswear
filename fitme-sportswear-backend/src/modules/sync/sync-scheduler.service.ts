@@ -40,6 +40,19 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
       this.sapoTopOrderOptions(),
     );
     await this.scheduleIfConfigured(
+      'sapo-top-order-sync',
+      this.configString('sync.scheduler.sapoTopOrderShopifyCron'),
+      undefined,
+      this.sapoTopOrderOptions('AUTO_SHOPIFY'),
+    );
+    await this.scheduleIfConfigured(
+      'shopify-order-reconciliation-sync',
+      this.configString('sync.scheduler.shopifyOrderReconcileCron'),
+      undefined,
+      undefined,
+      this.shopifyOrderOptions(),
+    );
+    await this.scheduleIfConfigured(
       'sapo-log-sync',
       this.configString('sync.scheduler.sapoLogCron'),
     );
@@ -52,10 +65,12 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
       | 'address-mapping-sync'
       | 'sapo-to-pancake-order-sync'
       | 'sapo-top-order-sync'
+      | 'shopify-order-reconciliation-sync'
       | 'sapo-log-sync',
     cron: string | null,
     filters?: { status?: string; statuses?: string[]; limit?: number },
-    topOrder?: { limit?: number },
+    topOrder?: { limit?: number; prefix?: string },
+    shopifyOrders?: { limit?: number },
   ): Promise<void> {
     if (!cron) {
       return;
@@ -66,6 +81,7 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
       cron,
       ...(filters && Object.keys(filters).length > 0 ? { filters } : {}),
       ...(topOrder && Object.keys(topOrder).length > 0 ? { topOrder } : {}),
+      ...(shopifyOrders && Object.keys(shopifyOrders).length > 0 ? { shopifyOrders } : {}),
     });
     this.logger.log(`Registered ${syncType} schedule: ${cron}`);
   }
@@ -98,9 +114,23 @@ export class SyncSchedulerService implements OnApplicationBootstrap {
     return filters;
   }
 
-  private sapoTopOrderOptions(): { limit?: number } {
-    const options: { limit?: number } = {};
+  private sapoTopOrderOptions(prefix?: string): { limit?: number; prefix?: string } {
+    const options: { limit?: number; prefix?: string } = {};
     const limit = this.configNumber('sync.scheduler.sapoTopOrderLimit');
+
+    if (limit !== null) {
+      options.limit = limit;
+    }
+    if (prefix) {
+      options.prefix = prefix;
+    }
+
+    return options;
+  }
+
+  private shopifyOrderOptions(): { limit?: number } {
+    const options: { limit?: number } = {};
+    const limit = this.configNumber('sync.scheduler.shopifyOrderReconcileLimit');
 
     if (limit !== null) {
       options.limit = limit;

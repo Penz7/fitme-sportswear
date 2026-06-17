@@ -346,6 +346,24 @@ describe('ShopifyClient', () => {
     );
   });
 
+  it('closes a Shopify order', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ order: { id: 'shopify-order-1' } }));
+
+    await createClient().closeOrder('shopify-order-1');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://fitme.myshopify.com/admin/api/2024-04/orders/shopify-order-1/close.json',
+      {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': 'shopify-token',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      },
+    );
+  });
+
   it('fetches and deletes Shopify products for cleanup', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ product: { id: 'product-1', images: [], tags: '' } }))
@@ -371,6 +389,77 @@ describe('ShopifyClient', () => {
       {
         method: 'DELETE',
         headers: { 'X-Shopify-Access-Token': 'shopify-token' },
+      },
+    );
+  });
+
+  it('updates an existing Shopify webhook address', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        webhook: {
+          id: 123,
+          topic: 'orders/create',
+          address: 'https://new.example.com/webhooks/shopify/order',
+        },
+      }),
+    );
+
+    await createClient().updateWebhook('123', {
+      address: 'https://new.example.com/webhooks/shopify/order',
+      format: 'json',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://fitme.myshopify.com/admin/api/2024-04/webhooks/123.json',
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': 'shopify-token',
+        },
+        body: JSON.stringify({
+          webhook: {
+            id: '123',
+            address: 'https://new.example.com/webhooks/shopify/order',
+            format: 'json',
+          },
+        }),
+      },
+    );
+  });
+
+  it('creates a Shopify webhook subscription', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        webhook: {
+          id: 456,
+          topic: 'orders/cancelled',
+          address: 'https://new.example.com/webhooks/shopify/order',
+        },
+      }),
+    );
+
+    await createClient().createWebhook({
+      topic: 'orders/cancelled',
+      address: 'https://new.example.com/webhooks/shopify/order',
+      format: 'json',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://fitme.myshopify.com/admin/api/2024-04/webhooks.json',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': 'shopify-token',
+        },
+        body: JSON.stringify({
+          webhook: {
+            topic: 'orders/cancelled',
+            address: 'https://new.example.com/webhooks/shopify/order',
+            format: 'json',
+          },
+        }),
       },
     );
   });

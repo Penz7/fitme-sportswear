@@ -247,8 +247,10 @@ export class OrderWebhookExecutionService {
         case 'create_shopify_fulfillment':
           if (sapoOrderId && plan.platform === 'shopify') {
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
-            await this.createShopifyFulfillment(plan, orderPayload, sapoOrder);
-            await this.updateShopifyMappingStatus(plan, sapoOrderId, 'FULFILLMENT', sapoOrder);
+            const created = await this.createShopifyFulfillment(plan, orderPayload, sapoOrder);
+            if (created) {
+              await this.updateShopifyMappingStatus(plan, sapoOrderId, 'FULFILLMENT', sapoOrder);
+            }
           }
           break;
         case 'upsert_order_mapping':
@@ -454,7 +456,11 @@ export class OrderWebhookExecutionService {
 
     let response: Awaited<ReturnType<SapoClient['fetchCustomers']>>;
     try {
-      response = await this.sapoClient.fetchCustomers(1, 1, phoneNumber);
+      response = await this.sapoClient.fetchCustomers(
+        1,
+        1,
+        this.toSapoCustomerLookupQuery(phoneNumber),
+      );
     } catch (error) {
       if (
         error instanceof Error &&
@@ -480,6 +486,16 @@ export class OrderWebhookExecutionService {
     try {
       return await this.createSapoCustomerForOrder(order, phoneNumber);
     } catch (error) {
+      if (this.isDuplicateCustomerPhoneError(error)) {
+        const existingCustomerId = await this.findExistingSapoCustomerId(phoneNumber);
+        if (existingCustomerId) {
+          return {
+            ...order,
+            customer_id: Number(existingCustomerId),
+          };
+        }
+      }
+
       if (this.isMissingCustomerCreatePermission(error)) {
         this.logger.warn(
           'Continuing without Sapo customer_id because token is missing create_customer permission',
@@ -497,6 +513,49 @@ export class OrderWebhookExecutionService {
 
       throw error;
     }
+  }
+
+  private async findExistingSapoCustomerId(
+    phoneNumber: string,
+  ): Promise<string | null> {
+    for (const query of this.sapoCustomerLookupQueries(phoneNumber)) {
+      const response = await this.sapoClient.fetchCustomers(1, 10, query);
+      const customerId = this.firstString(response.customers?.[0]?.id);
+      if (customerId) {
+        return customerId;
+      }
+    }
+
+    return null;
+  }
+
+  private toSapoCustomerLookupQuery(phoneNumber: string): string {
+    return this.sapoCustomerLookupQueries(phoneNumber)[0] ?? phoneNumber;
+  }
+
+  private sapoCustomerLookupQueries(phoneNumber: string): string[] {
+    const raw = this.firstString(phoneNumber);
+    const digits = this.normalizeDigits(phoneNumber);
+    const candidates = new Set<string>();
+
+    if (digits?.startsWith('84') && digits.length >= 10) {
+      candidates.add(`0${digits.slice(2)}`);
+    }
+
+    if (raw) {
+      candidates.add(raw);
+    }
+
+    if (digits) {
+      candidates.add(digits);
+    }
+
+    if (digits?.startsWith('0') && digits.length >= 10) {
+      candidates.add(`84${digits.slice(1)}`);
+      candidates.add(`+84${digits.slice(1)}`);
+    }
+
+    return [...candidates];
   }
 
   private async createSapoCustomerForOrder(
@@ -651,19 +710,7 @@ export class OrderWebhookExecutionService {
             ),
           })
         : await this.resolveShopifyTextAddress(shippingAddress);
-    const senderAddress = await this.addressMappingService.resolvePancakeAddress({
-      provinceId: this.numberValue(warehouse.province_id ?? warehouse.provinceId),
-      districtId: this.numberValue(warehouse.district_id ?? warehouse.districtId),
-      wardId: this.numberValue(warehouse.commune_id ?? warehouse.communeId),
-      fallbackProvinceId: this.numberValue(warehouse.province_id ?? warehouse.provinceId),
-      fallbackDistrictId: this.numberValue(warehouse.district_id ?? warehouse.districtId),
-      fallbackWardId: this.numberValue(warehouse.commune_id ?? warehouse.communeId),
-      fallbackFullAddress: this.firstString(
-        warehouse.full_address,
-        warehouse.fullAddress,
-      ),
-      fallbackWardName: null,
-    });
+    const senderAddress = await this.resolveSenderAddress(warehouse);
     const senderProvinceId = this.requiredAddressId(
       senderAddress.provinceId,
       'sender province',
@@ -901,6 +948,14 @@ export class OrderWebhookExecutionService {
     return message.includes('status 403') && message.includes('create_customer');
   }
 
+  private isDuplicateCustomerPhoneError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes('Sapo customer create failed with status 422') &&
+      message.includes('phone_number')
+    );
+  }
+
   private toViettelShipmentDetail(input: {
     payload: Record<string, any>;
     warehouse: Record<string, any>;
@@ -995,11 +1050,14 @@ export class OrderWebhookExecutionService {
     plan: OrderWebhookProcessingPlan,
     payload: Record<string, any>,
     sapoOrder: Record<string, any>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const trackingNumber = await this.waitForSapoTrackingNumber(sapoOrder);
 
     if (!trackingNumber) {
-      throw new Error(`Missing Sapo tracking code for Shopify order ${plan.externalOrderId}`);
+      this.logger.warn(
+        `Skipping Shopify fulfillment for order ${plan.externalOrderId} because Sapo tracking code is not available yet`,
+      );
+      return false;
     }
 
     await this.shopifyClient.createFulfillment({
@@ -1012,6 +1070,7 @@ export class OrderWebhookExecutionService {
         quantity: this.numberValue(item.quantity) ?? 0,
       })),
     });
+    return true;
   }
 
   private async waitForSapoTrackingNumber(
@@ -1432,6 +1491,43 @@ export class OrderWebhookExecutionService {
     }
 
     return normalized;
+  }
+
+  private async resolveSenderAddress(
+    warehouse: Record<string, any>,
+  ): Promise<{ provinceId: number | null; districtId: number | null; wardId: number | null; wardName: string | null }> {
+    const warehouseProvinceId = this.numberValue(
+      warehouse.province_id ?? warehouse.provinceId,
+    );
+    const warehouseDistrictId = this.numberValue(
+      warehouse.district_id ?? warehouse.districtId,
+    );
+    const warehouseWardId = this.numberValue(
+      warehouse.commune_id ?? warehouse.communeId,
+    );
+
+    if (warehouseProvinceId || warehouseDistrictId || warehouseWardId) {
+      return this.addressMappingService.resolvePancakeAddress({
+        provinceId: warehouseProvinceId,
+        districtId: warehouseDistrictId,
+        wardId: warehouseWardId,
+        fallbackProvinceId: warehouseProvinceId,
+        fallbackDistrictId: warehouseDistrictId,
+        fallbackWardId: warehouseWardId,
+        fallbackFullAddress: this.firstString(
+          warehouse.full_address,
+          warehouse.fullAddress,
+        ),
+        fallbackWardName: null,
+      });
+    }
+
+    return {
+      provinceId: this.configNumber('shipping.sender.provinceId', 2),
+      districtId: this.configNumber('shipping.sender.districtId', 55),
+      wardId: this.configNumber('shipping.sender.wardId', 0) || null,
+      wardName: null,
+    };
   }
 
   private requiredAddressId(value: unknown, label: string): number {

@@ -49,6 +49,14 @@ describe('SapoToPancakeOrderSyncProcessor', () => {
         results: [],
       }),
     };
+    const shopifyOrderReconciliationService = {
+      reconcile: jest.fn().mockResolvedValue({
+        processed: 1,
+        updated: 1,
+        skipped: 0,
+        results: [],
+      }),
+    };
 
     return {
       prisma,
@@ -56,12 +64,14 @@ describe('SapoToPancakeOrderSyncProcessor', () => {
       orderSyncService,
       topOrderSyncService,
       logSyncService,
+      shopifyOrderReconciliationService,
       processor: new SapoToPancakeOrderSyncProcessor(
         prisma as any,
         sapoClient as any,
         orderSyncService as any,
         topOrderSyncService as any,
         logSyncService as any,
+        shopifyOrderReconciliationService as any,
       ),
     };
   }

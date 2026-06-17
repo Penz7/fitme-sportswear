@@ -8,7 +8,7 @@ import {
 
 export interface SapoToPancakeOrderSyncPayload {
   syncRunId: string;
-  mode?: 'single' | 'bulk' | 'top-orders' | 'sapo-logs';
+  mode?: 'single' | 'bulk' | 'top-orders' | 'sapo-logs' | 'shopify-order-reconciliation';
   sapoOrderId?: string;
   filters?: {
     status?: string;
@@ -20,6 +20,9 @@ export interface SapoToPancakeOrderSyncPayload {
   topOrder?: {
     orderType?: string;
     prefix?: string;
+    limit?: number;
+  };
+  shopifyOrders?: {
     limit?: number;
   };
 }

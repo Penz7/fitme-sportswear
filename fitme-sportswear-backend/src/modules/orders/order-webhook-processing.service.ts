@@ -51,10 +51,24 @@ export class OrderWebhookProcessingService {
 
   buildProcessingPlan(event: WebhookEventLike): OrderWebhookProcessingPlan {
     if (event.sourcePlatform === 'pancake') {
+      if (!this.configBoolean('webhook.pancake.enabled', true)) {
+        return this.ignoredPlan(
+          event,
+          this.resolveExternalOrderId(event),
+          'PANCAKE_WEBHOOK_DISABLED',
+        );
+      }
       return this.buildPancakePlan(event);
     }
 
     if (event.sourcePlatform === 'shopify') {
+      if (!this.configBoolean('webhook.shopify.enabled', true)) {
+        return this.ignoredPlan(
+          event,
+          this.resolveExternalOrderId(event),
+          'SHOPIFY_WEBHOOK_DISABLED',
+        );
+      }
       return this.buildShopifyPlan(event);
     }
 
@@ -121,6 +135,33 @@ export class OrderWebhookProcessingService {
 
     if (event.eventType !== 'order') {
       return this.ignoredPlan(event, this.resolveExternalOrderId(event));
+    }
+
+    const payload = this.objectPayload(event.payload);
+    if (!this.matchesShopifyTestOrderFilter(payload)) {
+      return this.ignoredPlan(
+        event,
+        this.resolveExternalOrderId(event),
+        'SHOPIFY_TEST_FILTER_IGNORED',
+      );
+    }
+
+    if (this.isShopifyCancelledOrder(payload)) {
+      return {
+        platform: 'shopify',
+        eventType: event.eventType,
+        externalOrderId: this.resolveExternalOrderId(event),
+        statusCode: null,
+        statusDescription: 'SHOPIFY_CANCELLED',
+        quantityEffect: 'none',
+        sapoStatuses: [],
+        nextActions: [
+          'cancel_sapo_delivery_if_exists',
+          'receive_after_cancellation_if_needed',
+          'cancel_sapo_order',
+          'upsert_order_mapping',
+        ],
+      };
     }
 
     return {
@@ -239,6 +280,50 @@ export class OrderWebhookProcessingService {
     return searchableValues.some((value) => value.includes(filter));
   }
 
+  private matchesShopifyTestOrderFilter(payload: Record<string, unknown>): boolean {
+    const filter = this.configService?.get<string>('shopify.testOrderFilter')?.trim();
+    if (!filter) {
+      return true;
+    }
+
+    const searchableValues = [
+      payload.note,
+      payload.tags,
+      payload.source_name,
+      payload.sourceName,
+      payload.landing_site,
+      payload.landingSite,
+      ...this.arrayPayload(payload.note_attributes),
+      ...this.arrayPayload(payload.noteAttributes),
+    ]
+      .map((value) => this.searchableString(value))
+      .filter((value) => value.length > 0);
+
+    return searchableValues.some((value) => value.includes(filter));
+  }
+
+  private isShopifyCancelledOrder(payload: Record<string, unknown>): boolean {
+    return Boolean(
+      this.firstString(
+        payload.cancelled_at,
+        payload.cancelledAt,
+        payload.cancel_reason,
+        payload.cancelReason,
+      ),
+    );
+  }
+
+  private firstString(...values: unknown[]): string | null {
+    for (const value of values) {
+      const normalized = value === null || value === undefined ? '' : String(value).trim();
+      if (normalized !== '') {
+        return normalized;
+      }
+    }
+
+    return null;
+  }
+
   private arrayPayload(value: unknown): unknown[] {
     return Array.isArray(value) ? value : [];
   }
@@ -256,5 +341,16 @@ export class OrderWebhookProcessingService {
     return [objectValue.name, objectValue.value, objectValue.text]
       .filter((entry): entry is string => typeof entry === 'string')
       .join(' ');
+  }
+
+  private configBoolean(key: string, fallback: boolean): boolean {
+    const value = this.configService?.get<boolean | string>(key);
+    if (value === undefined || value === null || value === '') {
+      return fallback;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    return value !== 'false';
   }
 }

@@ -49,6 +49,22 @@ export class SyncService {
   }
 
   async createProductSync() {
+    const activeRun = await this.prisma.syncRun.findFirst({
+      where: {
+        syncType: 'product-inventory-sync',
+        status: { in: ['queued', 'running'] },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (activeRun) {
+      return {
+        id: activeRun.id,
+        status: activeRun.status,
+        syncType: activeRun.syncType,
+      };
+    }
+
     const syncRun = await this.prisma.syncRun.create({
       data: {
         syncType: 'product-inventory-sync',
@@ -182,7 +198,7 @@ export class SyncService {
     };
   }
 
-  async createSapoTopOrderSync(input: { limit?: number } = {}) {
+  async createSapoTopOrderSync(input: { limit?: number; prefix?: string } = {}) {
     const metadata = Object.keys(input).length > 0 ? input : {};
     const syncRun = await this.prisma.syncRun.create({
       data: {
@@ -195,7 +211,30 @@ export class SyncService {
     await this.sapoToPancakeOrderSyncProducer.enqueue({
       syncRunId: syncRun.id,
       mode: 'top-orders',
-      ...(input.limit ? { topOrder: { limit: input.limit } } : {}),
+      ...(Object.keys(input).length > 0 ? { topOrder: input } : {}),
+    });
+
+    return {
+      id: syncRun.id,
+      status: syncRun.status,
+      syncType: syncRun.syncType,
+    };
+  }
+
+  async createShopifyOrderReconciliationSync(input: { limit?: number } = {}) {
+    const metadata = Object.keys(input).length > 0 ? input : {};
+    const syncRun = await this.prisma.syncRun.create({
+      data: {
+        syncType: 'shopify-order-reconciliation-sync',
+        status: 'queued',
+        metadata: metadata as any,
+      },
+    });
+
+    await this.sapoToPancakeOrderSyncProducer.enqueue({
+      syncRunId: syncRun.id,
+      mode: 'shopify-order-reconciliation',
+      ...(Object.keys(input).length > 0 ? { shopifyOrders: input } : {}),
     });
 
     return {

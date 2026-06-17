@@ -9,6 +9,12 @@ describe('ProductSnapshotService', () => {
     };
   }
 
+  function configService(values: Record<string, unknown> = {}) {
+    return {
+      get: jest.fn((key: string) => values[key]),
+    };
+  }
+
   it('returns duplicate Sapo snapshots without upserting duplicate SKUs', async () => {
     const prisma = createPrismaMock();
     const sapoClient = {
@@ -31,6 +37,7 @@ describe('ProductSnapshotService', () => {
       sapoClient as any,
       { fetchProducts: jest.fn() } as any,
       { fetchProducts: jest.fn() } as any,
+      configService() as any,
     );
 
     const snapshots = await service.refreshSapoSnapshots();
@@ -103,6 +110,7 @@ describe('ProductSnapshotService', () => {
       sapoClient as any,
       pancakeClient as any,
       shopifyClient as any,
+      configService({ 'sync.products.shopifyEnabled': true }) as any,
     );
 
     const snapshots = await service.refreshAllSnapshots();
@@ -126,5 +134,23 @@ describe('ProductSnapshotService', () => {
     });
     expect(prisma.pancakeProduct.upsert).toHaveBeenCalledTimes(1);
     expect(prisma.shopifyProduct.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips Shopify snapshots unless Shopify product sync is enabled', async () => {
+    const prisma = createPrismaMock();
+    const shopifyClient = {
+      fetchProducts: jest.fn(),
+    };
+    const service = new ProductSnapshotService(
+      prisma as any,
+      { fetchProducts: jest.fn().mockResolvedValue([]) } as any,
+      { fetchProducts: jest.fn().mockResolvedValue([]) } as any,
+      shopifyClient as any,
+      configService() as any,
+    );
+
+    await expect(service.refreshShopifySnapshots()).resolves.toEqual([]);
+
+    expect(shopifyClient.fetchProducts).not.toHaveBeenCalled();
   });
 });

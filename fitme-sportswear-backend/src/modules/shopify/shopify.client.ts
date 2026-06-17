@@ -40,6 +40,21 @@ export interface ShopifyFulfillmentInput {
   lineItems: Array<{ id: string | number; quantity: number }>;
 }
 
+export interface ShopifyWebhookInput {
+  topic: string;
+  address: string;
+  format: 'json' | 'xml';
+}
+
+export interface ShopifyWebhookResponse {
+  id: string | number;
+  topic: string;
+  address: string;
+  format: string;
+}
+
+export type ShopifyWebhookEnsureAction = 'created' | 'updated' | 'unchanged';
+
 interface ShopifyProductsPage {
   products?: ShopifyProductResponse[];
 }
@@ -55,6 +70,10 @@ interface ShopifyVariantResponse {
 
 interface ShopifyLocationsResponse {
   locations?: Array<{ id: string | number }>;
+}
+
+interface ShopifyWebhooksResponse {
+  webhooks?: ShopifyWebhookResponse[];
 }
 
 interface ShopifyFulfillmentOrdersResponse {
@@ -256,6 +275,23 @@ export class ShopifyClient {
     return this.objectPayload(body.product);
   }
 
+  async fetchOrder(orderId: string): Promise<Record<string, any> | null> {
+    const response = await fetch(this.apiUrl(`/orders/${orderId}.json`), {
+      headers: this.authHeaders(),
+    });
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Shopify order fetch failed with status ${response.status}`);
+    }
+
+    const body = (await response.json()) as Record<string, any>;
+    return this.objectPayload(body.order);
+  }
+
   async deleteProduct(productId: string): Promise<void> {
     const response = await fetch(this.apiUrl(`/products/${productId}.json`), {
       method: 'DELETE',
@@ -275,10 +311,96 @@ export class ShopifyClient {
     });
 
     if (!response.ok) {
+      const body = await response.text();
+      if (response.status === 422 && this.isIdempotentOrderState(body)) {
+        return;
+      }
       throw new Error(
         `Shopify order cancel failed with status ${response.status}`,
       );
     }
+  }
+
+  async closeOrder(orderId: string): Promise<void> {
+    const response = await fetch(this.apiUrl(`/orders/${orderId}/close.json`), {
+      method: 'POST',
+      headers: this.jsonHeaders(),
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      if (response.status === 422 && this.isIdempotentOrderState(body)) {
+        return;
+      }
+      throw new Error(`Shopify order close failed with status ${response.status}`);
+    }
+  }
+
+  async fetchWebhooks(): Promise<ShopifyWebhookResponse[]> {
+    const response = await fetch(this.apiUrl('/webhooks.json?limit=250'), {
+      headers: this.authHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Shopify webhook fetch failed with status ${response.status}`);
+    }
+
+    const body = (await response.json()) as ShopifyWebhooksResponse;
+    return body.webhooks ?? [];
+  }
+
+  async createWebhook(input: ShopifyWebhookInput): Promise<void> {
+    const response = await fetch(this.apiUrl('/webhooks.json'), {
+      method: 'POST',
+      headers: this.jsonHeaders(),
+      body: JSON.stringify({ webhook: input }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Shopify webhook create failed with status ${response.status}`);
+    }
+  }
+
+  async updateWebhook(
+    webhookId: string | number,
+    input: Pick<ShopifyWebhookInput, 'address' | 'format'>,
+  ): Promise<void> {
+    const id = String(webhookId);
+    const response = await fetch(this.apiUrl(`/webhooks/${id}.json`), {
+      method: 'PUT',
+      headers: this.jsonHeaders(),
+      body: JSON.stringify({
+        webhook: {
+          id,
+          ...input,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Shopify webhook update failed with status ${response.status}`);
+    }
+  }
+
+  async ensureWebhook(input: ShopifyWebhookInput): Promise<ShopifyWebhookEnsureAction> {
+    const webhooks = await this.fetchWebhooks();
+    const existing = webhooks.find((webhook) => webhook.topic === input.topic);
+
+    if (!existing) {
+      await this.createWebhook(input);
+      return 'created';
+    }
+
+    if (existing.address === input.address && existing.format === input.format) {
+      return 'unchanged';
+    }
+
+    await this.updateWebhook(existing.id, {
+      address: input.address,
+      format: input.format,
+    });
+    return 'updated';
   }
 
   private buildProductsUrl(): string {
@@ -394,6 +516,17 @@ export class ShopifyClient {
       normalized.includes('closed') ||
       normalized.includes('not fulfillable') ||
       normalized.includes('fulfilled')
+    );
+  }
+
+  private isIdempotentOrderState(body: string): boolean {
+    const normalized = body.toLowerCase();
+    return (
+      normalized.includes('already') ||
+      normalized.includes('cancelled') ||
+      normalized.includes('canceled') ||
+      normalized.includes('closed') ||
+      normalized.includes('not open')
     );
   }
 

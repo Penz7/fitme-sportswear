@@ -3,6 +3,7 @@ import { isAbsolute, resolve } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
+import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
 import { PancakeClient } from '../pancake/pancake.client';
 import { ShopifyClient } from '../shopify/shopify.client';
 import { isComboSku } from './combo-sku';
@@ -21,7 +22,13 @@ export interface InventorySyncResult {
   updatedShopify: number;
   createdPancake: number;
   createdShopify: number;
+  updatedShopifySkus: string[];
+  createdShopifySkus: string[];
   errors: ProductSyncError[];
+}
+
+export interface InventorySyncOptions {
+  syncRunId?: string;
 }
 
 @Injectable()
@@ -31,19 +38,34 @@ export class InventorySyncService {
     private readonly pancakeClient: PancakeClient,
     private readonly shopifyClient: ShopifyClient,
     private readonly configService: ConfigService,
+    private readonly notifier?: TelegramNotifierService,
   ) {}
 
   async syncMappings(
     mappings: ProductMappingCandidate[],
+    options: InventorySyncOptions = {},
   ): Promise<InventorySyncResult> {
     const result: InventorySyncResult = {
       updatedPancake: 0,
       updatedShopify: 0,
       createdPancake: 0,
       createdShopify: 0,
+      updatedShopifySkus: [],
+      createdShopifySkus: [],
       errors: [],
     };
     const blockedSkus = this.productSyncSkuBlocklist();
+    const shopifyCandidates = this.countShopifyCandidates(
+      mappings,
+      blockedSkus,
+    );
+    const shopifyProgressInterval = this.configNumber(
+      'sync.shopifyProgressInterval',
+      100,
+    );
+    let processedShopify = 0;
+    let updatedShopifySkusSinceLastProgress: string[] = [];
+    let createdShopifySkusSinceLastProgress: string[] = [];
 
     for (const mapping of mappings) {
       if (this.blockedSku(mapping.sku, blockedSkus)) {
@@ -204,6 +226,12 @@ export class InventorySyncService {
             },
           });
           result.updatedShopify += 1;
+          if (result.updatedShopifySkus.length < 20) {
+            result.updatedShopifySkus.push(mapping.sku);
+          }
+          if (updatedShopifySkusSinceLastProgress.length < 20) {
+            updatedShopifySkusSinceLastProgress.push(mapping.sku);
+          }
         } catch (error) {
           result.errors.push(
             this.toError(
@@ -213,10 +241,27 @@ export class InventorySyncService {
               error,
             ),
           );
+        } finally {
+          processedShopify += 1;
+          const notified = await this.notifyShopifyProgress(options.syncRunId, {
+            shopifyCandidates,
+            processedShopify,
+            interval: shopifyProgressInterval,
+            result,
+            updatedShopifySkusSample: updatedShopifySkusSinceLastProgress,
+            createdShopifySkusSample: createdShopifySkusSinceLastProgress,
+          });
+          if (notified) {
+            updatedShopifySkusSinceLastProgress = [];
+            createdShopifySkusSinceLastProgress = [];
+          }
         }
       }
 
-      if (!mapping.shopify?.variantId && this.createMissingShopifyProducts()) {
+      if (
+        !mapping.shopify?.variantId &&
+        this.createMissingShopifyProducts()
+      ) {
         try {
           const created = await this.shopifyClient.createProductFromSapo({
             sku: mapping.sku,
@@ -258,15 +303,112 @@ export class InventorySyncService {
             retailPrice: mapping.sapo.retailPrice,
           });
           result.createdShopify += 1;
+          if (result.createdShopifySkus.length < 20) {
+            result.createdShopifySkus.push(mapping.sku);
+          }
+          if (createdShopifySkusSinceLastProgress.length < 20) {
+            createdShopifySkusSinceLastProgress.push(mapping.sku);
+          }
         } catch (error) {
           result.errors.push(
             this.toError(mapping.sku, 'shopify', 'createProductFromSapo', error),
           );
+        } finally {
+          processedShopify += 1;
+          const notified = await this.notifyShopifyProgress(options.syncRunId, {
+            shopifyCandidates,
+            processedShopify,
+            interval: shopifyProgressInterval,
+            result,
+            updatedShopifySkusSample: updatedShopifySkusSinceLastProgress,
+            createdShopifySkusSample: createdShopifySkusSinceLastProgress,
+          });
+          if (notified) {
+            updatedShopifySkusSinceLastProgress = [];
+            createdShopifySkusSinceLastProgress = [];
+          }
         }
       }
     }
 
     return result;
+  }
+
+  private countShopifyCandidates(
+    mappings: ProductMappingCandidate[],
+    blockedSkus: string[],
+  ): number {
+    const updateCandidates = mappings.filter(
+      (mapping) =>
+        !this.blockedSku(mapping.sku, blockedSkus) &&
+        mapping.status !== 'conflict' &&
+        Boolean(mapping.sapo) &&
+        mapping.sapo?.available !== null &&
+        Boolean(mapping.shopify?.variantId) &&
+        !this.unchangedShopifyInventory(mapping),
+    ).length;
+    const createCandidates = mappings.filter(
+      (mapping) =>
+        !this.blockedSku(mapping.sku, blockedSkus) &&
+        mapping.status !== 'conflict' &&
+        Boolean(mapping.sapo) &&
+        mapping.sapo?.available !== null &&
+        !mapping.shopify?.variantId &&
+        this.createMissingShopifyProducts(),
+    ).length;
+
+    return updateCandidates + createCandidates;
+  }
+
+  private async notifyShopifyProgress(
+    syncRunId: string | undefined,
+    input: {
+      shopifyCandidates: number;
+      processedShopify: number;
+      interval: number;
+      result: InventorySyncResult;
+      updatedShopifySkusSample: string[];
+      createdShopifySkusSample: string[];
+    },
+  ): Promise<boolean> {
+    if (!this.notifier || !syncRunId || input.shopifyCandidates === 0) {
+      return false;
+    }
+
+    const shouldNotify =
+      input.processedShopify === input.shopifyCandidates ||
+      input.processedShopify % Math.max(input.interval, 1) === 0;
+    if (!shouldNotify) {
+      return false;
+    }
+
+    const shopifyErrors = input.result.errors.filter(
+      (error) => error.platform === 'shopify',
+    ).length;
+
+    try {
+      await this.notifier.sendMessage(
+        `Sapo -> Shopify inventory sync progress: ${syncRunId}`,
+        [
+          `stage=updating_shopify`,
+          `processedShopify=${input.processedShopify}`,
+          `remainingShopify=${Math.max(input.shopifyCandidates - input.processedShopify, 0)}`,
+          `shopifyCandidates=${input.shopifyCandidates}`,
+          `updatedShopify=${input.result.updatedShopify}`,
+          `createdShopify=${input.result.createdShopify}`,
+          `shopifyErrors=${shopifyErrors}`,
+          `updatedShopifySkusSample=${this.sample(input.updatedShopifySkusSample)}`,
+          `createdShopifySkusSample=${this.sample(input.createdShopifySkusSample)}`,
+        ].join('\n'),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private sample(items: string[]): string {
+    return items.length > 0 ? items.join(', ') : 'none';
   }
 
   private toError(
@@ -445,6 +587,16 @@ export class InventorySyncService {
     }
 
     return value === true || value === 'true';
+  }
+
+  private configNumber(key: string, fallback: number): number {
+    const value = this.configService.get<number | string | undefined>(key);
+    if (value === undefined || value === null || value === '') {
+      return fallback;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
   }
 
   private configStringList(key: string): string[] {

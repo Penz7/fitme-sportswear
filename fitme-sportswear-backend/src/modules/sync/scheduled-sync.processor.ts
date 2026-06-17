@@ -52,6 +52,10 @@ export class ScheduledSyncProcessor extends WorkerHost {
         );
       case 'sapo-top-order-sync':
         return await this.syncService.createSapoTopOrderSync(job.data.topOrder ?? {});
+      case 'shopify-order-reconciliation-sync':
+        return await this.syncService.createShopifyOrderReconciliationSync(
+          job.data.shopifyOrders ?? {},
+        );
       case 'sapo-log-sync':
         return await this.syncService.createSapoLogSync();
       default:

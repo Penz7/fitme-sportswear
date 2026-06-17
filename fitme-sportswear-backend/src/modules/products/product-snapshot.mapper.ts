@@ -66,6 +66,7 @@ interface ShopifyVariantInput {
   title?: string | null;
   available?: number | null;
   inventoryQuantity?: number | null;
+  inventory_quantity?: number | null;
   price?: string | number | null;
 }
 
@@ -204,8 +205,16 @@ export const mapShopifyProductSnapshots = (product: ShopifyProductInput): Platfo
         productId: toNullableString(product.id),
         variantId: toNullableString(variant.id),
         name: [product.title, variant.title].filter(Boolean).join(' - ').trim() || null,
-        available: variant.available ?? variant.inventoryQuantity ?? null,
-        remain: variant.inventoryQuantity ?? variant.available ?? null,
+        available:
+          variant.available ??
+          variant.inventoryQuantity ??
+          variant.inventory_quantity ??
+          null,
+        remain:
+          variant.inventoryQuantity ??
+          variant.inventory_quantity ??
+          variant.available ??
+          null,
         retailPrice: toNullableNumber(variant.price),
         warehouseId: null,
         warehouseCount: null,

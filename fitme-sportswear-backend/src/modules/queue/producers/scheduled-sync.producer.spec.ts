@@ -45,4 +45,27 @@ describe('ScheduledSyncProducer', () => {
       }),
     );
   });
+
+  it('uses a distinct repeatable job id for Shopify top-order polling', async () => {
+    const queue = { add: jest.fn().mockResolvedValue({}) };
+    const producer = new ScheduledSyncProducer(queue as any);
+
+    await producer.schedule({
+      syncType: 'sapo-top-order-sync',
+      cron: '*/10 * * * *',
+      topOrder: { prefix: 'AUTO_SHOPIFY', limit: 30 },
+    });
+
+    expect(queue.add).toHaveBeenCalledWith(
+      SCHEDULED_SYNC_JOB,
+      {
+        syncType: 'sapo-top-order-sync',
+        topOrder: { prefix: 'AUTO_SHOPIFY', limit: 30 },
+      },
+      expect.objectContaining({
+        jobId: 'scheduled-sync:sapo-top-order-sync:AUTO_SHOPIFY',
+        repeat: { pattern: '*/10 * * * *' },
+      }),
+    );
+  });
 });

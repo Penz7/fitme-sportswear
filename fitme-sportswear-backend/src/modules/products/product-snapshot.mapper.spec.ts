@@ -87,6 +87,17 @@ describe('product snapshot mapper', () => {
     ]);
   });
 
+  it('maps Shopify REST inventory_quantity as available and remain', () => {
+    expect(mapShopifyProductSnapshots({
+      id: 'shop-product-1', title: 'Giày chạy',
+      variants: [
+        { id: 'variant-1', sku: 'SKU-3', inventory_quantity: 12 } as any,
+      ],
+    })).toMatchObject([
+      { sku: 'SKU-3', available: 12, remain: 12 },
+    ]);
+  });
+
   it('falls back Shopify remain to available when inventoryQuantity is missing', () => {
     expect(mapShopifyProductSnapshots({
       id: 'shop-product-1', title: 'Giày chạy',

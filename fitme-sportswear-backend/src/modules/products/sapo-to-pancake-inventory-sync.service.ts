@@ -841,7 +841,7 @@ export class SapoToPancakeInventorySyncService {
       return;
     }
 
-    const updatedSkus =
+    const updatedSkusSample =
       result.updatedSkus.length > 0 ? result.updatedSkus.join(', ') : 'none';
     const createdMissingPancakeSkus =
       result.createdMissingPancakeSkus.length > 0
@@ -865,7 +865,8 @@ export class SapoToPancakeInventorySyncService {
       [
         `status=succeeded`,
         `mode=${result.mode}`,
-        `updated=${result.updated}`,
+        `updatedTotalThisRun=${result.updated}`,
+        `updatedSkusSampleCount=${result.updatedSkus.length}`,
         `createdMissingPancake=${result.createdMissingPancake}`,
         `failed=${result.failed}`,
         `remaining=${result.remaining}`,
@@ -876,7 +877,7 @@ export class SapoToPancakeInventorySyncService {
         result.pancakeFetchError ? `pancakeFetchError=${result.pancakeFetchError}` : null,
         `partial=${result.partial}`,
         `syncRunId=${syncRunId}`,
-        `updatedSkus=${updatedSkus}`,
+        `updatedSkusSample=${updatedSkusSample}`,
         `createdMissingPancakeSkus=${createdMissingPancakeSkus}`,
         `createdCompositePancake=${result.createdCompositePancake}`,
         `createdCompositePancakeSkus=${createdCompositePancakeSkus}`,

@@ -39,6 +39,12 @@ export const envValidationSchema = Joi.object({
     then: Joi.string().required(),
     otherwise: Joi.string().allow('').optional(),
   }),
+  SHOPIFY_WEBHOOK_PUBLIC_BASE_URL: Joi.string().uri().allow('').optional(),
+  SHOPIFY_WEBHOOK_AUTO_REGISTER_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+  SHOPIFY_TEST_ORDER_FILTER: Joi.string().allow('').optional(),
   WEBHOOK_INGESTION_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   PANCAKE_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   SHOPIFY_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
@@ -53,6 +59,7 @@ export const envValidationSchema = Joi.object({
 
   SHIPPING_SENDER_PROVINCE_ID: Joi.number().integer().positive().default(2),
   SHIPPING_SENDER_DISTRICT_ID: Joi.number().integer().positive().default(55),
+  SHIPPING_SENDER_WARD_ID: Joi.number().integer().min(0).default(0),
   SHIPPING_PACKAGE_WEIGHT: Joi.number().integer().positive().default(300),
   SHIPPING_PACKAGE_HEIGHT: Joi.number().integer().positive().default(10),
   SHIPPING_PACKAGE_WIDTH: Joi.number().integer().positive().default(10),
@@ -117,7 +124,10 @@ export const envValidationSchema = Joi.object({
   SYNC_SAPO_TO_PANCAKE_ORDER_STATUS: Joi.string().allow('').optional(),
   SYNC_SAPO_TO_PANCAKE_ORDER_LIMIT: Joi.number().integer().min(1).max(250).optional(),
   SYNC_SAPO_TOP_ORDER_CRON: Joi.string().allow('').optional(),
+  SYNC_SAPO_TOP_ORDER_SHOPIFY_CRON: Joi.string().allow('').optional(),
   SYNC_SAPO_TOP_ORDER_LIMIT: Joi.number().integer().min(1).max(250).optional(),
+  SYNC_SHOPIFY_ORDER_RECONCILE_CRON: Joi.string().allow('').optional(),
+  SYNC_SHOPIFY_ORDER_RECONCILE_LIMIT: Joi.number().integer().min(1).max(250).optional(),
   SYNC_SAPO_LOG_CRON: Joi.string().allow('').optional(),
   SYNC_CREATE_MISSING_PANCAKE_PRODUCTS: Joi.boolean()
     .truthy('true')
@@ -129,7 +139,25 @@ export const envValidationSchema = Joi.object({
     .truthy('true')
     .falsy('false')
     .default(false),
+  SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_WINDOW_MINUTES: Joi.number()
+    .integer()
+    .min(1)
+    .max(1440)
+    .default(60),
+  SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_MAX_PER_RUN: Joi.number()
+    .integer()
+    .min(0)
+    .max(100)
+    .default(20),
+  SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(false),
   SYNC_UPDATE_PANCAKE_INVENTORY_BY_ORDER: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(false),
+  SYNC_CREATE_PANCAKE_ORDERS_FROM_SAPO: Joi.boolean()
     .truthy('true')
     .falsy('false')
     .default(false),

@@ -316,6 +316,75 @@ describe('OrderWebhookExecutionService', () => {
     );
   });
 
+  it('reuses an existing Sapo customer when customer creation reports a duplicate phone number', async () => {
+    const { service, sapoClient } = createService();
+    sapoClient.fetchCustomers
+      .mockResolvedValueOnce({ customers: [] })
+      .mockResolvedValueOnce({ customers: [{ id: 77777 }] });
+    sapoClient.createCustomer.mockRejectedValueOnce(
+      new Error(
+        'Sapo customer create failed with status 422: {"data_error":{"errors":{"phone_number":"Số điện thoại đã tồn tại"}}}',
+      ),
+    );
+
+    await service.executePlan(basePlan, {
+      id: 'pancake-order-1',
+      bill_full_name: 'Nguyen Van A',
+      bill_phone_number: '0909000000',
+      items: [{ quantity: 1, variation_info: { barcode: 'SKU-1' } }],
+    });
+
+    expect(sapoClient.fetchCustomers).toHaveBeenNthCalledWith(1, 1, 1, '0909000000');
+    expect(sapoClient.fetchCustomers).toHaveBeenNthCalledWith(2, 1, 10, '0909000000');
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          customer_id: 77777,
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
+  it('looks up Sapo customers with a local phone format for Shopify +84 phone numbers', async () => {
+    const { service, sapoClient } = createService();
+    sapoClient.fetchCustomers.mockResolvedValueOnce({ customers: [{ id: 88888 }] });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'order',
+        externalOrderId: 'shopify-order-1',
+        statusCode: null,
+        nextActions: ['create_sapo_order', 'upsert_order_mapping'],
+      },
+      {
+        id: 'shopify-order-1',
+        order_number: 1001,
+        shipping_address: {
+          first_name: 'Hoa',
+          last_name: 'Nguyen',
+          phone: '+84942503027',
+          address1: '384/15 Cong Hoa',
+          city: 'Ho Chi Minh',
+        },
+        line_items: [{ id: 'line-item-1', sku: 'SKU-1', name: 'Shirt', quantity: 1, price: '150000' }],
+      },
+    );
+
+    expect(sapoClient.fetchCustomers).toHaveBeenCalledWith(1, 1, '0942503027');
+    expect(sapoClient.createCustomer).not.toHaveBeenCalled();
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          customer_id: 88888,
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
   it('creates a missing product mapping from Sapo product snapshot before creating an order', async () => {
     const { service, sapoClient, prisma } = createService();
     prisma.productMapping.findUnique.mockResolvedValueOnce(null);
@@ -1230,6 +1299,55 @@ describe('OrderWebhookExecutionService', () => {
     });
   });
 
+  it('skips Shopify fulfillment without failing when Sapo tracking code is not ready', async () => {
+    const { service, sapoClient, shopifyClient, prisma, configService, addressMappingService } = createService();
+    configService.get.mockImplementation((key: string) => {
+      if (key === 'shopify.fulfillmentTrackingPollAttempts') {
+        return 1;
+      }
+      if (key === 'shopify.fulfillmentTrackingPollDelayMs') {
+        return 0;
+      }
+      return undefined;
+    });
+    prisma.orderMapping.findUnique.mockResolvedValueOnce({
+      sapoOrderId: 'sapo-order-1',
+    });
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-1',
+        fulfillments: [],
+      },
+    });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'order',
+        externalOrderId: 'shopify-order-1',
+        statusCode: null,
+        nextActions: ['create_shopify_fulfillment', 'upsert_order_mapping'],
+      },
+      {
+        id: 'shopify-order-1',
+        line_items: [{ id: 'line-item-1', sku: 'SKU-1', name: 'Shirt', quantity: 1 }],
+      },
+    );
+
+    expect(shopifyClient.createFulfillment).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { shopifyOrderId: 'shopify-order-1' },
+      create: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+        shopifyOrderId: 'shopify-order-1',
+      }),
+      update: expect.objectContaining({
+        sapoOrderId: 'sapo-order-1',
+      }),
+    });
+  });
+
   it('polls Sapo shipment until tracking code is available before Shopify fulfillment', async () => {
     const { service, sapoClient, shopifyClient, configService, prisma } =
       createService();
@@ -1289,7 +1407,7 @@ describe('OrderWebhookExecutionService', () => {
   });
 
   it('uses configured carrier values when building Sapo and Shopify fulfillment payloads', async () => {
-    const { service, sapoClient, shopifyClient, prisma, configService } = createService();
+    const { service, sapoClient, shopifyClient, prisma, configService, addressMappingService } = createService();
     prisma.orderMapping.findUnique.mockResolvedValue({
       sapoOrderId: 'sapo-order-1',
       pancakeOrderId: 'pancake-order-1',
@@ -1352,8 +1470,8 @@ describe('OrderWebhookExecutionService', () => {
     );
     expect(detail).toEqual(
       expect.objectContaining({
-        sender_province_id: 79,
-        sender_district_id: 784,
+        sender_province_id: 22,
+        sender_district_id: 66,
         order_service: 'VTP_CUSTOM',
         product_weight: 550,
         product_height: 20,
@@ -1363,6 +1481,8 @@ describe('OrderWebhookExecutionService', () => {
         shipping_account_id: 'ACCOUNT_CUSTOM',
       }),
     );
+
+    expect(addressMappingService.resolvePancakeAddress).toHaveBeenCalledTimes(1);
 
     await service.executePlan(
       {

@@ -55,15 +55,9 @@ export class SapoToPancakeOrderSyncService {
         };
       }
 
-      const addressMapping = await this.resolvePancakeAddressMapping(sapoOrder);
-      const fullPayload = await this.mapper.toPancakeOrder(
-        sapoOrder,
-        addressMapping,
-      );
-      const payload = fullPayload ?? statusPayload;
       const response = await this.pancakeClient.updateOrder(
         mapping.pancakeOrderId,
-        payload,
+        statusPayload,
       );
       const pancakeOrder = this.objectPayload(response.data);
       const pancakeOrderId =
@@ -74,13 +68,24 @@ export class SapoToPancakeOrderSyncService {
         sapoOrderId,
         pancakeOrderId,
         pancakeOrder,
-        payload,
+        payload: statusPayload,
       });
 
       return {
         action: 'updated',
         sapoOrderId,
         pancakeOrderId,
+      };
+    }
+
+    if (
+      !this.createPancakeOrdersFromSapo() ||
+      !this.hasOrderCodePrefix(sapoOrder, 'AUTO_PANCAKE_')
+    ) {
+      return {
+        action: 'skipped',
+        sapoOrderId,
+        pancakeOrderId: null,
       };
     }
 
@@ -248,6 +253,19 @@ export class SapoToPancakeOrderSyncService {
     return String(value);
   }
 
+  private hasOrderCodePrefix(
+    sapoOrder: SapoOrderSnapshot,
+    prefix: string,
+  ): boolean {
+    const code = this.stringOrNull(
+      (sapoOrder as Record<string, any>).code ??
+        (sapoOrder as Record<string, any>).order_code ??
+        (sapoOrder as Record<string, any>).orderCode,
+    );
+
+    return Boolean(code?.startsWith(prefix));
+  }
+
   private configBoolean(key: string, fallback: boolean): boolean {
     const value = this.configService?.get<boolean | string | undefined>(key);
     if (value === undefined || value === null || value === '') {
@@ -255,6 +273,10 @@ export class SapoToPancakeOrderSyncService {
     }
 
     return value === true || value === 'true';
+  }
+
+  private createPancakeOrdersFromSapo(): boolean {
+    return this.configBoolean('sync.orders.createPancakeOrdersFromSapo', false);
   }
 
   private shouldSkipPancakeStatusUpdate(

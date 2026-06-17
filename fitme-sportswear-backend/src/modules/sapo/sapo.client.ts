@@ -215,10 +215,12 @@ export class SapoClient {
     limit: number,
     query: string,
   ): Promise<SapoCustomerResponse> {
-    const url = new URL('/admin/customers.json', `${this.getBaseUrl().replace(/\/$/, '')}/`);
+    const url = new URL('/admin/customers/doSearch.json', `${this.getBaseUrl().replace(/\/$/, '')}/`);
     url.searchParams.set('page', String(page));
     url.searchParams.set('limit', String(limit));
-    url.searchParams.set('query', query);
+    url.searchParams.set('query.contains', query);
+    url.searchParams.set('statuses.in', 'active');
+    url.searchParams.set('condition_type', 'must');
 
     const response = await this.sessionService.fetchWithSession(url.toString());
 
@@ -527,6 +529,8 @@ export class SapoClient {
       normalized.includes('not_suitable') ||
       normalized.includes('not suitable') ||
       normalized.includes('status.not_suitable') ||
+      normalized.includes('không thể duyệt') ||
+      normalized.includes('khong the duyet') ||
       normalized.includes('cancelled') ||
       normalized.includes('canceled') ||
       normalized.includes('finalized') ||

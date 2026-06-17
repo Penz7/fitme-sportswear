@@ -168,6 +168,29 @@ describe('OrderWebhookProcessingService', () => {
     ]);
   });
 
+  it('ignores Pancake webhooks when Pancake channel is disabled', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'webhook.pancake.enabled' ? false : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      sourcePlatform: 'pancake',
+      eventType: 'order_created',
+      externalEventId: 'pancake-order-disabled',
+      payload: { id: 'pancake-order-disabled', status: 0, note: 'WEBHOOK_TEST' },
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        platform: 'pancake',
+        externalOrderId: 'pancake-order-disabled',
+        statusDescription: 'PANCAKE_WEBHOOK_DISABLED',
+        nextActions: ['ignore'],
+      }),
+    );
+  });
+
   it('plans Shopify order webhook using the legacy order-to-Sapo plus fulfillment flow', () => {
     const result = service.buildProcessingPlan({
       id: 'event-6',
@@ -197,6 +220,108 @@ describe('OrderWebhookProcessingService', () => {
         'upsert_order_mapping',
       ],
     });
+  });
+
+  it('ignores Shopify orders that do not match the configured test marker', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'shopify.testOrderFilter' ? 'WEBHOOK_TEST' : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      id: 'event-shopify-filtered',
+      sourcePlatform: 'shopify',
+      eventType: 'order',
+      externalEventId: 'shopify-real-order',
+      payload: { id: 'shopify-real-order', note: 'normal order' },
+    } as any);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        platform: 'shopify',
+        externalOrderId: 'shopify-real-order',
+        statusDescription: 'SHOPIFY_TEST_FILTER_IGNORED',
+        nextActions: ['ignore'],
+      }),
+    );
+  });
+
+  it('processes Shopify orders that match the configured test marker', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'shopify.testOrderFilter' ? 'WEBHOOK_TEST' : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      id: 'event-shopify-test-order',
+      sourcePlatform: 'shopify',
+      eventType: 'order',
+      externalEventId: 'shopify-test-order',
+      payload: {
+        id: 'shopify-test-order',
+        note_attributes: [{ name: 'test_marker', value: 'WEBHOOK_TEST' }],
+      },
+    } as any);
+
+    expect(result.nextActions).toEqual([
+      'create_sapo_order_if_missing',
+      'finalize_sapo_order',
+      'update_sapo_order',
+      'create_sapo_fulfillment',
+      'create_shopify_fulfillment',
+      'upsert_order_mapping',
+    ]);
+  });
+
+  it('plans Shopify cancelled orders as Sapo cancellation actions', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'shopify.testOrderFilter' ? 'WEBHOOK_TEST' : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      id: 'event-shopify-cancelled',
+      sourcePlatform: 'shopify',
+      eventType: 'order',
+      externalEventId: 'shopify-order-1',
+      payload: {
+        id: 'shopify-order-1',
+        cancelled_at: '2026-06-16T16:10:00+07:00',
+        note: 'WEBHOOK_TEST',
+      },
+    } as any);
+
+    expect(result.statusDescription).toBe('SHOPIFY_CANCELLED');
+    expect(result.nextActions).toEqual([
+      'cancel_sapo_delivery_if_exists',
+      'receive_after_cancellation_if_needed',
+      'cancel_sapo_order',
+      'upsert_order_mapping',
+    ]);
+  });
+
+  it('ignores Shopify webhooks when Shopify channel is disabled', () => {
+    const processingService = new OrderWebhookProcessingService(
+      new OrderInventoryImpactService(),
+      { get: (key: string) => (key === 'webhook.shopify.enabled' ? false : undefined) } as any,
+    );
+
+    const result = processingService.buildProcessingPlan({
+      id: 'event-shopify-disabled',
+      sourcePlatform: 'shopify',
+      eventType: 'order',
+      externalEventId: 'shopify-order-disabled',
+      payload: { id: 'shopify-order-disabled' },
+    } as any);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        platform: 'shopify',
+        externalOrderId: 'shopify-order-disabled',
+        statusDescription: 'SHOPIFY_WEBHOOK_DISABLED',
+        nextActions: ['ignore'],
+      }),
+    );
   });
 
   it('explicitly ignores Shopify product and fulfillment webhooks', () => {
