@@ -608,7 +608,7 @@ describe('InventorySyncService missing product creation', () => {
     expect(result.createdShopify).toBe(1);
   });
 
-  it('creates every missing Shopify product in the run when creation is enabled', async () => {
+  it('limits missing Shopify product creation per run', async () => {
     const { service, shopifyClient } = createService({
       'sync.products.createMissingShopify': true,
       'sync.products.createMissingShopifyMaxPerRun': 1,
@@ -627,8 +627,35 @@ describe('InventorySyncService missing product creation', () => {
       }),
     ]);
 
-    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledTimes(2);
-    expect(result.createdShopify).toBe(2);
+    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledTimes(1);
+    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledWith(
+      expect.objectContaining({ sku: 'SKU-NEW-1' }),
+    );
+    expect(result.createdShopify).toBe(1);
+  });
+
+  it('creates only allowlisted missing Shopify products when an allowlist is configured', async () => {
+    const { service, shopifyClient } = createService({
+      'sync.products.createMissingShopify': true,
+      'sync.products.createMissingShopifySkuAllowlist': ['SKU-NEW-2'],
+    });
+
+    const result = await service.syncMappings([
+      sapoOnlyMapping({
+        sku: 'SKU-NEW-1',
+        normalizedSku: 'SKU-NEW-1',
+      }),
+      sapoOnlyMapping({
+        sku: 'SKU-NEW-2',
+        normalizedSku: 'SKU-NEW-2',
+      }),
+    ]);
+
+    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledTimes(1);
+    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledWith(
+      expect.objectContaining({ sku: 'SKU-NEW-2' }),
+    );
+    expect(result.createdShopify).toBe(1);
   });
 
   it('persists created Shopify IDs when inventory and price update fails after create', async () => {

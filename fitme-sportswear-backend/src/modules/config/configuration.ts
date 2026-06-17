@@ -86,6 +86,15 @@ export default () => ({
     webhookPublicBaseUrl: process.env.SHOPIFY_WEBHOOK_PUBLIC_BASE_URL,
     webhookAutoRegisterEnabled:
       process.env.SHOPIFY_WEBHOOK_AUTO_REGISTER_ENABLED !== 'false',
+    productFetchPageDelayMs: Number(
+      process.env.SHOPIFY_PRODUCT_FETCH_PAGE_DELAY_MS ?? 750,
+    ),
+    productFetchMaxRetries: Number(
+      process.env.SHOPIFY_PRODUCT_FETCH_MAX_RETRIES ?? 5,
+    ),
+    productFetchRetryBaseDelayMs: Number(
+      process.env.SHOPIFY_PRODUCT_FETCH_RETRY_BASE_DELAY_MS ?? 2000,
+    ),
   },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
@@ -137,6 +146,9 @@ export default () => ({
       ),
       createMissingShopifyMaxPerRun: Number(
         process.env.SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_MAX_PER_RUN ?? 20,
+      ),
+      createMissingShopifySkuAllowlist: parseStringList(
+        process.env.SYNC_CREATE_MISSING_SHOPIFY_SKU_ALLOWLIST,
       ),
       shopifyEnabled:
         process.env.SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED === 'true',

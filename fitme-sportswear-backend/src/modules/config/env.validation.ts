@@ -44,6 +44,19 @@ export const envValidationSchema = Joi.object({
     .truthy('true')
     .falsy('false')
     .default(true),
+  SHOPIFY_PRODUCT_FETCH_PAGE_DELAY_MS: Joi.number()
+    .integer()
+    .min(0)
+    .default(750),
+  SHOPIFY_PRODUCT_FETCH_MAX_RETRIES: Joi.number()
+    .integer()
+    .min(0)
+    .max(10)
+    .default(5),
+  SHOPIFY_PRODUCT_FETCH_RETRY_BASE_DELAY_MS: Joi.number()
+    .integer()
+    .min(0)
+    .default(2000),
   SHOPIFY_TEST_ORDER_FILTER: Joi.string().allow('').optional(),
   WEBHOOK_INGESTION_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   PANCAKE_WEBHOOK_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
@@ -149,6 +162,9 @@ export const envValidationSchema = Joi.object({
     .min(0)
     .max(100)
     .default(20),
+  SYNC_CREATE_MISSING_SHOPIFY_SKU_ALLOWLIST: Joi.string()
+    .allow('')
+    .optional(),
   SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED: Joi.boolean()
     .truthy('true')
     .falsy('false')

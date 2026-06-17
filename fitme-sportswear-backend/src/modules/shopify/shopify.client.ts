@@ -104,22 +104,44 @@ export class ShopifyClient {
   async fetchProducts(): Promise<ShopifyProductResponse[]> {
     const products: ShopifyProductResponse[] = [];
     let url: string | null = this.buildProductsUrl();
+    let pageIndex = 0;
 
     while (url) {
+      if (pageIndex > 0) {
+        await this.delay(this.productFetchPageDelayMs());
+      }
+
+      const response = await this.fetchProductPageWithRetry(url);
+
+      const body = (await response.json()) as ShopifyProductsPage;
+      products.push(...(body.products ?? []));
+      url = this.extractNextLink(response.headers.get('link'));
+      pageIndex += 1;
+    }
+
+    return products;
+  }
+
+  private async fetchProductPageWithRetry(url: string): Promise<Response> {
+    const maxRetries = this.productFetchMaxRetries();
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       const response = await fetch(url, { headers: this.authHeaders() });
 
-      if (!response.ok) {
+      if (response.ok) {
+        return response;
+      }
+
+      if (response.status !== 429 || attempt >= maxRetries) {
         throw new Error(
           `Shopify product fetch failed with status ${response.status}`,
         );
       }
 
-      const body = (await response.json()) as ShopifyProductsPage;
-      products.push(...(body.products ?? []));
-      url = this.extractNextLink(response.headers.get('link'));
+      await this.delay(this.productFetchRetryDelayMs(response, attempt));
     }
 
-    return products;
+    throw new Error('Shopify product fetch failed after retries');
   }
 
   async updateInventoryAndPrice(
@@ -411,6 +433,55 @@ export class ShopifyClient {
       'id,title,vendor,product_type,status,images,variants',
     );
     return url.toString();
+  }
+
+  private productFetchPageDelayMs(): number {
+    return this.configNumber('shopify.productFetchPageDelayMs', 750);
+  }
+
+  private productFetchMaxRetries(): number {
+    return this.configNumber('shopify.productFetchMaxRetries', 5);
+  }
+
+  private productFetchRetryBaseDelayMs(): number {
+    return this.configNumber('shopify.productFetchRetryBaseDelayMs', 2000);
+  }
+
+  private productFetchRetryDelayMs(response: Response, attempt: number): number {
+    const retryAfter = response.headers.get('retry-after');
+    if (retryAfter) {
+      const retryAfterSeconds = Number(retryAfter);
+      if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+        return retryAfterSeconds * 1000;
+      }
+
+      const retryAfterDate = Date.parse(retryAfter);
+      if (!Number.isNaN(retryAfterDate)) {
+        return Math.max(retryAfterDate - Date.now(), 0);
+      }
+    }
+
+    return this.productFetchRetryBaseDelayMs() * 2 ** attempt;
+  }
+
+  private configNumber(key: string, fallback: number): number {
+    const value = this.configService.get<number | string | undefined>(key);
+    const parsed =
+      typeof value === 'number'
+        ? value
+        : value === undefined || value === null || value === ''
+          ? fallback
+          : Number(value);
+
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  }
+
+  private delay(ms: number): Promise<void> {
+    if (ms <= 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private extractNextLink(linkHeader: string | null): string | null {

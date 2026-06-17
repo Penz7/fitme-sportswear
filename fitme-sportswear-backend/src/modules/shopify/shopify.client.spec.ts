@@ -15,6 +15,9 @@ describe('ShopifyClient', () => {
       'shopify.accessToken': 'shopify-token',
       'shopify.apiVersion': '2024-04',
       'shopify.locationId': undefined,
+      'shopify.productFetchPageDelayMs': '0',
+      'shopify.productFetchMaxRetries': '2',
+      'shopify.productFetchRetryBaseDelayMs': '1',
       ...overrides,
     };
 
@@ -42,7 +45,29 @@ describe('ShopifyClient', () => {
       ok,
       status,
       headers: {
-        get: (name: string) => (name.toLowerCase() === 'link' ? link : null),
+        get: (name: string) => {
+          if (name.toLowerCase() === 'link') {
+            return link;
+          }
+          return null;
+        },
+      },
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    } as unknown as Response;
+  }
+
+  function responseWithHeaders(
+    body: unknown,
+    ok: boolean,
+    status: number,
+    headers: Record<string, string>,
+  ) {
+    return {
+      ok,
+      status,
+      headers: {
+        get: (name: string) => headers[name.toLowerCase()] ?? null,
       },
       json: async () => body,
       text: async () => JSON.stringify(body),
@@ -91,6 +116,63 @@ describe('ShopifyClient', () => {
     await expect(createClient().fetchProducts()).rejects.toThrow(
       'Shopify product fetch failed with status 401',
     );
+  });
+
+  it('retries Shopify product fetch 429 using Retry-After before continuing', async () => {
+    jest.useFakeTimers();
+    fetchMock
+      .mockResolvedValueOnce(
+        responseWithHeaders({ errors: 'rate limited' }, false, 429, {
+          'retry-after': '2',
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          products: [{ id: 'p1', title: 'Shirt', variants: [] }],
+        }),
+      );
+
+    const promise = createClient().fetchProducts();
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(2000);
+
+    await expect(promise).resolves.toEqual([
+      { id: 'p1', title: 'Shirt', variants: [] },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    jest.useRealTimers();
+  });
+
+  it('waits between Shopify product pages when a page delay is configured', async () => {
+    jest.useFakeTimers();
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { products: [{ id: 'p1', title: 'Shirt', variants: [] }] },
+          true,
+          200,
+          '<https://fitme.myshopify.com/admin/api/2024-04/products.json?limit=250&page_info=next-page>; rel="next"',
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          products: [{ id: 'p2', title: 'Shorts', variants: [] }],
+        }),
+      );
+
+    const promise = createClient({
+      'shopify.productFetchPageDelayMs': '500',
+    }).fetchProducts();
+    await Promise.resolve();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(499);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(1);
+
+    await expect(promise).resolves.toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    jest.useRealTimers();
   });
 
   it('fetches and caches the first Shopify location when location id is not configured', async () => {

@@ -55,15 +55,18 @@ export class InventorySyncService {
       errors: [],
     };
     const blockedSkus = this.productSyncSkuBlocklist();
+    const shopifyCreateAllowlist = this.createMissingShopifySkuAllowlist();
     const shopifyCandidates = this.countShopifyCandidates(
       mappings,
       blockedSkus,
+      shopifyCreateAllowlist,
     );
     const shopifyProgressInterval = this.configNumber(
       'sync.shopifyProgressInterval',
       100,
     );
     let processedShopify = 0;
+    let createdMissingShopifyAttempts = 0;
     let updatedShopifySkusSinceLastProgress: string[] = [];
     let createdShopifySkusSinceLastProgress: string[] = [];
 
@@ -260,8 +263,13 @@ export class InventorySyncService {
 
       if (
         !mapping.shopify?.variantId &&
-        this.createMissingShopifyProducts()
+        this.canCreateMissingShopifyProduct(
+          mapping,
+          shopifyCreateAllowlist,
+          createdMissingShopifyAttempts,
+        )
       ) {
+        createdMissingShopifyAttempts += 1;
         try {
           const created = await this.shopifyClient.createProductFromSapo({
             sku: mapping.sku,
@@ -337,6 +345,7 @@ export class InventorySyncService {
   private countShopifyCandidates(
     mappings: ProductMappingCandidate[],
     blockedSkus: string[],
+    shopifyCreateAllowlist: string[],
   ): number {
     const updateCandidates = mappings.filter(
       (mapping) =>
@@ -354,10 +363,15 @@ export class InventorySyncService {
         Boolean(mapping.sapo) &&
         mapping.sapo?.available !== null &&
         !mapping.shopify?.variantId &&
-        this.createMissingShopifyProducts(),
+        this.createMissingShopifyProducts() &&
+        this.matchesShopifyCreateAllowlist(mapping, shopifyCreateAllowlist),
     ).length;
+    const createLimit = this.createMissingShopifyMaxPerRun();
 
-    return updateCandidates + createCandidates;
+    return (
+      updateCandidates +
+      (createLimit > 0 ? Math.min(createCandidates, createLimit) : createCandidates)
+    );
   }
 
   private async notifyShopifyProgress(
@@ -578,6 +592,40 @@ export class InventorySyncService {
 
   private createMissingShopifyProducts(): boolean {
     return this.configBoolean('sync.products.createMissingShopify', false);
+  }
+
+  private createMissingShopifyMaxPerRun(): number {
+    return this.configNumber('sync.products.createMissingShopifyMaxPerRun', 20);
+  }
+
+  private createMissingShopifySkuAllowlist(): string[] {
+    return this.configStringList(
+      'sync.products.createMissingShopifySkuAllowlist',
+    ).map((sku) => normalizeSku(sku));
+  }
+
+  private canCreateMissingShopifyProduct(
+    mapping: ProductMappingCandidate,
+    allowlist: string[],
+    attempted: number,
+  ): boolean {
+    if (!this.createMissingShopifyProducts()) {
+      return false;
+    }
+
+    const maxPerRun = this.createMissingShopifyMaxPerRun();
+    if (maxPerRun > 0 && attempted >= maxPerRun) {
+      return false;
+    }
+
+    return this.matchesShopifyCreateAllowlist(mapping, allowlist);
+  }
+
+  private matchesShopifyCreateAllowlist(
+    mapping: ProductMappingCandidate,
+    allowlist: string[],
+  ): boolean {
+    return allowlist.length === 0 || allowlist.includes(mapping.normalizedSku);
   }
 
   private configBoolean(key: string, fallback: boolean): boolean {
