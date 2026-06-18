@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
 import { PancakeClient } from '../pancake/pancake.client';
@@ -29,6 +30,7 @@ export interface InventorySyncResult {
 
 export interface InventorySyncOptions {
   syncRunId?: string;
+  syncPancake?: boolean;
 }
 
 interface ShopifyCandidateGroups {
@@ -76,8 +78,9 @@ export class InventorySyncService {
     let createdMissingShopifyAttempts = 0;
     let updatedShopifySkusSinceLastProgress: string[] = [];
     let createdShopifySkusSinceLastProgress: string[] = [];
+    const syncPancake = options.syncPancake !== false;
 
-    for (const mapping of mappings) {
+    for (const mapping of syncPancake ? mappings : []) {
       if (this.blockedSku(mapping.sku, blockedSkus)) {
         continue;
       }
@@ -456,7 +459,7 @@ export class InventorySyncService {
       createdShopifySkusSample: string[];
     },
   ): Promise<boolean> {
-    if (!this.notifier || !syncRunId || input.shopifyCandidates === 0) {
+    if (!syncRunId || input.shopifyCandidates === 0) {
       return false;
     }
 
@@ -470,6 +473,27 @@ export class InventorySyncService {
     const shopifyErrors = input.result.errors.filter(
       (error) => error.platform === 'shopify',
     ).length;
+
+    await this.updateShopifyProgressMetadata(syncRunId, {
+      stage: 'updating_shopify',
+      processedShopify: input.processedShopify,
+      remainingShopify: Math.max(
+        input.shopifyCandidates - input.processedShopify,
+        0,
+      ),
+      shopifyCandidates: input.shopifyCandidates,
+      hotShopifyCandidates: input.hotShopifyCandidates,
+      backlogShopifyCandidates: input.backlogShopifyCandidates,
+      updatedShopify: input.result.updatedShopify,
+      createdShopify: input.result.createdShopify,
+      shopifyErrors,
+      updatedShopifySkusSample: input.updatedShopifySkusSample,
+      createdShopifySkusSample: input.createdShopifySkusSample,
+    });
+
+    if (!this.notifier) {
+      return true;
+    }
 
     try {
       await this.notifier.sendMessage(
@@ -491,6 +515,20 @@ export class InventorySyncService {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  private async updateShopifyProgressMetadata(
+    syncRunId: string,
+    metadata: Prisma.InputJsonObject,
+  ): Promise<void> {
+    try {
+      await this.prisma.syncRun.update({
+        where: { id: syncRunId },
+        data: { metadata },
+      });
+    } catch {
+      return;
     }
   }
 

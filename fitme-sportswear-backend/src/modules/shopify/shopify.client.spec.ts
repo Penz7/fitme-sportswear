@@ -18,6 +18,9 @@ describe('ShopifyClient', () => {
       'shopify.productFetchPageDelayMs': '0',
       'shopify.productFetchMaxRetries': '2',
       'shopify.productFetchRetryBaseDelayMs': '1',
+      'shopify.requestTimeoutMs': '1000',
+      'shopify.requestMaxRetries': '2',
+      'shopify.requestRetryBaseDelayMs': '1',
       ...overrides,
     };
 
@@ -99,12 +102,18 @@ describe('ShopifyClient', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'https://fitme.myshopify.com/admin/api/2024-04/products.json?limit=250&fields=id%2Ctitle%2Cvendor%2Cproduct_type%2Cstatus%2Cimages%2Cvariants',
-      { headers: { 'X-Shopify-Access-Token': 'shopify-token' } },
+      expect.objectContaining({
+        headers: { 'X-Shopify-Access-Token': 'shopify-token' },
+        signal: expect.any(AbortSignal),
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://fitme.myshopify.com/admin/api/2024-04/products.json?limit=250&page_info=next-page',
-      { headers: { 'X-Shopify-Access-Token': 'shopify-token' } },
+      expect.objectContaining({
+        headers: { 'X-Shopify-Access-Token': 'shopify-token' },
+        signal: expect.any(AbortSignal),
+      }),
     );
   });
 
@@ -216,7 +225,10 @@ describe('ShopifyClient', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://fitme.myshopify.com/admin/api/2024-04/locations.json',
-      { headers: { 'X-Shopify-Access-Token': 'shopify-token' } },
+      expect.objectContaining({
+        headers: { 'X-Shopify-Access-Token': 'shopify-token' },
+        signal: expect.any(AbortSignal),
+      }),
     );
     expect(fetchMock).toHaveBeenCalledTimes(5);
   });
@@ -246,12 +258,15 @@ describe('ShopifyClient', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'https://fitme.myshopify.com/admin/api/2024-04/variants/variant-1.json',
-      { headers: { 'X-Shopify-Access-Token': 'shopify-token' } },
+      expect.objectContaining({
+        headers: { 'X-Shopify-Access-Token': 'shopify-token' },
+        signal: expect.any(AbortSignal),
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://fitme.myshopify.com/admin/api/2024-04/inventory_levels/set.json',
-      {
+      expect.objectContaining({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -262,8 +277,104 @@ describe('ShopifyClient', () => {
           location_id: 'location-9',
           available: 7,
         }),
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('adds a timeout signal to Shopify inventory sync requests', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          variant: {
+            id: 'variant-1',
+            inventory_item_id: 'inventory-item-1',
+            inventory_management: 'shopify',
+            price: '150000',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ inventory_level: { available: 7 } }));
+
+    await createClient({ 'shopify.locationId': 'location-9' }).updateInventoryAndPrice(
+      {
+        variantId: 'variant-1',
+        available: 7,
+        retailPrice: 150000,
       },
     );
+
+    expect(fetchMock.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        headers: { 'X-Shopify-Access-Token': 'shopify-token' },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(fetchMock.mock.calls[1][1]).toEqual(
+      expect.objectContaining({
+        method: 'POST',
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('retries retryable Shopify inventory update responses before continuing', async () => {
+    jest.useFakeTimers();
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          variant: {
+            id: 'variant-1',
+            inventory_item_id: 'inventory-item-1',
+            inventory_management: 'shopify',
+            price: '150000',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ errors: 'temporary' }, false, 500))
+      .mockResolvedValueOnce(jsonResponse({ inventory_level: { available: 7 } }));
+
+    const promise = createClient({ 'shopify.locationId': 'location-9' }).updateInventoryAndPrice(
+      {
+        variantId: 'variant-1',
+        available: 7,
+        retailPrice: 150000,
+      },
+    );
+
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(1);
+
+    await expect(promise).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    jest.useRealTimers();
+  });
+
+  it('retries retryable Shopify order fetch responses before failing reconciliation', async () => {
+    jest.useFakeTimers();
+    fetchMock
+      .mockResolvedValueOnce(
+        responseWithHeaders({ errors: 'rate limited' }, false, 429, {
+          'retry-after': '1',
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ order: { id: 'shopify-order-1' } }));
+
+    const promise = createClient().fetchOrder('shopify-order-1');
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(1000);
+
+    await expect(promise).resolves.toEqual({ id: 'shopify-order-1' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://fitme.myshopify.com/admin/api/2024-04/orders/shopify-order-1.json',
+      expect.objectContaining({
+        headers: { 'X-Shopify-Access-Token': 'shopify-token' },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    jest.useRealTimers();
   });
 
   it('updates variant inventory management and Sapo retail price when needed', async () => {
@@ -294,7 +405,7 @@ describe('ShopifyClient', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://fitme.myshopify.com/admin/api/2024-04/variants/variant-1.json',
-      {
+      expect.objectContaining({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -306,12 +417,13 @@ describe('ShopifyClient', () => {
             inventory_management: 'shopify',
           },
         }),
-      },
+        signal: expect.any(AbortSignal),
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
       'https://fitme.myshopify.com/admin/api/2024-04/variants/variant-1.json',
-      {
+      expect.objectContaining({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -323,7 +435,8 @@ describe('ShopifyClient', () => {
             price: 999999,
           },
         }),
-      },
+        signal: expect.any(AbortSignal),
+      }),
     );
   });
 

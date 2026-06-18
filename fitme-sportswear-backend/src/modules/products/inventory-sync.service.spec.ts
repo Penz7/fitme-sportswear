@@ -71,6 +71,9 @@ describe('InventorySyncService missing product creation', () => {
         findMany: jest.fn().mockResolvedValue([]),
         upsert: jest.fn().mockResolvedValue({}),
       },
+      syncRun: {
+        update: jest.fn().mockResolvedValue({}),
+      },
     };
     const pancakeClient = {
       createProductFromSapo: jest.fn().mockResolvedValue({
@@ -538,7 +541,7 @@ describe('InventorySyncService missing product creation', () => {
   });
 
   it('sends Shopify inventory progress with remaining count and sample SKUs', async () => {
-    const { service, notifier } = createService({
+    const { service, notifier, prisma } = createService({
       'sync.shopifyProgressInterval': 1,
     });
 
@@ -576,6 +579,20 @@ describe('InventorySyncService missing product creation', () => {
     expect(notifier.sendMessage.mock.calls[1][1]).toContain(
       'updatedShopifySkusSample=SKU-2',
     );
+    expect(prisma.syncRun.update).toHaveBeenCalledWith({
+      where: { id: 'sync-run-1' },
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          stage: 'updating_shopify',
+          processedShopify: 1,
+          remainingShopify: 1,
+          shopifyCandidates: 2,
+          updatedShopify: 1,
+          createdShopify: 0,
+          shopifyErrors: 0,
+        }),
+      }),
+    });
   });
 
   it('processes hot Shopify inventory candidates before backlog candidates', async () => {
@@ -619,6 +636,33 @@ describe('InventorySyncService missing product creation', () => {
       2,
       expect.objectContaining({ variantId: 'shopify-variant-backlog' }),
     );
+  });
+
+  it('can skip Pancake writes while still syncing Shopify inventory', async () => {
+    const { service, pancakeClient, shopifyClient } = createService();
+
+    const result = await service.syncMappings(
+      [
+        {
+          ...sapoOnlyMapping({ sku: 'SKU-1', normalizedSku: 'SKU-1' }),
+          pancake: targetSnapshot('pancake', 'SKU-1', { available: 1 }),
+          shopify: targetSnapshot('shopify', 'SKU-1', { available: 1 }),
+          status: 'matched',
+          conflictReason: null,
+        },
+      ],
+      { syncPancake: false },
+    );
+
+    expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
+    expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(shopifyClient.updateInventoryAndPrice).toHaveBeenCalledWith({
+      variantId: 'shopify-variant-1',
+      available: 7,
+      retailPrice: 150000,
+    });
+    expect(result.updatedPancake).toBe(0);
+    expect(result.updatedShopify).toBe(1);
   });
 
   it('reports Shopify hot and backlog candidate counts in progress notifications', async () => {

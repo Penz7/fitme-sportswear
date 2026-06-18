@@ -95,6 +95,11 @@ export default () => ({
     productFetchRetryBaseDelayMs: Number(
       process.env.SHOPIFY_PRODUCT_FETCH_RETRY_BASE_DELAY_MS ?? 2000,
     ),
+    requestTimeoutMs: Number(process.env.SHOPIFY_REQUEST_TIMEOUT_MS ?? 30000),
+    requestMaxRetries: Number(process.env.SHOPIFY_REQUEST_MAX_RETRIES ?? 3),
+    requestRetryBaseDelayMs: Number(
+      process.env.SHOPIFY_REQUEST_RETRY_BASE_DELAY_MS ?? 1000,
+    ),
   },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,

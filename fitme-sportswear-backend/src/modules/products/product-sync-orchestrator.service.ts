@@ -33,7 +33,7 @@ export class ProductSyncOrchestratorService {
     });
 
     try {
-      const snapshots = await this.snapshotService.refreshAllSnapshots();
+      const snapshots = await this.refreshSnapshotsWithProgress(syncRunId);
       const mappings = await this.applyAmbiguousMappingConflicts(
         this.matchingService.buildMappings(snapshots),
       );
@@ -47,6 +47,7 @@ export class ProductSyncOrchestratorService {
 
       const syncResult = await this.inventorySyncService.syncMappings(mappings, {
         syncRunId,
+        syncPancake: false,
       });
       const counts = this.countMappingStatuses(mappings);
 
@@ -106,21 +107,69 @@ export class ProductSyncOrchestratorService {
     });
   }
 
+  private async refreshSnapshotsWithProgress(
+    syncRunId: string,
+  ): Promise<PlatformProductSnapshot[]> {
+    const refreshSapo = this.snapshotService.refreshSapoSnapshots?.bind(
+      this.snapshotService,
+    );
+    const refreshPancake = this.snapshotService.refreshPancakeSnapshots?.bind(
+      this.snapshotService,
+    );
+    const refreshShopify = this.snapshotService.refreshShopifySnapshots?.bind(
+      this.snapshotService,
+    );
+
+    if (!refreshSapo || !refreshPancake || !refreshShopify) {
+      await this.updateProgressMetadata(syncRunId, {
+        stage: 'refreshing_snapshots',
+      });
+      return this.snapshotService.refreshAllSnapshots();
+    }
+
+    await this.updateProgressMetadata(syncRunId, {
+      stage: 'refreshing_sapo_snapshots',
+    });
+    const sapo = await refreshSapo();
+
+    await this.updateProgressMetadata(syncRunId, {
+      stage: 'refreshing_pancake_snapshots',
+      sapoSnapshots: sapo.length,
+    });
+    const pancake = await refreshPancake();
+
+    await this.updateProgressMetadata(syncRunId, {
+      stage: 'refreshing_shopify_snapshots',
+      sapoSnapshots: sapo.length,
+      pancakeSnapshots: pancake.length,
+    });
+    const shopify = await refreshShopify();
+
+    return [...sapo, ...pancake, ...shopify];
+  }
+
   private async notifyShopifyProgress(
     syncRunId: string,
     snapshots: PlatformProductSnapshot[],
     mappings: ProductMappingCandidate[],
   ): Promise<void> {
-    if (!this.notifier) {
-      return;
-    }
-
     const shopifySnapshots = snapshots.filter(
       (snapshot) => snapshot.platform === 'shopify',
     ).length;
     const shopifyMappings = mappings.filter(
       (mapping) => Boolean(mapping.shopify?.variantId),
     ).length;
+
+    await this.updateProgressMetadata(syncRunId, {
+      stage: 'snapshots_refreshed',
+      shopifySnapshots,
+      shopifyMappings,
+      totalMappings: mappings.length,
+    });
+
+    if (!this.notifier) {
+      return;
+    }
 
     try {
       await this.notifier.sendMessage(
@@ -132,6 +181,22 @@ export class ProductSyncOrchestratorService {
           `totalMappings=${mappings.length}`,
         ].join('\n'),
       );
+    } catch {
+      return;
+    }
+  }
+
+  private async updateProgressMetadata(
+    syncRunId: string,
+    metadata: Prisma.InputJsonObject,
+  ): Promise<void> {
+    try {
+      await this.prisma.syncRun.update({
+        where: { id: syncRunId },
+        data: {
+          metadata,
+        },
+      });
     } catch {
       return;
     }

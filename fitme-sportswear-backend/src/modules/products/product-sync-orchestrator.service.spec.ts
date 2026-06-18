@@ -52,6 +52,9 @@ describe('ProductSyncOrchestratorService', () => {
     };
     const snapshotService = {
       refreshAllSnapshots: jest.fn().mockResolvedValue(snapshots),
+      refreshSapoSnapshots: jest.fn().mockResolvedValue([sapoSnapshot]),
+      refreshPancakeSnapshots: jest.fn().mockResolvedValue([]),
+      refreshShopifySnapshots: jest.fn().mockResolvedValue([]),
     } as unknown as ProductSnapshotService;
     const matchingService = {
       buildMappings: jest.fn().mockReturnValue([mapping]),
@@ -74,7 +77,10 @@ describe('ProductSyncOrchestratorService', () => {
 
     await service.run(syncRunId);
 
-    expect(snapshotService.refreshAllSnapshots).toHaveBeenCalledTimes(1);
+    expect(snapshotService.refreshSapoSnapshots).toHaveBeenCalledTimes(1);
+    expect(snapshotService.refreshPancakeSnapshots).toHaveBeenCalledTimes(1);
+    expect(snapshotService.refreshShopifySnapshots).toHaveBeenCalledTimes(1);
+    expect(snapshotService.refreshAllSnapshots).not.toHaveBeenCalled();
     expect(matchingService.buildMappings).toHaveBeenCalledWith(snapshots);
     expect(prisma.productMapping.upsert).toHaveBeenCalledWith({
       where: { sku: 'SKU-1' },
@@ -104,6 +110,18 @@ describe('ProductSyncOrchestratorService', () => {
     });
     expect(inventorySyncService.syncMappings).toHaveBeenCalledWith([mapping], {
       syncRunId,
+      syncPancake: false,
+    });
+    expect(prisma.syncRun.update).toHaveBeenCalledWith({
+      where: { id: syncRunId },
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          stage: 'snapshots_refreshed',
+          shopifySnapshots: 0,
+          shopifyMappings: 0,
+          totalMappings: 1,
+        }),
+      }),
     });
     expect(prisma.syncRun.update).toHaveBeenCalledWith({
       where: { id: syncRunId },
@@ -583,7 +601,7 @@ describe('ProductSyncOrchestratorService', () => {
           }),
         }),
       ],
-      { syncRunId },
+      { syncRunId, syncPancake: false },
     );
     expect(prisma.productSyncConflict.upsert).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,0 +1,48 @@
+{
+  "fetchedAt": "2026-06-18T07:01:52.090Z",
+  "csvPath": "/Users/penz/Documents/GIC/fitme-sportswear/fitme-sportswear-backend/reports/live-sku-inventory-audit-2026-06-18T07-01-52-085Z.csv",
+  "sapo": {
+    "products": 11727,
+    "comparableSkusAll": 12326,
+    "comparableSkusRegular": 3668,
+    "duplicateSkus": 0,
+    "duplicateSkusSample": []
+  },
+  "pancake": {
+    "variations": 12649,
+    "comparableSkus": 12647,
+    "duplicateSkus": 1,
+    "duplicateSkusSample": [
+      "FM-QN2L03-XN-2XL"
+    ],
+    "missingFromSapo": 226,
+    "extraNotInSapo": 547,
+    "inventoryDiff": 913
+  },
+  "shopify": {
+    "products": 1022,
+    "comparableRegularSkus": 2088,
+    "duplicateRegularSkus": 16,
+    "duplicateRegularSkusSample": [
+      "FM-ACRT01-DE-L",
+      "FM-ACRT01-DE-M",
+      "FM-ACRT01-DE-S",
+      "FM-ACRT01-DE-XL",
+      "FM-QDSL02-VP-L",
+      "FM-QDSL02-VP-M",
+      "FM-QDSL02-VP-S",
+      "FM-QDSL02-VP-XL",
+      "FM-QSBL01-BN-L",
+      "FM-QSBL01-BN-M",
+      "FM-QSBL01-BN-S",
+      "FM-QSBL01-BN-XL",
+      "FM-VXGR01-DO-L",
+      "FM-VXGR01-DO-M",
+      "FM-VXGR01-DO-S",
+      "FM-VXGR01-DO-XL"
+    ],
+    "missingFromSapoRegular": 1613,
+    "extraNotInSapoRegular": 33,
+    "inventoryDiffRegular": 547
+  }
+}

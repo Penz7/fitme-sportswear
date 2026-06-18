@@ -126,13 +126,25 @@ export class ShopifyClient {
     const maxRetries = this.productFetchMaxRetries();
 
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-      const response = await fetch(url, { headers: this.authHeaders() });
+      let response: Response;
+      try {
+        response = await this.fetchWithTimeout(url, {
+          headers: this.authHeaders(),
+        });
+      } catch (error) {
+        if (attempt >= maxRetries) {
+          throw error;
+        }
+
+        await this.delay(this.productFetchRetryBaseDelayMs() * 2 ** attempt);
+        continue;
+      }
 
       if (response.ok) {
         return response;
       }
 
-      if (response.status !== 429 || attempt >= maxRetries) {
+      if (!this.isRetryableResponse(response) || attempt >= maxRetries) {
         throw new Error(
           `Shopify product fetch failed with status ${response.status}`,
         );
@@ -161,15 +173,19 @@ export class ShopifyClient {
     }
 
     const locationId = await this.getLocationId();
-    const response = await fetch(this.apiUrl('/inventory_levels/set.json'), {
-      method: 'POST',
-      headers: this.jsonHeaders(),
-      body: JSON.stringify({
-        inventory_item_id: variant.inventory_item_id,
-        location_id: locationId,
-        available: input.available,
-      }),
-    });
+    const response = await this.fetchWithRetry(
+      this.apiUrl('/inventory_levels/set.json'),
+      {
+        method: 'POST',
+        headers: this.jsonHeaders(),
+        body: JSON.stringify({
+          inventory_item_id: variant.inventory_item_id,
+          location_id: locationId,
+          available: input.available,
+        }),
+      },
+      'Shopify inventory level update',
+    );
 
     if (!response.ok) {
       throw new Error(
@@ -249,22 +265,26 @@ export class ShopifyClient {
   async createProductFromSapo(
     input: ShopifyProductCreateInput,
   ): Promise<ShopifyProductCreateResult> {
-    const response = await fetch(this.apiUrl('/products.json'), {
-      method: 'POST',
-      headers: this.jsonHeaders(),
-      body: JSON.stringify({
-        product: {
-          title: input.name ?? input.sku,
-          variants: [
-            {
-              sku: input.sku,
-              price: input.retailPrice,
-              inventory_management: 'shopify',
-            },
-          ],
-        },
-      }),
-    });
+    const response = await this.fetchWithRetry(
+      this.apiUrl('/products.json'),
+      {
+        method: 'POST',
+        headers: this.jsonHeaders(),
+        body: JSON.stringify({
+          product: {
+            title: input.name ?? input.sku,
+            variants: [
+              {
+                sku: input.sku,
+                price: input.retailPrice,
+                inventory_management: 'shopify',
+              },
+            ],
+          },
+        }),
+      },
+      'Shopify product create',
+    );
 
     if (!response.ok) {
       throw new Error(`Shopify product create failed with status ${response.status}`);
@@ -298,9 +318,13 @@ export class ShopifyClient {
   }
 
   async fetchOrder(orderId: string): Promise<Record<string, any> | null> {
-    const response = await fetch(this.apiUrl(`/orders/${orderId}.json`), {
-      headers: this.authHeaders(),
-    });
+    const response = await this.fetchWithRetry(
+      this.apiUrl(`/orders/${orderId}.json`),
+      {
+        headers: this.authHeaders(),
+      },
+      'Shopify order fetch',
+    );
 
     if (response.status === 404) {
       return null;
@@ -447,6 +471,18 @@ export class ShopifyClient {
     return this.configNumber('shopify.productFetchRetryBaseDelayMs', 2000);
   }
 
+  private requestTimeoutMs(): number {
+    return this.configNumber('shopify.requestTimeoutMs', 30000);
+  }
+
+  private requestMaxRetries(): number {
+    return this.configNumber('shopify.requestMaxRetries', 3);
+  }
+
+  private requestRetryBaseDelayMs(): number {
+    return this.configNumber('shopify.requestRetryBaseDelayMs', 1000);
+  }
+
   private productFetchRetryDelayMs(response: Response, attempt: number): number {
     const retryAfter = response.headers.get('retry-after');
     if (retryAfter) {
@@ -462,6 +498,23 @@ export class ShopifyClient {
     }
 
     return this.productFetchRetryBaseDelayMs() * 2 ** attempt;
+  }
+
+  private requestRetryDelayMs(response: Response, attempt: number): number {
+    const retryAfter = response.headers.get('retry-after');
+    if (retryAfter) {
+      const retryAfterSeconds = Number(retryAfter);
+      if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+        return retryAfterSeconds * 1000;
+      }
+
+      const retryAfterDate = Date.parse(retryAfter);
+      if (!Number.isNaN(retryAfterDate)) {
+        return Math.max(retryAfterDate - Date.now(), 0);
+      }
+    }
+
+    return this.requestRetryBaseDelayMs() * 2 ** attempt;
   }
 
   private configNumber(key: string, fallback: number): number {
@@ -484,6 +537,61 @@ export class ShopifyClient {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  private async fetchWithRetry(
+    url: string,
+    init: RequestInit,
+    context: string,
+  ): Promise<Response> {
+    const maxRetries = this.requestMaxRetries();
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      try {
+        const response = await this.fetchWithTimeout(url, init);
+        if (
+          response.ok ||
+          !this.isRetryableResponse(response) ||
+          attempt >= maxRetries
+        ) {
+          return response;
+        }
+
+        await this.delay(this.requestRetryDelayMs(response, attempt));
+      } catch (error) {
+        if (attempt >= maxRetries) {
+          throw new Error(`${context} request failed: ${this.errorMessage(error)}`);
+        }
+
+        await this.delay(this.requestRetryBaseDelayMs() * 2 ** attempt);
+      }
+    }
+
+    throw new Error(`${context} request failed after retries`);
+  }
+
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+  ): Promise<Response> {
+    const timeoutMs = this.requestTimeoutMs();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    timeout.unref?.();
+
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private isRetryableResponse(response: Response): boolean {
+    return response.status === 429 || response.status >= 500;
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
   private extractNextLink(linkHeader: string | null): string | null {
     if (!linkHeader) {
       return null;
@@ -502,9 +610,13 @@ export class ShopifyClient {
   private async fetchVariant(
     variantId: string,
   ): Promise<ShopifyVariantResponse['variant']> {
-    const response = await fetch(this.apiUrl(`/variants/${variantId}.json`), {
-      headers: this.authHeaders(),
-    });
+    const response = await this.fetchWithRetry(
+      this.apiUrl(`/variants/${variantId}.json`),
+      {
+        headers: this.authHeaders(),
+      },
+      'Shopify variant fetch',
+    );
 
     if (!response.ok) {
       throw new Error(
@@ -520,19 +632,23 @@ export class ShopifyClient {
     variant: ShopifyVariantResponse['variant'],
     input: { inventoryManagement?: string; price?: number },
   ): Promise<void> {
-    const response = await fetch(this.apiUrl(`/variants/${variant.id}.json`), {
-      method: 'PUT',
-      headers: this.jsonHeaders(),
-      body: JSON.stringify({
-        variant: {
-          id: variant.id,
-          ...(input.inventoryManagement
-            ? { inventory_management: input.inventoryManagement }
-            : {}),
-          ...(input.price !== undefined ? { price: input.price } : {}),
-        },
-      }),
-    });
+    const response = await this.fetchWithRetry(
+      this.apiUrl(`/variants/${variant.id}.json`),
+      {
+        method: 'PUT',
+        headers: this.jsonHeaders(),
+        body: JSON.stringify({
+          variant: {
+            id: variant.id,
+            ...(input.inventoryManagement
+              ? { inventory_management: input.inventoryManagement }
+              : {}),
+            ...(input.price !== undefined ? { price: input.price } : {}),
+          },
+        }),
+      },
+      'Shopify variant update',
+    );
 
     if (!response.ok) {
       throw new Error(
@@ -612,9 +728,13 @@ export class ShopifyClient {
       return this.cachedLocationId;
     }
 
-    const response = await fetch(this.apiUrl('/locations.json'), {
-      headers: this.authHeaders(),
-    });
+    const response = await this.fetchWithRetry(
+      this.apiUrl('/locations.json'),
+      {
+        headers: this.authHeaders(),
+      },
+      'Shopify locations fetch',
+    );
 
     if (!response.ok) {
       throw new Error(
