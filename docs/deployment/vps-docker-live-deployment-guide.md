@@ -1,104 +1,264 @@
-# Huong Dan Chay Live He Thong Moi Tren VPS Bang Docker
+# Hướng Dẫn Triển Khai Live Backend FitMe Trên VPS Bằng Docker
 
-Tai lieu nay dung de dua backend FitMe Sportswear moi len VPS chay live cho luong Sapo, Pancake va Shopify.
+Tài liệu này dùng để đưa backend FitMe Sportswear lên VPS chạy live cho các luồng:
 
-Backend gom 4 thanh phan Docker:
+- Pancake -> Sapo: tạo đơn, cập nhật trạng thái, hủy đơn qua webhook.
+- Shopify -> Sapo: tạo đơn, hủy đơn qua webhook/reconcile.
+- Sapo -> Pancake: polling cập nhật trạng thái đơn.
+- Sapo -> Shopify: polling cập nhật trạng thái đơn.
+- Sapo -> Pancake inventory: đồng bộ tồn kho từ Sapo sang Pancake.
+- Sapo -> Shopify inventory: đồng bộ tồn kho từ Sapo sang Shopify, không tự tạo SKU nếu tắt biến tạo SKU.
 
-- `api`: nhan webhook, health check, API trigger sync.
-- `worker`: xu ly queue, scheduler, inventory/order sync.
-- `postgres`: database.
-- `redis`: queue/lock/cache cho job nen.
+Nguyên tắc vận hành chính:
 
-## 1. Dieu kien truoc khi deploy
+- Sapo là nguồn tồn kho chính.
+- Không đồng bộ tồn từ Pancake/Shopify ngược về Sapo.
+- Không dùng Cloudflare quick tunnel cho live. Live phải dùng domain ổn định qua Nginx + HTTPS.
+- Không commit file `.env` thật lên Git.
+- Khi chưa chắc chắn, bật filter `WEBHOOK_TEST` để test đơn trước.
 
-VPS can co:
+## 1. Kiến trúc Docker
 
-- Ubuntu 22.04/24.04 hoac Debian tuong duong.
-- Domain/subdomain tro ve VPS, vi du `api.fitme.vn`.
-- Quyen SSH root hoac user co sudo.
-- Port public:
-  - `80` va `443` neu dung Nginx + SSL.
-  - `3000` chi nen mo tam thoi de test noi bo; live nen di qua Nginx/HTTPS.
+Hệ thống gồm 4 service:
 
-Khuyen nghi cau hinh VPS toi thieu:
+- `api`: nhận webhook, health check, API trigger sync thủ công.
+- `worker`: xử lý queue, scheduler, order sync, inventory sync.
+- `postgres`: database chính.
+- `redis`: queue/cache/lock cho BullMQ job.
 
-- CPU: 2 vCPU.
-- RAM: 4 GB tro len.
-- Disk: 40 GB tro len.
+Ở production:
 
-## 2. Cai Docker tren VPS
+- Chỉ public domain HTTPS qua Nginx.
+- API chỉ bind nội bộ `127.0.0.1:3000`.
+- Postgres/Redis không expose ra internet.
+- `worker` là nơi chạy scheduler và đăng ký Shopify webhook tự động.
 
-SSH vao VPS:
+## 2. Yêu Cầu VPS
+
+Khuyến nghị:
+
+- Ubuntu 22.04/24.04 hoặc Debian tương đương.
+- 2 vCPU trở lên.
+- RAM 4 GB trở lên.
+- Disk 40 GB trở lên.
+- Domain/subdomain trỏ về VPS, ví dụ `api.fitme.vn`.
+- Quyền SSH `root` hoặc user có `sudo`.
+
+Port cần mở:
+
+- `80`: cấp SSL bằng Certbot.
+- `443`: webhook/API live qua HTTPS.
+- Không mở public `5432`, `6379`, `3000`.
+
+### 2.1. Không Mua Domain Mới Thì Dùng Gì?
+
+Nếu shop Shopify đã có domain `fitme.vn` đang hoạt động, không cần mua thêm domain mới. Không trỏ domain chính `fitme.vn` về VPS, vì domain này đang dùng cho website bán hàng Shopify.
+
+Cách đúng là tạo subdomain riêng cho backend:
+
+```text
+api.fitme.vn
+```
+
+Subdomain này trỏ về IP VPS và chỉ dùng cho webhook/API backend.
+
+Trạng thái hiện tại đã kiểm tra:
+
+```text
+api.fitme.vn -> 14.225.224.184
+```
+
+Nếu VPS live vẫn là `14.225.224.184`, không cần mua domain và không cần chỉnh DNS thêm.
+
+DNS record cần tạo nếu sau này đổi sang VPS khác:
+
+```text
+Type: A
+Name: api
+Value: <VPS_IP>
+TTL: Auto hoặc 300
+```
+
+Sau khi DNS hoạt động:
+
+```text
+https://api.fitme.vn
+```
+
+sẽ là domain backend live.
+
+Cấu hình `.env` nên dùng:
+
+```env
+SHOPIFY_WEBHOOK_PUBLIC_BASE_URL=https://api.fitme.vn
+```
+
+Webhook Pancake live:
+
+```text
+https://api.fitme.vn/webhook?secret=<PANCAKE_WEBHOOK_SECRET>
+```
+
+Shopify webhook do worker tự đăng ký:
+
+```text
+orders/create    -> https://api.fitme.vn/webhooks/shopify/order
+orders/cancelled -> https://api.fitme.vn/webhooks/shopify/order
+```
+
+Không chỉnh 3 domain đang có sẵn trong Shopify:
+
+```text
+fitme.vn
+1f5119.myshopify.com
+www.fitme.vn
+```
+
+Ba domain này đang phục vụ website bán hàng Shopify. Chỉ tạo thêm subdomain mới là `api.fitme.vn`.
+
+### 2.2. Cách Tạo `api.fitme.vn` Trên Shopify Domains
+
+Trong màn hình Shopify bạn đang thấy `Miền`, thao tác như sau:
+
+1. Vào `Shopify Admin`.
+2. Vào `Settings`.
+3. Vào `Domains`.
+4. Bấm vào domain chính `fitme.vn`.
+5. Tìm phần quản lý DNS hoặc `DNS settings`.
+6. Bấm `Add custom record` hoặc `Thêm bản ghi`.
+7. Chọn loại bản ghi `A`.
+8. Điền:
+
+```text
+Type: A
+Name / Host: api
+Points to / Value: <VPS_IP>
+TTL: Auto
+```
+
+Ví dụ theo VPS hiện tại:
+
+```text
+Type: A
+Name / Host: api
+Points to / Value: 14.225.224.184
+TTL: Auto
+```
+
+Không nhập:
+
+```text
+Name / Host: api.fitme.vn
+```
+
+Nếu ô `Name / Host` nằm trong DNS của `fitme.vn`, chỉ nhập `api`. Hệ thống DNS sẽ tự hiểu thành `api.fitme.vn`.
+
+Không tạo hoặc sửa các record này:
+
+```text
+@      -> Shopify
+www    -> Shopify
+1f5119 -> Shopify
+```
+
+Nếu không thấy nút chỉnh DNS trong Shopify, nghĩa là DNS có thể đang nằm ở nhà cung cấp domain khác hoặc Cloudflare. Khi đó làm tương tự ở nơi quản lý DNS thật:
+
+```text
+Type: A
+Name / Host: api
+Value: <VPS_IP>
+TTL: Auto hoặc 300
+```
+
+Kiểm tra DNS đã trỏ đúng:
+
+```bash
+dig +short api.fitme.vn
+curl -I http://api.fitme.vn
+```
+
+Kết quả `dig` phải trả về IP VPS. Lúc chưa cấp SSL, `curl -I http://api.fitme.vn` có thể trả `502` hoặc response từ Nginx, nhưng không được báo không tìm thấy host.
+
+Nếu chưa muốn dùng `api.fitme.vn`, có thể dùng dịch vụ miễn phí như DuckDNS hoặc `sslip.io`, nhưng `api.fitme.vn` là phương án tốt nhất vì đã có domain thật và ổn định.
+
+## 3. Cài Gói Cơ Bản Trên VPS
+
+SSH vào VPS:
 
 ```bash
 ssh root@<VPS_IP>
 ```
 
-Cap nhat package:
+Cập nhật hệ thống:
 
 ```bash
 apt update && apt upgrade -y
 ```
 
-Cai Docker:
+Cài công cụ cần thiết:
+
+```bash
+apt install -y git curl ca-certificates gnupg ufw nginx certbot python3-certbot-nginx
+```
+
+Cài Docker và Docker Compose plugin:
 
 ```bash
 curl -fsSL https://get.docker.com | sh
-```
-
-Bat Docker tu dong khoi dong:
-
-```bash
 systemctl enable docker
 systemctl start docker
 ```
 
-Kiem tra:
+Kiểm tra:
 
 ```bash
 docker version
 docker compose version
 ```
 
-## 3. Dua source len VPS
-
-Cai Git neu chua co:
+Cấu hình firewall tối thiểu:
 
 ```bash
-apt install -y git
+ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw enable
+ufw status
 ```
 
-Clone source:
+## 4. Clone Source
+
+Tạo thư mục deploy:
 
 ```bash
 mkdir -p /opt/fitme
 cd /opt/fitme
-git clone <GIT_REPO_URL> fitme-sportswear
-cd fitme-sportswear
 ```
 
-Checkout branch live:
+Clone repo:
 
 ```bash
+git clone https://github.com/Penz7/fitme-sportswear.git fitme-sportswear
+cd /opt/fitme/fitme-sportswear
 git checkout main
 git pull origin main
 ```
 
-Thu muc backend:
+Vào thư mục backend:
 
 ```bash
 cd /opt/fitme/fitme-sportswear/fitme-sportswear-backend
 ```
 
-## 4. Tao file docker compose production
+## 5. Tạo Docker Compose Production
 
-Tao file `docker-compose.prod.yml` tren VPS:
+Tạo file:
 
 ```bash
 nano docker-compose.prod.yml
 ```
 
-Noi dung de xuat:
+Nội dung đề xuất:
 
 ```yaml
 services:
@@ -170,92 +330,93 @@ volumes:
   fitme_redis_data:
 ```
 
-Ly do dung file prod rieng:
+## 6. Tạo File `.env` Live
 
-- Khong expose Postgres/Redis ra internet.
-- API chi bind `127.0.0.1:3000`, public traffic di qua Nginx.
-- Container tu restart khi VPS reboot.
-- Redis co appendonly de giam mat queue metadata khi restart.
-
-## 5. Tao file `.env` live
-
-Trong thu muc backend:
+Tạo từ mẫu:
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Bat buoc dat secret rieng cho VPS:
+### 6.1. Biến hệ thống bắt buộc
 
 ```env
 APP_ENV=production
 APP_PORT=3000
 APP_VERSION=live
 
-POSTGRES_PASSWORD=<mat-khau-postgres-rat-manh>
-SYNC_API_TOKEN=<token-van-hanh-rat-manh>
+POSTGRES_PASSWORD=<mật-khẩu-postgres-rất-mạnh>
+SYNC_API_TOKEN=<token-nội-bộ-rất-mạnh>
 ```
 
-### 5.1. Sapo
-
-Dien theo thong tin live:
+### 6.2. Sapo
 
 ```env
-SAPO_BASE_URL=<sapo-api-base-url>
-SAPO_ACCOUNT_BASE_URL=<sapo-account-base-url>
+SAPO_BASE_URL=https://fitme-sportswear.mysapogo.com
+SAPO_ACCOUNT_BASE_URL=https://accounts.sapo.vn
 SAPO_PHONE_NUMBER=<sapo-phone>
 SAPO_PASSWORD=<sapo-password>
 SAPO_CLIENT_ID=<sapo-client-id>
-SAPO_SHOP_DOMAIN=<sapo-shop-domain>
+SAPO_SHOP_DOMAIN=fitme-sportswear.mysapogo.com
 SAPO_LOCATION_ID=<sapo-main-location-id>
+SAPO_PRODUCT_REQUEST_TIMEOUT_MS=30000
 SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID={}
 SAPO_PREPAYMENT_METHOD_ID=<sapo-payment-method-id>
 SAPO_PREPAYMENT_METHOD_NAME=Chuyen khoan
 ```
 
-Luu y quyen Sapo token/tai khoan can du:
+Quyền/tài khoản Sapo cần đủ:
 
-- Tao don.
-- Tao/cap nhat customer.
-- Huy don.
-- Tao/huy/xu ly fulfillment.
-- Doc san pham, ton kho, don hang.
-- Ghi nhan thanh toan neu dung prepaid.
+- Đọc sản phẩm, đơn hàng, tồn kho.
+- Tạo đơn.
+- Cập nhật đơn.
+- Hủy đơn.
+- Tạo/cập nhật customer.
+- Tạo/hủy/xử lý fulfillment.
+- Ghi nhận thanh toán nếu dùng đơn chuyển khoản/prepaid.
 
-### 5.2. Pancake
+### 6.3. Pancake
 
 ```env
 PANCAKE_BASE_URL=https://pos.pages.fm/api/v1
 PANCAKE_API_KEY=<pancake-api-key>
 PANCAKE_SHOP_ID=<pancake-shop-id>
 PANCAKE_DEFAULT_WAREHOUSE_ID=<pancake-default-warehouse-id>
-PANCAKE_WEBHOOK_SECRET=<pancake-webhook-secret-rieng-live>
+PANCAKE_WEBHOOK_SECRET=<pancake-webhook-secret-live>
 PANCAKE_PRODUCT_REQUEST_TIMEOUT_MS=60000
 PANCAKE_PRODUCT_RETRY_ATTEMPTS=3
 PANCAKE_PRODUCT_RETRY_BACKOFF_MS=1000
 ```
 
-Live webhook Pancake se la:
+Webhook Pancake live:
 
 ```text
 https://<DOMAIN>/webhook?secret=<PANCAKE_WEBHOOK_SECRET>
 ```
 
-Vi du:
-
-```text
-https://api.fitme.vn/webhook?secret=fitme-pancake-live-secret
-```
-
 Trong Pancake:
 
-- Bat Webhook URL.
-- Data: `Don hang`.
-- URL: dung link tren.
-- Request headers co the de trong neu da dung query `?secret=...`.
+- Bật Webhook URL.
+- Dữ liệu: `Đơn hàng`.
+- Đối tác: có thể để `Không có`.
+- Request headers có thể để trống nếu đã dùng `?secret=...`.
 
-### 5.3. Shopify
+Khi đã chạy trên VPS, không dùng tunnel Cloudflare nữa. URL webhook phải dùng domain HTTPS thật của VPS, ví dụ:
+
+```text
+https://api.fitme.vn/webhook?secret=<PANCAKE_WEBHOOK_SECRET>
+```
+
+Không dùng dạng:
+
+```text
+https://xxxxx.trycloudflare.com/webhook?secret=...
+```
+
+Tunnel chỉ phù hợp để test local tạm thời. Live cần domain ổn định để Pancake luôn gọi được webhook.
+
+### 6.4. Shopify
 
 ```env
 SHOPIFY_BASE_URL=https://<shop-name>.myshopify.com/admin/api/2025-07
@@ -265,55 +426,58 @@ SHOPIFY_LOCATION_ID=<shopify-location-id>
 SHOPIFY_WEBHOOK_SECRET=<shopify-webhook-secret>
 SHOPIFY_WEBHOOK_PUBLIC_BASE_URL=https://<DOMAIN>
 SHOPIFY_WEBHOOK_AUTO_REGISTER_ENABLED=true
+SHOPIFY_WEBHOOK_ENABLED=true
 SHOPIFY_PRODUCT_FETCH_PAGE_DELAY_MS=750
 SHOPIFY_PRODUCT_FETCH_MAX_RETRIES=5
 SHOPIFY_PRODUCT_FETCH_RETRY_BASE_DELAY_MS=2000
 ```
 
-Khi worker start, backend se tu ensure 2 webhook Shopify:
+Khi `worker` khởi động, hệ thống tự đăng ký/cập nhật webhook Shopify:
 
 ```text
 orders/create    -> https://<DOMAIN>/webhooks/shopify/order
 orders/cancelled -> https://<DOMAIN>/webhooks/shopify/order
 ```
 
-Shopify access token can co quyen:
+Khi chạy trên VPS, `SHOPIFY_WEBHOOK_PUBLIC_BASE_URL` phải là domain HTTPS thật:
+
+```env
+SHOPIFY_WEBHOOK_PUBLIC_BASE_URL=https://api.fitme.vn
+```
+
+Không dùng tunnel Cloudflare trong biến này. Worker sẽ dùng biến trên để gọi Shopify Admin API và cập nhật webhook tự động. Nếu đổi domain, cần restart worker:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --force-recreate worker
+```
+
+Quyền Shopify app cần có:
 
 - `read_orders`, `write_orders`
 - `read_products`, `write_products`
 - `read_inventory`, `write_inventory`
-- `read_fulfillments`, `write_fulfillments`
 - `read_locations`
-- Cac fulfillment scopes lien quan neu shop yeu cau.
+- `read_fulfillments`, `write_fulfillments`
+- Các fulfillment scope bổ sung nếu Shopify yêu cầu trong shop.
 
-### 5.4. Telegram
+### 6.5. Telegram
 
 ```env
 TELEGRAM_BOT_TOKEN=<telegram-bot-token>
 TELEGRAM_CHAT_ID=<telegram-chat-id>
 ```
 
-Telegram dung de nhan:
+Telegram dùng để nhận:
 
 - Webhook/order failed.
 - Inventory sync progress.
-- Sapo -> Pancake sync.
-- Sapo -> Shopify sync.
-- Canh bao permission/mapping.
+- Sapo -> Pancake inventory/order sync.
+- Sapo -> Shopify inventory/order sync.
+- Cảnh báo thiếu permission, thiếu mapping, lỗi API.
 
-### 5.5. Bat/tat webhook live
+### 6.6. Webhook test/live
 
-Live that:
-
-```env
-WEBHOOK_INGESTION_ENABLED=true
-PANCAKE_WEBHOOK_ENABLED=true
-SHOPIFY_WEBHOOK_ENABLED=true
-PANCAKE_TEST_ORDER_FILTER=
-SHOPIFY_TEST_ORDER_FILTER=
-```
-
-Neu muon test tren VPS truoc khi live:
+Chạy test trước khi live:
 
 ```env
 WEBHOOK_INGESTION_ENABLED=true
@@ -323,14 +487,44 @@ PANCAKE_TEST_ORDER_FILTER=WEBHOOK_TEST
 SHOPIFY_TEST_ORDER_FILTER=WEBHOOK_TEST
 ```
 
-Khi co filter, chi don co note/tag/marker `WEBHOOK_TEST` moi duoc xu ly.
+Khi bật filter, hệ thống chỉ xử lý đơn có note/tag/marker `WEBHOOK_TEST`.
 
-### 5.6. Scheduler live
+Chạy live thật:
 
-Khuyen nghi live ban dau:
+```env
+WEBHOOK_INGESTION_ENABLED=true
+PANCAKE_WEBHOOK_ENABLED=true
+SHOPIFY_WEBHOOK_ENABLED=true
+PANCAKE_TEST_ORDER_FILTER=
+SHOPIFY_TEST_ORDER_FILTER=
+```
+
+### 6.7. Scheduler order sync
+
+Khuyến nghị live cân bằng:
 
 ```env
 SYNC_SCHEDULER_ENABLED=true
+SYNC_SAPO_TOP_ORDER_CRON=* * * * *
+SYNC_SAPO_TOP_ORDER_SHOPIFY_CRON=* * * * *
+SYNC_SAPO_TOP_ORDER_LIMIT=50
+SYNC_SHOPIFY_ORDER_RECONCILE_CRON=*/2 * * * *
+SYNC_SHOPIFY_ORDER_RECONCILE_LIMIT=10
+SYNC_SAPO_TO_PANCAKE_ORDER_CRON=
+```
+
+Ý nghĩa:
+
+- Sapo -> Pancake: polling mỗi 1 phút.
+- Sapo -> Shopify: polling mỗi 1 phút.
+- Shopify cancel -> Sapo: reconcile mỗi 2 phút.
+- Pancake/Shopify -> Sapo: chủ yếu qua webhook, gần realtime.
+
+Không khuyến nghị polling 10 giây cho live vì dễ tăng tải API Sapo/Pancake/Shopify.
+
+### 6.8. Scheduler inventory sync
+
+```env
 SYNC_STARTUP_PRODUCT_SYNC_ENABLED=false
 SYNC_PRODUCT_CRON=*/10 * * * *
 SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED=true
@@ -342,33 +536,27 @@ SYNC_SAPO_TO_PANCAKE_INVENTORY_DELAY_MS=50
 SYNC_SAPO_TO_PANCAKE_INVENTORY_RETRY_ATTEMPTS=3
 SYNC_SAPO_TO_PANCAKE_INVENTORY_MAX_UPDATES_PER_RUN=200
 SYNC_SAPO_TO_PANCAKE_INVENTORY_HOT_WINDOW_MINUTES=30
-
-SYNC_SAPO_TO_PANCAKE_ORDER_CRON=*/10 * * * *
-SYNC_SAPO_TO_PANCAKE_ORDER_STATUS=finalized
-SYNC_SAPO_TO_PANCAKE_ORDER_LIMIT=50
-SYNC_SAPO_TOP_ORDER_CRON=*/10 * * * *
-SYNC_SAPO_TOP_ORDER_SHOPIFY_CRON=*/10 * * * *
-SYNC_SAPO_TOP_ORDER_LIMIT=50
-SYNC_SHOPIFY_ORDER_RECONCILE_CRON=*/10 * * * * *
-SYNC_SHOPIFY_ORDER_RECONCILE_LIMIT=50
-SYNC_SAPO_LOG_CRON=
 ```
 
-Luu y:
+Ý nghĩa:
 
-- `SYNC_SHOPIFY_ORDER_RECONCILE_CRON=*/10 * * * * *` la moi 10 giay.
-- `SYNC_PRODUCT_CRON=*/10 * * * *` la moi 10 phut.
+- Sapo -> Pancake inventory: mỗi 10 phút.
+- Sapo -> Shopify inventory: mỗi 10 phút qua `product-inventory-sync`.
+- SKU mới/có `updatedAt` gần được ưu tiên theo nhóm hot candidates.
+- SKU backlog cũ được xử lý dần để tránh quá tải API.
 
-### 5.7. Tao product/SKU thieu
+### 6.9. Tạo SKU thiếu
 
-Khuyen nghi live an toan:
+Khuyến nghị live an toàn:
 
 ```env
 SYNC_CREATE_MISSING_PANCAKE_PRODUCTS=false
 SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=false
 ```
 
-Chi bat tao SKU khi da audit danh sach thieu:
+Shopify đang chạy an toàn nhất khi chỉ đồng bộ tồn cho SKU đã tồn tại.
+
+Chỉ bật tạo SKU Shopify theo đợt đã audit:
 
 ```env
 SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=true
@@ -376,15 +564,13 @@ SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_MAX_PER_RUN=50
 SYNC_CREATE_MISSING_SHOPIFY_SKU_ALLOWLIST=
 ```
 
-Neu muon tao toan bo SKU thieu Shopify:
+Không bật tạo toàn bộ SKU thiếu nếu chưa audit:
 
 ```env
-SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=true
 SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_MAX_PER_RUN=0
-SYNC_CREATE_MISSING_SHOPIFY_SKU_ALLOWLIST=
 ```
 
-He thong da chan tao combo SKU tren Shopify. Pancake co logic combo rieng.
+Chỉ dùng `MAX_PER_RUN=0` khi đã chắc chắn danh sách SKU thiếu là đúng và có thể tạo hàng loạt.
 
 Blocklist SKU:
 
@@ -393,28 +579,136 @@ SYNC_PRODUCT_SYNC_SKU_BLOCKLIST=
 SYNC_PRODUCT_SYNC_SKU_BLOCKLIST_FILE=reports/product-sync-sku-blocklist.json
 ```
 
-Dam bao file blocklist ton tai:
+Đảm bảo file blocklist tồn tại:
 
 ```bash
 mkdir -p reports
 test -f reports/product-sync-sku-blocklist.json || echo "[]" > reports/product-sync-sku-blocklist.json
 ```
 
-## 6. Cai Nginx va SSL
+## 7. Cấu Hình Reverse Proxy Và SSL
 
-Cai Nginx + Certbot:
+Trong các lệnh dưới đây, thay `<DOMAIN>` bằng domain backend live. Với FitMe, khuyến nghị dùng:
 
-```bash
-apt install -y nginx certbot python3-certbot-nginx
+```text
+api.fitme.vn
 ```
 
-Tao config:
+Hiện tại `api.fitme.vn` đang trỏ về VPS `14.225.224.184` và server trả header `Server: Caddy`. Vì vậy trên VPS hiện tại nên ưu tiên cấu hình **Caddy**. Chỉ dùng Nginx nếu VPS chưa cài Caddy hoặc bạn quyết định chuyển sang Nginx.
+
+### 7.1. Kiểm Tra Caddy Hiện Có Trên VPS
+
+SSH vào VPS:
+
+```bash
+ssh root@14.225.224.184
+```
+
+Kiểm tra Caddy:
+
+```bash
+systemctl status caddy --no-pager
+caddy version
+```
+
+Kiểm tra file cấu hình:
+
+```bash
+ls -la /etc/caddy
+sed -n '1,200p' /etc/caddy/Caddyfile
+```
+
+Nếu Caddy đang chạy, dùng cấu hình ở mục 7.2.
+
+### 7.2. Cấu Hình Caddy Cho `api.fitme.vn`
+
+Mở Caddyfile:
+
+```bash
+nano /etc/caddy/Caddyfile
+```
+
+Thêm hoặc sửa block `api.fitme.vn` thành:
+
+```caddy
+api.fitme.vn {
+    encode gzip
+
+    reverse_proxy 127.0.0.1:3000
+}
+```
+
+Nếu trong Caddyfile đã có block `api.fitme.vn`, không tạo block trùng. Chỉ sửa block cũ để proxy về:
+
+```text
+127.0.0.1:3000
+```
+
+Kiểm tra cấu hình:
+
+```bash
+caddy validate --config /etc/caddy/Caddyfile
+```
+
+Reload Caddy:
+
+```bash
+systemctl reload caddy
+```
+
+Kiểm tra HTTP tự redirect sang HTTPS:
+
+```bash
+curl -I http://api.fitme.vn
+```
+
+Kết quả mong muốn:
+
+```text
+HTTP/1.1 308 Permanent Redirect
+Location: https://api.fitme.vn/
+Server: Caddy
+```
+
+Kiểm tra HTTPS:
+
+```bash
+curl -I https://api.fitme.vn
+```
+
+Nếu backend chưa chạy, có thể thấy `502 Bad Gateway` hoặc `404` tùy cấu hình cũ. Sau khi Docker API chạy ở port `3000`, kiểm tra lại:
+
+```bash
+curl https://api.fitme.vn/health/readiness
+```
+
+Kết quả đúng:
+
+```json
+{"status":"ready","dependencies":{"database":"ok"}}
+```
+
+Caddy sẽ tự cấp và gia hạn SSL cho `api.fitme.vn`, không cần chạy Certbot nếu dùng Caddy.
+
+### 7.3. Chỉ Dùng Nginx Nếu Không Dùng Caddy
+
+Nếu VPS không dùng Caddy, có thể dùng Nginx. Không chạy đồng thời Caddy và Nginx cùng chiếm port `80/443`.
+
+Kiểm tra port trước:
+
+```bash
+ss -ltnp | grep -E ':80|:443'
+```
+
+Nếu `caddy` đang chiếm port `80/443`, không cấu hình Nginx song song trừ khi đã dừng Caddy.
+
+Tạo Nginx site:
 
 ```bash
 nano /etc/nginx/sites-available/fitme-backend
 ```
 
-Noi dung:
+Nội dung:
 
 ```nginx
 server {
@@ -434,7 +728,7 @@ server {
 }
 ```
 
-Enable site:
+Enable:
 
 ```bash
 ln -s /etc/nginx/sites-available/fitme-backend /etc/nginx/sites-enabled/fitme-backend
@@ -442,119 +736,158 @@ nginx -t
 systemctl reload nginx
 ```
 
-Cap SSL:
+Cấp SSL:
 
 ```bash
 certbot --nginx -d <DOMAIN>
-```
-
-Kiem tra auto-renew:
-
-```bash
 certbot renew --dry-run
 ```
 
-## 7. Build va chay Docker
+Ví dụ cho FitMe:
 
-Trong thu muc backend:
+```bash
+certbot --nginx -d api.fitme.vn
+certbot renew --dry-run
+```
+
+Sau khi cấp SSL xong, kiểm tra:
+
+```bash
+curl -I https://api.fitme.vn/health/readiness
+```
+
+Nếu API chưa chạy, có thể trả `502 Bad Gateway`. Trường hợp đó vẫn chứng minh domain và SSL đã về đúng reverse proxy; tiếp tục chạy Docker ở bước sau.
+
+## 8. Thứ Tự Chạy Lần Đầu
+
+Vào backend:
 
 ```bash
 cd /opt/fitme/fitme-sportswear/fitme-sportswear-backend
 ```
 
-Build va start:
+Kiểm tra file quan trọng:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+test -f .env
+test -f docker-compose.prod.yml
+test -f reports/product-sync-sku-blocklist.json
 ```
 
-Kiem tra containers:
+Kiểm tra domain/reverse proxy trước khi chạy Docker:
 
 ```bash
+dig +short api.fitme.vn
+curl -I http://api.fitme.vn
+```
+
+Kết quả mong muốn:
+
+```text
+14.225.224.184
+HTTP/1.1 308 Permanent Redirect
+Server: Caddy
+```
+
+Nếu `dig` không trả `14.225.224.184`, cần kiểm tra lại DNS ở Mắt Bão. Nếu `curl` không thấy `Server: Caddy`, cần kiểm tra lại reverse proxy trên VPS.
+
+Build image:
+
+```bash
+docker compose -f docker-compose.prod.yml build
+```
+
+Chạy database/redis trước:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d postgres redis
 docker compose -f docker-compose.prod.yml ps
 ```
 
-Xem log:
+Chạy API:
 
 ```bash
-docker compose -f docker-compose.prod.yml logs -f api
-docker compose -f docker-compose.prod.yml logs -f worker
+docker compose -f docker-compose.prod.yml up -d api
+docker compose -f docker-compose.prod.yml logs --tail=100 api
 ```
 
-Kiem tra health noi bo:
+Kiểm tra API nội bộ:
 
 ```bash
 curl http://127.0.0.1:3000/health/readiness
 ```
 
-Kiem tra qua domain:
+Kiểm tra API qua domain:
 
 ```bash
 curl https://<DOMAIN>/health/readiness
 ```
 
-Ket qua dung:
+Kết quả đúng:
 
 ```json
 {"status":"ready","dependencies":{"database":"ok"}}
 ```
 
-## 8. Kiem tra webhook
-
-### 8.1. Pancake
-
-Gan URL:
-
-```text
-https://<DOMAIN>/webhook?secret=<PANCAKE_WEBHOOK_SECRET>
-```
-
-Neu dang test:
-
-- Dat `PANCAKE_TEST_ORDER_FILTER=WEBHOOK_TEST`.
-- Tao don tren Pancake co note `WEBHOOK_TEST`.
-- Kiem tra Telegram va bang `webhook_events`.
-
-Query webhook events:
+Chạy worker:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec postgres \
-  psql -U fitme -d fitme_sportswear_backend \
-  -c 'select id, "sourcePlatform", status, "externalOrderId", "createdAt" from webhook_events order by "createdAt" desc limit 20;'
+docker compose -f docker-compose.prod.yml up -d worker
+docker compose -f docker-compose.prod.yml logs --tail=200 worker
 ```
 
-### 8.2. Shopify
-
-Neu `SHOPIFY_WEBHOOK_AUTO_REGISTER_ENABLED=true`, worker se tu dang ky webhook khi start.
-
-Kiem tra log:
-
-```bash
-docker compose -f docker-compose.prod.yml logs worker | grep "Shopify webhook"
-```
-
-Can thay:
+Log cần thấy:
 
 ```text
-Shopify webhook orders/create updated/unchanged: https://<DOMAIN>/webhooks/shopify/order
-Shopify webhook orders/cancelled updated/unchanged: https://<DOMAIN>/webhooks/shopify/order
+Worker started
+Registered product-inventory-sync schedule
+Registered sapo-to-pancake-inventory-sync schedule
+Registered sapo-top-order-sync schedule
+Shopify webhook orders/create updated/unchanged
+Shopify webhook orders/cancelled updated/unchanged
 ```
 
-Neu dang test:
+## 9. Chạy Lấy Backlog Trước Khi Mở Live
 
-- Dat `SHOPIFY_TEST_ORDER_FILTER=WEBHOOK_TEST`.
-- Tao order Shopify co note/tag/attribute `WEBHOOK_TEST`.
-- Kiem tra Telegram va bang `webhook_events`.
+Hệ thống đã có scheduler tự chạy product/inventory sync mỗi 10 phút. Tuy nhiên khi deploy VPS mới lần đầu, vẫn phải chủ động chạy backlog thủ công trước khi mở live.
 
-## 9. Trigger sync thu cong
+Lý do không nên để scheduler tự xử lý vòng đầu:
 
-Dat bien local:
+- Backlog SKU/tồn kho lần đầu thường lớn.
+- Nếu đơn thật vào cùng lúc, khó phân biệt lỗi do order webhook hay do inventory backlog.
+- Pancake/Shopify API có thể bị tải cao ở vòng đầu.
+- Telegram/log sẽ dễ theo dõi hơn khi chủ động chạy từng vòng.
+
+Mục tiêu của bước này là đưa tồn kho hiện tại của Pancake/Shopify gần với Sapo nhất có thể, trước khi nhận đơn thật.
+
+Quy tắc:
+
+- Scheduler 10 phút vẫn là cơ chế vận hành lâu dài.
+- Vòng backlog đầu tiên phải chạy thủ công và theo dõi.
+- Sau khi backlog ổn, scheduler sẽ tự duy trì các vòng sau.
+- Không bật tạo SKU Shopify hàng loạt trong lần chạy đầu nếu chưa audit.
+
+Giữ filter test trong lúc kéo backlog:
+
+```env
+PANCAKE_TEST_ORDER_FILTER=WEBHOOK_TEST
+SHOPIFY_TEST_ORDER_FILTER=WEBHOOK_TEST
+SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=false
+```
+
+Restart API/worker nếu vừa đổi `.env`:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --force-recreate api worker
+```
+
+Set token nội bộ:
 
 ```bash
 export SYNC_API_TOKEN='<SYNC_API_TOKEN>'
 ```
 
-Trigger product/inventory sync:
+Trigger Sapo -> Shopify inventory/product sync:
 
 ```bash
 curl -X POST https://<DOMAIN>/sync/products \
@@ -563,14 +896,7 @@ curl -X POST https://<DOMAIN>/sync/products \
   -d '{}'
 ```
 
-Lay `id` tra ve, roi check:
-
-```bash
-curl https://<DOMAIN>/sync/products/<SYNC_RUN_ID> \
-  -H "x-sync-api-token: $SYNC_API_TOKEN"
-```
-
-Trigger Sapo -> Pancake inventory sync rieng:
+Trigger Sapo -> Pancake inventory sync:
 
 ```bash
 curl -X POST https://<DOMAIN>/sync/sapo-to-pancake-inventory \
@@ -579,49 +905,169 @@ curl -X POST https://<DOMAIN>/sync/sapo-to-pancake-inventory \
   -d '{}'
 ```
 
-## 10. Theo doi Telegram khi live
+Theo dõi trạng thái:
 
-Cac message quan trong:
-
-### Sapo -> Pancake inventory
-
-```text
-Sapo -> Pancake inventory sync completed
-updatedTotalThisRun=...
-remaining=...
-candidates=...
-hotCandidates=...
-backlogCandidates=...
+```bash
+docker compose -f docker-compose.prod.yml exec postgres \
+  psql -U fitme -d fitme_sportswear_backend \
+  -c 'select id, "syncType", status, "startedAt", "finishedAt", "errorMessage", metadata from sync_runs order by "createdAt" desc limit 10;'
 ```
 
-### Sapo -> Shopify inventory
+Cần theo dõi các trường trong `metadata`:
 
-```text
-Sapo -> Shopify inventory sync running
-stage=snapshots_refreshed
-shopifySnapshots=...
-shopifyMappings=...
-totalMappings=...
+- `remaining`: số SKU lệch còn lại.
+- `candidates`: số SKU cần xử lý trong vòng đó.
+- `hotCandidates`: SKU mới/có cập nhật gần.
+- `backlogCandidates`: SKU lệch cũ.
+- `updatedShopify`, `updatedPancake`, `updated`, `failed`.
+- `createdShopify`: phải bằng `0` nếu `SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=false`.
+
+Nếu backlog còn lớn, có thể trigger thêm vài vòng. Không cần ép về `remaining=0` tuyệt đối nếu còn SKU thiếu, duplicate, conflict hoặc blocklist. Các SKU đó cần xử lý bằng report/audit riêng.
+
+Sau khi chạy backlog thủ công xong:
+
+1. Giữ nguyên filter `WEBHOOK_TEST`.
+2. Tạo 1 đơn Pancake test có note `WEBHOOK_TEST`.
+3. Tạo 1 đơn Shopify test có note/tag `WEBHOOK_TEST`.
+4. Kiểm tra Sapo tạo đơn đúng người nhận, SKU, số lượng, trạng thái.
+5. Test hủy đơn hai chiều.
+6. Test chuyển trạng thái từ Sapo sang Pancake/Shopify.
+7. Chỉ khi các bước trên ổn mới xóa filter để nhận đơn thật.
+
+Chỉ chuyển sang live khi:
+
+1. `api.fitme.vn` trỏ đúng `14.225.224.184`.
+2. Caddy proxy `api.fitme.vn` về `127.0.0.1:3000`.
+3. Health check OK.
+4. Webhook test Pancake/Shopify OK.
+5. Order status sync test OK.
+6. Inventory sync đã chạy ít nhất một vòng cho Pancake và Shopify.
+7. `createdShopify=0` khi đang tắt tạo SKU Shopify.
+8. Không còn sync run `running/queued` bị kẹt bất thường.
+
+Nếu có run bị stale do restart giữa chừng, mark failed trước khi chạy lại:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U fitme -d fitme_sportswear_backend \
+  -c "update sync_runs set status='failed', \"finishedAt\"=now(), \"errorMessage\"='Manually marked stale before live backlog refresh' where status in ('queued','running');"
 ```
 
-Khi bat dau update/tang tao SKU:
+## 10. Kiểm Tra Webhook
+
+### 10.1. Pancake
+
+Gắn URL:
 
 ```text
-Sapo -> Shopify inventory sync progress
-stage=updating_shopify
-shopifyCandidates=...
-hotShopifyCandidates=...
-backlogShopifyCandidates=...
-processedShopify=...
-remainingShopify=...
-updatedShopify=...
-createdShopify=...
-shopifyErrors=...
+https://<DOMAIN>/webhook?secret=<PANCAKE_WEBHOOK_SECRET>
 ```
 
-## 11. Van hanh hang ngay
+Test:
 
-Xem containers:
+1. Để `PANCAKE_TEST_ORDER_FILTER=WEBHOOK_TEST`.
+2. Tạo đơn Pancake có note `WEBHOOK_TEST`.
+3. Kiểm tra Telegram.
+4. Kiểm tra bảng webhook:
+
+```bash
+docker compose -f docker-compose.prod.yml exec postgres \
+  psql -U fitme -d fitme_sportswear_backend \
+  -c 'select id, "sourcePlatform", status, "externalOrderId", "createdAt" from webhook_events order by "createdAt" desc limit 20;'
+```
+
+### 10.2. Shopify
+
+Nếu `SHOPIFY_WEBHOOK_AUTO_REGISTER_ENABLED=true`, worker tự đăng ký webhook.
+
+Kiểm tra log:
+
+```bash
+docker compose -f docker-compose.prod.yml logs worker | grep "Shopify webhook"
+```
+
+Test:
+
+1. Để `SHOPIFY_TEST_ORDER_FILTER=WEBHOOK_TEST`.
+2. Tạo order Shopify có note/tag/attribute `WEBHOOK_TEST`.
+3. Kiểm tra Telegram.
+4. Kiểm tra `webhook_events`.
+
+## 11. Trigger Sync Thủ Công
+
+Set token:
+
+```bash
+export SYNC_API_TOKEN='<SYNC_API_TOKEN>'
+```
+
+Trigger Sapo -> Shopify inventory/product sync:
+
+```bash
+curl -X POST https://<DOMAIN>/sync/products \
+  -H "x-sync-api-token: $SYNC_API_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{}'
+```
+
+Trigger Sapo -> Pancake inventory sync:
+
+```bash
+curl -X POST https://<DOMAIN>/sync/sapo-to-pancake-inventory \
+  -H "x-sync-api-token: $SYNC_API_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{}'
+```
+
+Kiểm tra sync run:
+
+```bash
+docker compose -f docker-compose.prod.yml exec postgres \
+  psql -U fitme -d fitme_sportswear_backend \
+  -c 'select id, "syncType", status, "startedAt", "finishedAt", "errorMessage", metadata from sync_runs order by "createdAt" desc limit 10;'
+```
+
+## 12. Checklist Test Tổng Quan Trước Khi Live
+
+Chạy theo thứ tự:
+
+1. `dig +short api.fitme.vn` trả `14.225.224.184`.
+2. `curl -I http://api.fitme.vn` trả redirect HTTPS từ Caddy.
+3. `curl https://<DOMAIN>/health/readiness` trả `ready`.
+4. Worker log có `Worker started`.
+5. Worker log có Shopify webhook `updated` hoặc `unchanged` đúng domain.
+6. Telegram nhận được message khi có lỗi/test.
+7. Pancake webhook gắn đúng URL live.
+8. Shopify webhook tự đăng ký đúng URL live.
+9. Tạo đơn Pancake có `WEBHOOK_TEST`.
+10. Sapo tạo đơn đúng người nhận, SKU, số lượng, trạng thái.
+11. Hủy đơn Pancake, Sapo hủy theo.
+12. Chuyển trạng thái ở Sapo, Pancake cập nhật trong vòng polling 1 phút.
+13. Tạo đơn Shopify có `WEBHOOK_TEST`.
+14. Sapo tạo đơn đúng người nhận, SKU, số lượng, trạng thái.
+15. Hủy đơn Shopify, Sapo hủy theo qua webhook/reconcile.
+16. Chuyển trạng thái ở Sapo, Shopify cập nhật trong vòng polling 1 phút.
+17. Chạy inventory sync thủ công một vòng.
+18. Telegram có log Sapo -> Pancake inventory.
+19. Telegram có log Sapo -> Shopify inventory.
+20. Xác nhận `createdShopify=0` nếu `SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=false`.
+
+Khi các bước trên đạt yêu cầu, mới xóa filter:
+
+```env
+PANCAKE_TEST_ORDER_FILTER=
+SHOPIFY_TEST_ORDER_FILTER=
+```
+
+Restart API/worker sau khi đổi filter:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --force-recreate api worker
+```
+
+## 13. Theo Dõi Khi Live
+
+Xem container:
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
@@ -639,28 +1085,59 @@ Xem log worker:
 docker compose -f docker-compose.prod.yml logs --tail=300 worker
 ```
 
-Restart worker khi doi scheduler/env sync:
+Theo dõi sync run:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --force-recreate worker
+docker compose -f docker-compose.prod.yml exec postgres \
+  psql -U fitme -d fitme_sportswear_backend \
+  -c 'select id, "syncType", status, "startedAt", "finishedAt", "errorMessage" from sync_runs order by "createdAt" desc limit 20;'
 ```
 
-Restart API khi doi webhook/env API:
+Các message Telegram quan trọng:
+
+```text
+Sapo -> Pancake inventory sync completed
+Sapo -> Shopify inventory sync running
+Sapo -> Shopify inventory sync progress
+Webhook event processing failed
+Bypassed Sapo fulfillment because address mapping is incomplete
+```
+
+## 14. Dừng, Clear Job, Và Chạy Lại Sạch
+
+Dừng hệ thống:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --force-recreate api
+docker compose -f docker-compose.prod.yml down
 ```
 
-Rebuild sau khi pull code moi:
+Nếu cần clear queue/job cache Redis:
 
 ```bash
-git pull origin main
-docker compose -f docker-compose.prod.yml up -d --build api worker
+docker compose -f docker-compose.prod.yml up -d redis
+docker compose -f docker-compose.prod.yml exec -T redis redis-cli FLUSHALL
+docker compose -f docker-compose.prod.yml exec -T redis redis-cli DBSIZE
+docker compose -f docker-compose.prod.yml down
 ```
 
-## 12. Backup database
+Nếu có sync run bị stale trong database, mark failed trước khi chạy lại:
 
-Tao backup:
+```bash
+docker compose -f docker-compose.prod.yml up -d postgres
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U fitme -d fitme_sportswear_backend \
+  -c "update sync_runs set status='failed', \"finishedAt\"=now(), \"errorMessage\"='Manually stopped before restart' where status in ('queued','running');"
+```
+
+Sau đó chạy lại:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d api worker
+```
+
+## 15. Backup Và Restore Database
+
+Tạo backup:
 
 ```bash
 mkdir -p /opt/fitme/backups
@@ -669,7 +1146,7 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
   > /opt/fitme/backups/fitme_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-Restore backup:
+Restore:
 
 ```bash
 cat /opt/fitme/backups/<backup-file>.sql | \
@@ -677,52 +1154,51 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
   psql -U fitme -d fitme_sportswear_backend
 ```
 
-Nen backup truoc khi:
+Nên backup trước khi:
 
-- Bat tao SKU hang loat.
-- Chay migration moi.
-- Chuyen tu test filter sang live full.
+- Chuyển từ test filter sang live full.
+- Bật tạo SKU hàng loạt.
+- Chạy migration mới.
+- Deploy code thay đổi lớn.
 
-## 13. Checklist chuyen tu test sang live
+## 16. Update Code Sau Này
 
-1. Da co domain HTTPS on dinh.
-2. `curl https://<DOMAIN>/health/readiness` tra ready.
-3. Shopify webhook log da `updated` hoac `unchanged` dung domain.
-4. Pancake webhook da gan dung:
+Vào thư mục repo:
 
-   ```text
-   https://<DOMAIN>/webhook?secret=<PANCAKE_WEBHOOK_SECRET>
-   ```
+```bash
+cd /opt/fitme/fitme-sportswear
+git pull origin main
+cd fitme-sportswear-backend
+```
 
-5. Telegram nhan duoc message test.
-6. Tao don test Pancake co `WEBHOOK_TEST`, Sapo tao dung nguoi nhan/SKU/status.
-7. Tao don test Shopify co `WEBHOOK_TEST`, Sapo tao dung nguoi nhan/SKU/status.
-8. Huy don 2 chieu da dung cho Pancake/Sapo va Shopify/Sapo.
-9. Inventory sync Sapo -> Pancake va Sapo -> Shopify co log thanh cong.
-10. Neu chay live that, xoa filter:
+Rebuild và restart:
 
-    ```env
-    PANCAKE_TEST_ORDER_FILTER=
-    SHOPIFY_TEST_ORDER_FILTER=
-    ```
+```bash
+docker compose -f docker-compose.prod.yml up -d --build api worker
+```
 
-11. Restart:
+Nếu chỉ đổi `.env` scheduler/webhook:
 
-    ```bash
-    docker compose -f docker-compose.prod.yml up -d --force-recreate api worker
-    ```
+```bash
+docker compose -f docker-compose.prod.yml up -d --force-recreate api worker
+```
 
-## 14. Canh bao quan trong
+Nếu chỉ đổi scheduler:
 
-- Khong dung Cloudflare quick tunnel cho live. Dung domain/VPS/Nginx/SSL.
-- Khong expose Postgres/Redis ra internet.
-- Khong commit `.env` live len Git.
-- Neu bat `SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=true`, nen bat tung dot nho truoc:
+```bash
+docker compose -f docker-compose.prod.yml up -d --force-recreate worker
+```
 
-  ```env
-  SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS_MAX_PER_RUN=50
-  ```
+## 17. Cảnh Báo Quan Trọng
 
-- Chi dat `MAX_PER_RUN=0` khi da audit danh sach SKU thieu.
-- He thong lay Sapo lam nguon ton kho chinh; khong sync ton kho tu Pancake/Shopify ve Sapo.
-- Neu Telegram bao permission Sapo/Shopify bi thieu, phai cap quyen token/app roi restart worker.
+- Không dùng Cloudflare quick tunnel cho live.
+- Không expose Postgres/Redis ra internet.
+- Không commit `.env` live.
+- Không bật tạo SKU Shopify hàng loạt nếu chưa audit SKU thiếu.
+- Nếu `SYNC_CREATE_MISSING_SHOPIFY_PRODUCTS=false`, hệ thống vẫn sync tồn cho SKU Shopify đã có.
+- Nếu SKU thiếu trên Shopify, hệ thống sẽ không tạo và không sync tồn cho SKU đó.
+- Nếu SKU bị duplicate/conflict/blocklist, hệ thống sẽ skip để tránh update sai.
+- Tồn kho luôn lấy Sapo làm nguồn chính.
+- Khi Sapo đổi trạng thái đơn, Pancake/Shopify nhận theo polling, không realtime tuyệt đối.
+- Khi Pancake/Shopify tạo/hủy đơn, Sapo nhận qua webhook/reconcile nhanh hơn.
+- Nếu Telegram báo thiếu permission, cần cấp quyền token/app rồi restart worker.
