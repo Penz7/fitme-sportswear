@@ -583,6 +583,94 @@ describe('InventorySyncService missing product creation', () => {
     );
   });
 
+  it('processes hot Shopify inventory candidates before backlog candidates', async () => {
+    const { service, shopifyClient } = createService({
+      'sync.shopifyInventoryHotWindowMinutes': 30,
+    });
+    const now = Date.now();
+
+    await service.syncMappings([
+      {
+        ...sapoOnlyMapping({ sku: 'SKU-BACKLOG', normalizedSku: 'SKU-BACKLOG' }),
+        sapo: sapoSnapshot('SKU-BACKLOG', {
+          sourceUpdatedAt: new Date(now - 2 * 60 * 60000),
+        }),
+        shopify: targetSnapshot('shopify', 'SKU-BACKLOG', {
+          available: 1,
+          variantId: 'shopify-variant-backlog',
+        }),
+        status: 'matched',
+        conflictReason: null,
+      },
+      {
+        ...sapoOnlyMapping({ sku: 'SKU-HOT', normalizedSku: 'SKU-HOT' }),
+        sapo: sapoSnapshot('SKU-HOT', {
+          sourceUpdatedAt: new Date(now - 5 * 60000),
+        }),
+        shopify: targetSnapshot('shopify', 'SKU-HOT', {
+          available: 1,
+          variantId: 'shopify-variant-hot',
+        }),
+        status: 'matched',
+        conflictReason: null,
+      },
+    ]);
+
+    expect(shopifyClient.updateInventoryAndPrice).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ variantId: 'shopify-variant-hot' }),
+    );
+    expect(shopifyClient.updateInventoryAndPrice).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ variantId: 'shopify-variant-backlog' }),
+    );
+  });
+
+  it('reports Shopify hot and backlog candidate counts in progress notifications', async () => {
+    const { service, notifier } = createService({
+      'sync.shopifyProgressInterval': 1,
+      'sync.shopifyInventoryHotWindowMinutes': 30,
+    });
+    const now = Date.now();
+
+    await service.syncMappings(
+      [
+        {
+          ...sapoOnlyMapping({ sku: 'SKU-BACKLOG', normalizedSku: 'SKU-BACKLOG' }),
+          sapo: sapoSnapshot('SKU-BACKLOG', {
+            sourceUpdatedAt: new Date(now - 2 * 60 * 60000),
+          }),
+          shopify: targetSnapshot('shopify', 'SKU-BACKLOG', {
+            available: 1,
+            variantId: 'shopify-variant-backlog',
+          }),
+          status: 'matched',
+          conflictReason: null,
+        },
+        {
+          ...sapoOnlyMapping({ sku: 'SKU-HOT', normalizedSku: 'SKU-HOT' }),
+          sapo: sapoSnapshot('SKU-HOT', {
+            sourceUpdatedAt: new Date(now - 5 * 60000),
+          }),
+          shopify: targetSnapshot('shopify', 'SKU-HOT', {
+            available: 1,
+            variantId: 'shopify-variant-hot',
+          }),
+          status: 'matched',
+          conflictReason: null,
+        },
+      ],
+      { syncRunId: 'sync-run-1' },
+    );
+
+    expect(notifier.sendMessage.mock.calls[0][1]).toContain(
+      'hotShopifyCandidates=1',
+    );
+    expect(notifier.sendMessage.mock.calls[0][1]).toContain(
+      'backlogShopifyCandidates=1',
+    );
+  });
+
   it('creates old missing Shopify products when creation is enabled', async () => {
     const { service, shopifyClient } = createService({
       'sync.products.createMissingShopify': true,

@@ -31,6 +31,12 @@ export interface InventorySyncOptions {
   syncRunId?: string;
 }
 
+interface ShopifyCandidateGroups {
+  ordered: ProductMappingCandidate[];
+  hotCount: number;
+  backlogCount: number;
+}
+
 @Injectable()
 export class InventorySyncService {
   constructor(
@@ -56,11 +62,12 @@ export class InventorySyncService {
     };
     const blockedSkus = this.productSyncSkuBlocklist();
     const shopifyCreateAllowlist = this.createMissingShopifySkuAllowlist();
-    const shopifyCandidates = this.countShopifyCandidates(
+    const shopifyCandidateGroups = this.shopifyCandidateGroups(
       mappings,
       blockedSkus,
       shopifyCreateAllowlist,
     );
+    const shopifyCandidates = shopifyCandidateGroups.ordered.length;
     const shopifyProgressInterval = this.configNumber(
       'sync.shopifyProgressInterval',
       100,
@@ -212,6 +219,12 @@ export class InventorySyncService {
           );
         }
       }
+    }
+
+    for (const mapping of shopifyCandidateGroups.ordered) {
+      if (!mapping.sapo || mapping.sapo.available === null) {
+        continue;
+      }
 
       if (mapping.shopify?.variantId && !this.unchangedShopifyInventory(mapping)) {
         try {
@@ -248,6 +261,8 @@ export class InventorySyncService {
           processedShopify += 1;
           const notified = await this.notifyShopifyProgress(options.syncRunId, {
             shopifyCandidates,
+            hotShopifyCandidates: shopifyCandidateGroups.hotCount,
+            backlogShopifyCandidates: shopifyCandidateGroups.backlogCount,
             processedShopify,
             interval: shopifyProgressInterval,
             result,
@@ -325,6 +340,8 @@ export class InventorySyncService {
           processedShopify += 1;
           const notified = await this.notifyShopifyProgress(options.syncRunId, {
             shopifyCandidates,
+            hotShopifyCandidates: shopifyCandidateGroups.hotCount,
+            backlogShopifyCandidates: shopifyCandidateGroups.backlogCount,
             processedShopify,
             interval: shopifyProgressInterval,
             result,
@@ -342,42 +359,95 @@ export class InventorySyncService {
     return result;
   }
 
-  private countShopifyCandidates(
+  private shopifyCandidateGroups(
     mappings: ProductMappingCandidate[],
     blockedSkus: string[],
     shopifyCreateAllowlist: string[],
-  ): number {
-    const updateCandidates = mappings.filter(
-      (mapping) =>
-        !this.blockedSku(mapping.sku, blockedSkus) &&
-        mapping.status !== 'conflict' &&
-        Boolean(mapping.sapo) &&
-        mapping.sapo?.available !== null &&
-        Boolean(mapping.shopify?.variantId) &&
-        !this.unchangedShopifyInventory(mapping),
-    ).length;
-    const createCandidates = mappings.filter(
-      (mapping) =>
-        !this.blockedSku(mapping.sku, blockedSkus) &&
-        mapping.status !== 'conflict' &&
-        Boolean(mapping.sapo) &&
-        mapping.sapo?.available !== null &&
-        !mapping.shopify?.variantId &&
-        this.createMissingShopifyProducts() &&
-        this.matchesShopifyCreateAllowlist(mapping, shopifyCreateAllowlist),
-    ).length;
+  ): ShopifyCandidateGroups {
+    const hot: ProductMappingCandidate[] = [];
+    const backlog: ProductMappingCandidate[] = [];
     const createLimit = this.createMissingShopifyMaxPerRun();
+    let createCandidates = 0;
+
+    for (const mapping of this.sortShopifyCandidates(mappings)) {
+      if (!this.isShopifyCandidate(mapping, blockedSkus, shopifyCreateAllowlist)) {
+        continue;
+      }
+
+      if (!mapping.shopify?.variantId) {
+        if (createLimit > 0 && createCandidates >= createLimit) {
+          continue;
+        }
+        createCandidates += 1;
+      }
+
+      if (this.isHotShopifyCandidate(mapping)) {
+        hot.push(mapping);
+      } else {
+        backlog.push(mapping);
+      }
+    }
+
+    return {
+      ordered: [...hot, ...backlog],
+      hotCount: hot.length,
+      backlogCount: backlog.length,
+    };
+  }
+
+  private sortShopifyCandidates(
+    mappings: ProductMappingCandidate[],
+  ): ProductMappingCandidate[] {
+    return [...mappings].sort((left, right) => {
+      const leftTime = left.sapo?.sourceUpdatedAt?.getTime() ?? 0;
+      const rightTime = right.sapo?.sourceUpdatedAt?.getTime() ?? 0;
+      return rightTime - leftTime;
+    });
+  }
+
+  private isShopifyCandidate(
+    mapping: ProductMappingCandidate,
+    blockedSkus: string[],
+    shopifyCreateAllowlist: string[],
+  ): boolean {
+    if (
+      this.blockedSku(mapping.sku, blockedSkus) ||
+      mapping.status === 'conflict' ||
+      !mapping.sapo ||
+      mapping.sapo.available === null
+    ) {
+      return false;
+    }
+
+    if (mapping.shopify?.variantId) {
+      return !this.unchangedShopifyInventory(mapping);
+    }
 
     return (
-      updateCandidates +
-      (createLimit > 0 ? Math.min(createCandidates, createLimit) : createCandidates)
+      this.createMissingShopifyProducts() &&
+      this.matchesShopifyCreateAllowlist(mapping, shopifyCreateAllowlist)
     );
+  }
+
+  private isHotShopifyCandidate(mapping: ProductMappingCandidate): boolean {
+    const updatedAt = mapping.sapo?.sourceUpdatedAt?.getTime();
+    if (updatedAt === undefined) {
+      return false;
+    }
+
+    const hotWindowMinutes = this.configNumber(
+      'sync.shopifyInventoryHotWindowMinutes',
+      30,
+    );
+    return updatedAt >= Date.now() - hotWindowMinutes * 60 * 1000;
   }
 
   private async notifyShopifyProgress(
     syncRunId: string | undefined,
     input: {
       shopifyCandidates: number;
+      hotShopifyCandidates: number;
+      backlogShopifyCandidates: number;
       processedShopify: number;
       interval: number;
       result: InventorySyncResult;
@@ -408,6 +478,8 @@ export class InventorySyncService {
           `processedShopify=${input.processedShopify}`,
           `remainingShopify=${Math.max(input.shopifyCandidates - input.processedShopify, 0)}`,
           `shopifyCandidates=${input.shopifyCandidates}`,
+          `hotShopifyCandidates=${input.hotShopifyCandidates}`,
+          `backlogShopifyCandidates=${input.backlogShopifyCandidates}`,
           `updatedShopify=${input.result.updatedShopify}`,
           `createdShopify=${input.result.createdShopify}`,
           `shopifyErrors=${shopifyErrors}`,

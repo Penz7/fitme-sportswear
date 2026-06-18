@@ -165,6 +165,11 @@ export const envValidationSchema = Joi.object({
   SYNC_CREATE_MISSING_SHOPIFY_SKU_ALLOWLIST: Joi.string()
     .allow('')
     .optional(),
+  SYNC_SHOPIFY_INVENTORY_HOT_WINDOW_MINUTES: Joi.number()
+    .integer()
+    .min(1)
+    .max(1440)
+    .default(30),
   SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED: Joi.boolean()
     .truthy('true')
     .falsy('false')

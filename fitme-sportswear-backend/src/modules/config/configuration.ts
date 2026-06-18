@@ -150,6 +150,9 @@ export default () => ({
       createMissingShopifySkuAllowlist: parseStringList(
         process.env.SYNC_CREATE_MISSING_SHOPIFY_SKU_ALLOWLIST,
       ),
+      shopifyInventoryHotWindowMinutes: Number(
+        process.env.SYNC_SHOPIFY_INVENTORY_HOT_WINDOW_MINUTES ?? 30,
+      ),
       shopifyEnabled:
         process.env.SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED === 'true',
     },
