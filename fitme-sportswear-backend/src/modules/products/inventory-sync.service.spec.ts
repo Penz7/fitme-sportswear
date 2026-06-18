@@ -160,7 +160,7 @@ describe('InventorySyncService missing product creation', () => {
     expect(result.createdPancake).toBe(0);
   });
 
-  it('continues Shopify creation when a missing combo SKU is skipped on Pancake', async () => {
+  it('does not create missing combo SKU on Shopify when missing product creation is enabled', async () => {
     const { service, pancakeClient, shopifyClient } = createService({
       'sync.products.createMissingPancake': true,
       'sync.products.createMissingShopify': true,
@@ -176,16 +176,11 @@ describe('InventorySyncService missing product creation', () => {
     ]);
 
     expect(pancakeClient.createProductFromSapo).not.toHaveBeenCalled();
-    expect(shopifyClient.createProductFromSapo).toHaveBeenCalledWith({
-      sku: comboSku,
-      name: 'New Shirt',
-      available: 7,
-      retailPrice: 150000,
-    });
-    expect(shopifyClient.updateInventoryAndPrice).toHaveBeenCalled();
+    expect(shopifyClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(shopifyClient.updateInventoryAndPrice).not.toHaveBeenCalled();
     expect(result.createdPancake).toBe(0);
-    expect(result.createdShopify).toBe(1);
-    expect(result.createdShopifySkus).toEqual([comboSku]);
+    expect(result.createdShopify).toBe(0);
+    expect(result.createdShopifySkus).toEqual([]);
   });
 
   it('does not create missing Pancake products when SKU is blocklisted', async () => {

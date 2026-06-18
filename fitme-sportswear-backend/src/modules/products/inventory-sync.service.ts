@@ -424,6 +424,7 @@ export class InventorySyncService {
     }
 
     return (
+      !isComboSku(mapping.sku) &&
       this.createMissingShopifyProducts() &&
       this.matchesShopifyCreateAllowlist(mapping, shopifyCreateAllowlist)
     );
