@@ -361,10 +361,15 @@ SAPO_CLIENT_ID=<sapo-client-id>
 SAPO_SHOP_DOMAIN=fitme-sportswear.mysapogo.com
 SAPO_LOCATION_ID=<sapo-main-location-id>
 SAPO_PRODUCT_REQUEST_TIMEOUT_MS=30000
+SAPO_LOGIN_COOLDOWN_MS=1800000
 SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID={}
 SAPO_PREPAYMENT_METHOD_ID=<sapo-payment-method-id>
 SAPO_PREPAYMENT_METHOD_NAME=Chuyen khoan
 ```
+
+Hệ thống đang dùng cơ chế session Sapo Go giống source cũ để làm việc đúng với dashboard `mysapogo.com`.
+
+`SAPO_LOGIN_COOLDOWN_MS` giúp tránh spam login vào `accounts.sapo.vn`. Nếu Sapo Accounts trả `403` hoặc `429`, worker sẽ tạm dừng login lại trong thời gian này. Giá trị `1800000` là 30 phút.
 
 Quyền/tài khoản Sapo cần đủ:
 
@@ -521,6 +526,8 @@ SYNC_SAPO_TO_PANCAKE_ORDER_CRON=
 - Pancake/Shopify -> Sapo: chủ yếu qua webhook, gần realtime.
 
 Không khuyến nghị polling 10 giây cho live vì dễ tăng tải API Sapo/Pancake/Shopify.
+
+Nếu Sapo vừa unblock IP VPS, không bật toàn bộ scheduler ngay. Nên chạy API trước, bật worker với filter test, trigger một sync nhỏ để xác nhận login Sapo thành công, rồi mới bật đủ scheduler.
 
 ### 6.8. Scheduler inventory sync
 

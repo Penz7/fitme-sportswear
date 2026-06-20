@@ -6,9 +6,9 @@ const baseEnv = {
   REDIS_HOST: 'localhost',
   REDIS_PORT: 6380,
   SAPO_BASE_URL: 'https://example-sapo.local',
-  SAPO_PHONE_NUMBER: 'phone',
-  SAPO_PASSWORD: 'password',
-  SAPO_CLIENT_ID: 'client',
+  SAPO_PHONE_NUMBER: '901234567',
+  SAPO_PASSWORD: 'sapo-password',
+  SAPO_CLIENT_ID: 'sapo-client-id',
   SAPO_SHOP_DOMAIN: 'example-sapo.local',
   PANCAKE_BASE_URL: 'https://example-pancake.local',
   PANCAKE_API_KEY: 'pancake-key',
@@ -55,5 +55,25 @@ describe('envValidationSchema', () => {
     );
 
     expect(result.error).toBeUndefined();
+  });
+
+  it('requires Sapo session credentials', () => {
+    const result = envValidationSchema.validate(
+      {
+        ...baseEnv,
+        SAPO_PHONE_NUMBER: undefined,
+        SAPO_PASSWORD: undefined,
+        SAPO_CLIENT_ID: undefined,
+      },
+      { abortEarly: false },
+    );
+
+    expect(result.error?.details.map((detail) => detail.path.join('.'))).toEqual(
+      expect.arrayContaining([
+        'SAPO_PHONE_NUMBER',
+        'SAPO_PASSWORD',
+        'SAPO_CLIENT_ID',
+      ]),
+    );
   });
 });

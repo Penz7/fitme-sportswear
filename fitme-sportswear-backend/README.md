@@ -105,13 +105,14 @@ Nhóm biến chính:
 
 | Biến | Ý nghĩa |
 | --- | --- |
-| `SAPO_BASE_URL` | Base URL gọi API Sapo. |
+| `SAPO_BASE_URL` | Base URL gọi API Sapo Go, ví dụ `https://fitme-sportswear.mysapogo.com`. |
 | `SAPO_ACCOUNT_BASE_URL` | Base URL account/auth Sapo. |
-| `SAPO_PHONE_NUMBER` | Tài khoản đăng nhập/session nếu flow cần. |
-| `SAPO_PASSWORD` | Mật khẩu đăng nhập/session nếu flow cần. |
+| `SAPO_PHONE_NUMBER` | Tài khoản đăng nhập Sapo Go/session. |
+| `SAPO_PASSWORD` | Mật khẩu đăng nhập Sapo Go/session. |
 | `SAPO_CLIENT_ID` | Client ID tích hợp Sapo. |
 | `SAPO_SHOP_DOMAIN` | Domain shop Sapo. |
 | `SAPO_LOCATION_ID` | Location mặc định để xử lý tồn kho/đơn hàng. |
+| `SAPO_LOGIN_COOLDOWN_MS` | Thời gian tạm dừng login lại khi Sapo Accounts trả `403/429`, mặc định 30 phút để tránh spam login và bị block IP. |
 | `SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID` | JSON map từ Pancake warehouse ID sang Sapo location ID. |
 | `SAPO_PREPAYMENT_METHOD_ID` | Payment method ID dùng khi ghi nhận Pancake prepaid sang Sapo. |
 | `SAPO_PREPAYMENT_METHOD_NAME` | Tên payment method dùng khi ghi nhận Pancake prepaid sang Sapo. |

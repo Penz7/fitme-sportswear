@@ -52,6 +52,7 @@ export default () => ({
     productRequestTimeoutMs: Number(
       process.env.SAPO_PRODUCT_REQUEST_TIMEOUT_MS ?? 30000,
     ),
+    loginCooldownMs: Number(process.env.SAPO_LOGIN_COOLDOWN_MS ?? 1800000),
     pancakeSourceId: Number(process.env.SAPO_PANCAKE_SOURCE_ID ?? 307258),
     locationIdByPancakeWarehouseId: parseStringMap(
       process.env.SAPO_LOCATION_ID_BY_PANCAKE_WAREHOUSE_ID,

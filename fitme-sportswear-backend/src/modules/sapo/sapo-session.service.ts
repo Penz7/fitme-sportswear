@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 export class SapoSessionService {
   private readonly cookies = new Map<string, string>();
   private loginPromise: Promise<void> | null = null;
+  private loginBlockedUntil = 0;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -17,6 +18,8 @@ export class SapoSessionService {
   }
 
   async refreshSession(): Promise<void> {
+    this.throwIfLoginBlocked();
+
     if (!this.loginPromise) {
       this.loginPromise = this.login().finally(() => {
         this.loginPromise = null;
@@ -171,6 +174,7 @@ export class SapoSessionService {
       }
 
       if (!response.ok) {
+        this.blockLoginIfProtectedStatus(response.status);
         throw new Error(`${label} failed with status ${response.status}`);
       }
 
@@ -235,6 +239,29 @@ export class SapoSessionService {
     }
 
     return value;
+  }
+
+  private throwIfLoginBlocked(): void {
+    if (Date.now() < this.loginBlockedUntil) {
+      throw new Error(
+        `Sapo login temporarily blocked until ${new Date(
+          this.loginBlockedUntil,
+        ).toISOString()}`,
+      );
+    }
+  }
+
+  private blockLoginIfProtectedStatus(status: number): void {
+    if (status !== 403 && status !== 429) {
+      return;
+    }
+
+    const cooldownMs =
+      this.configService.get<number>('sapo.loginCooldownMs') ?? 30 * 60 * 1000;
+    this.loginBlockedUntil = Math.max(
+      this.loginBlockedUntil,
+      Date.now() + cooldownMs,
+    );
   }
 
   private toHeaderObject(

@@ -13,9 +13,16 @@ export const envValidationSchema = Joi.object({
   SAPO_PHONE_NUMBER: Joi.string().required(),
   SAPO_PASSWORD: Joi.string().required(),
   SAPO_CLIENT_ID: Joi.string().required(),
+  SAPO_AUTH_MODE: Joi.string().allow('').optional(),
+  SAPO_API_KEY: Joi.string().allow('').optional(),
+  SAPO_API_SECRET: Joi.string().allow('').optional(),
   SAPO_SHOP_DOMAIN: Joi.string().required(),
   SAPO_LOCATION_ID: Joi.string().default('572310'),
   SAPO_PRODUCT_REQUEST_TIMEOUT_MS: Joi.number().integer().min(1000).default(30000),
+  SAPO_LOGIN_COOLDOWN_MS: Joi.number()
+    .integer()
+    .min(0)
+    .default(1800000),
 
   PANCAKE_BASE_URL: Joi.string().uri().required(),
   PANCAKE_API_KEY: Joi.string().required(),

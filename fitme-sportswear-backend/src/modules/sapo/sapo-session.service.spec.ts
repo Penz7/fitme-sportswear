@@ -9,14 +9,15 @@ describe('SapoSessionService', () => {
     global.fetch = fetchMock;
   });
 
-  function createService(overrides: Record<string, string | undefined> = {}) {
-    const values: Record<string, string | undefined> = {
+  function createService(overrides: Record<string, string | number | undefined> = {}) {
+    const values: Record<string, string | number | undefined> = {
       'sapo.accountBaseUrl': 'https://accounts.sapo.vn',
       'sapo.baseUrl': 'https://fitme-sportswear.mysapogo.com',
       'sapo.phoneNumber': '901234567',
       'sapo.password': 'secret',
       'sapo.clientId': 'sapo-client',
       'sapo.shopDomain': 'fitme-sportswear.mysapogo.com',
+      'sapo.loginCooldownMs': 30 * 60 * 1000,
       ...overrides,
     };
 
@@ -142,6 +143,42 @@ describe('SapoSessionService', () => {
     );
   });
 
+  it('reuses cached session cookies without logging in again', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        response(true, 200, ['session_id=old; Path=/'], {
+          redirect: 'https://accounts.sapo.vn/sso?serviceType=pos',
+        }),
+      )
+      .mockResolvedValueOnce(response(true, 200, ['sso_id=old; Path=/']))
+      .mockResolvedValueOnce(response(true, 200, ['oauth_id=old; Path=/']))
+      .mockResolvedValueOnce(response(true, 200, ['admin_id=old; Path=/']))
+      .mockResolvedValueOnce(response(true, 200))
+      .mockResolvedValueOnce(response(true, 200));
+
+    const service = createService();
+
+    await service.fetchWithSession(
+      'https://fitme-sportswear.mysapogo.com/admin/orders.json?page=1&limit=20',
+    );
+    await service.fetchWithSession(
+      'https://fitme-sportswear.mysapogo.com/admin/products/search.json?page=1&limit=50',
+    );
+
+    const loginCalls = fetchMock.mock.calls.filter(
+      ([url]) => url === 'https://accounts.sapo.vn/login',
+    );
+    expect(loginCalls).toHaveLength(1);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://fitme-sportswear.mysapogo.com/admin/products/search.json?page=1&limit=50',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Cookie: 'session_id=old; sso_id=old; oauth_id=old; admin_id=old',
+        }),
+      }),
+    );
+  });
+
   it('throws a clear error when login fails', async () => {
     fetchMock.mockResolvedValueOnce(response(false, 403));
 
@@ -150,5 +187,22 @@ describe('SapoSessionService', () => {
     await expect(service.ensureSession()).rejects.toThrow(
       'Sapo login failed with status 403',
     );
+  });
+
+  it('does not call Sapo login again while login is cooling down after 403', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-19T03:00:00.000Z'));
+    fetchMock.mockResolvedValueOnce(response(false, 403));
+
+    const service = createService({ 'sapo.loginCooldownMs': 30 * 60 * 1000 });
+
+    await expect(service.ensureSession()).rejects.toThrow(
+      'Sapo login failed with status 403',
+    );
+    await expect(service.ensureSession()).rejects.toThrow(
+      'Sapo login temporarily blocked until 2026-06-19T03:30:00.000Z',
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 });
