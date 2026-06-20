@@ -1,0 +1,5 @@
+api.fitme.vn {
+    encode gzip
+
+    reverse_proxy api:3000
+}

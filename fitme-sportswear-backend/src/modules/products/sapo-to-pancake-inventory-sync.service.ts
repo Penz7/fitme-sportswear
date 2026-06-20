@@ -85,6 +85,7 @@ export class SapoToPancakeInventorySyncService {
         'sync.sapoToPancakeInventory.createRecentMissingPancakeMaxPerRun',
         20,
       );
+      const targetedCreateMissingPancake = this.targetedInput(input);
 
       const mappingsBySku = new Map(
         mappings.map((mapping) => [mapping.normalizedSku, mapping]),
@@ -120,7 +121,7 @@ export class SapoToPancakeInventorySyncService {
             if (
               !input.dryRun &&
               createdCount < missingPancakeCreateLimit &&
-              this.shouldCreateRecentMissingPancake(mapping)
+              this.shouldCreateMissingPancake(mapping, targetedCreateMissingPancake)
             ) {
               await this.createMissingCompositePancakeProduct(
                 mapping,
@@ -135,7 +136,7 @@ export class SapoToPancakeInventorySyncService {
             !input.dryRun &&
             result.createdMissingPancake + result.createdCompositePancake <
               missingPancakeCreateLimit &&
-            this.shouldCreateRecentMissingPancake(mapping)
+            this.shouldCreateMissingPancake(mapping, targetedCreateMissingPancake)
           ) {
             await this.createMissingPancakeProduct(mapping, result);
           } else {
@@ -229,7 +230,7 @@ export class SapoToPancakeInventorySyncService {
     result: SapoToPancakeInventorySyncResult,
   ) {
     const productIds = [...new Set(input.productIds ?? [])].filter(Boolean);
-    const requestedSkus = new Set(
+    const requestedSkus = this.expandRequestedSkus(
       (input.skus ?? []).map(normalizeSku).filter(Boolean),
     );
     const targeted = productIds.length > 0 || requestedSkus.size > 0;
@@ -274,6 +275,16 @@ export class SapoToPancakeInventorySyncService {
     } catch (error) {
       throw this.withContext('Sapo product fetch failed during inventory sync', error);
     }
+  }
+
+  private expandRequestedSkus(skus: string[]): Set<string> {
+    const requestedSkus = new Set(skus);
+    for (const sku of skus) {
+      for (const component of getComboSkuComponents(sku) ?? []) {
+        requestedSkus.add(component.sku);
+      }
+    }
+    return requestedSkus;
   }
 
   private async fetchPancakeProductsForSync(
@@ -507,6 +518,24 @@ export class SapoToPancakeInventorySyncService {
       60,
     );
     return createdAt >= Date.now() - windowMinutes * 60 * 1000;
+  }
+
+  private shouldCreateMissingPancake(
+    mapping: ProductMappingCandidate,
+    targetedCreateMissingPancake: boolean,
+  ): boolean {
+    if (targetedCreateMissingPancake) {
+      return Boolean(mapping.sapo && mapping.sapo.available !== null);
+    }
+
+    return this.shouldCreateRecentMissingPancake(mapping);
+  }
+
+  private targetedInput(input: SapoToPancakeInventorySyncInput): boolean {
+    return (
+      (input.productIds?.filter(Boolean).length ?? 0) > 0 ||
+      (input.skus?.filter(Boolean).length ?? 0) > 0
+    );
   }
 
   private async createMissingPancakeProduct(

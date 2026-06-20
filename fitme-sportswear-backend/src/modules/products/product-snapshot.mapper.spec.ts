@@ -37,11 +37,11 @@ describe('product snapshot mapper', () => {
     expect(result).toEqual({ platform: 'pancake', sku: 'SKU-2', normalizedSku: 'SKU-2', productId: 'p-1', variantId: 'v-1', name: 'Quần tập', available: 10, remain: 14, retailPrice: 200000, warehouseId: 'w-1', warehouseCount: 2 });
   });
 
-  it('maps Pancake barcode/custom_id and snake_case warehouse fields from live API shape', () => {
+  it('maps Pancake display_id before barcode and snake_case warehouse fields from live API shape', () => {
     const result = mapPancakeProductSnapshot({
-      display_id: '1',
+      display_id: 'FM-QSBL01-XA-L',
       custom_id: '',
-      barcode: ' FM-QSBL01-XA-L ',
+      barcode: ' FM-QSBL01-XA-OLD ',
       product_id: 'p-1',
       id: 'v-1',
       product: { name: 'Quần short' },

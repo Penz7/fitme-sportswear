@@ -9,6 +9,7 @@ import {
 } from './types/platform-product-snapshot';
 import { ProductMatchingService } from './product-matching.service';
 import { ProductSnapshotService } from './product-snapshot.service';
+import { ProductSyncBlocklistService } from './product-sync-blocklist.service';
 import { normalizeSku } from './sku-normalizer';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class ProductSyncOrchestratorService {
     private readonly snapshotService: ProductSnapshotService,
     private readonly matchingService: ProductMatchingService,
     private readonly inventorySyncService: InventorySyncService,
+    private readonly blocklistService: ProductSyncBlocklistService,
     private readonly notifier?: TelegramNotifierService,
   ) {}
 
@@ -34,16 +36,18 @@ export class ProductSyncOrchestratorService {
 
     try {
       const snapshots = await this.refreshSnapshotsWithProgress(syncRunId);
-      const mappings = await this.applyAmbiguousMappingConflicts(
+      const rawMappings = await this.applyAmbiguousMappingConflicts(
         this.matchingService.buildMappings(snapshots),
       );
+      const mappings = this.syncableMappings(rawMappings);
       await this.notifyShopifyProgress(syncRunId, snapshots, mappings);
 
       for (const mapping of mappings) {
         await this.upsertMapping(mapping);
       }
 
-      await this.recordConflicts(mappings);
+      await this.pruneIgnoredMappings(rawMappings, mappings);
+      await this.recordConflicts(rawMappings);
 
       const syncResult = await this.inventorySyncService.syncMappings(mappings, {
         syncRunId,
@@ -291,6 +295,48 @@ export class ProductSyncOrchestratorService {
     } catch {
       return;
     }
+  }
+
+  private syncableMappings(
+    mappings: ProductMappingCandidate[],
+  ): ProductMappingCandidate[] {
+    const blockedSkus = this.blocklistService.load();
+    return mappings.filter((mapping) => {
+      if (blockedSkus.has(mapping.normalizedSku)) {
+        return false;
+      }
+
+      if (mapping.status === 'conflict') {
+        return false;
+      }
+
+      return Boolean(mapping.sapo);
+    });
+  }
+
+  private async pruneIgnoredMappings(
+    rawMappings: ProductMappingCandidate[],
+    syncableMappings: ProductMappingCandidate[],
+  ): Promise<void> {
+    const syncableSkus = new Set(syncableMappings.map((mapping) => mapping.sku));
+    const ignoredSkus = rawMappings
+      .map((mapping) => mapping.sku)
+      .filter((sku) => !syncableSkus.has(sku));
+
+    if (ignoredSkus.length === 0) {
+      return;
+    }
+
+    const productMapping = this.prisma.productMapping as unknown as {
+      deleteMany?: PrismaService['productMapping']['deleteMany'];
+    };
+    if (!productMapping.deleteMany) {
+      return;
+    }
+
+    await productMapping.deleteMany({
+      where: { sku: { in: ignoredSkus } },
+    });
   }
 
   private async upsertMapping(mapping: ProductMappingCandidate) {

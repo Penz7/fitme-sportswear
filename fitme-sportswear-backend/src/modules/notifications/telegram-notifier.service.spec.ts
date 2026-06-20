@@ -40,4 +40,15 @@ describe('TelegramNotifierService', () => {
       },
     );
   });
+
+  it('does not throw when Telegram fetch fails', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('fetch failed'));
+
+    await expect(
+      createService({
+        'telegram.botToken': 'bot-token',
+        'telegram.chatId': 'chat-id',
+      }).sendMessage('Sync completed', 'ok'),
+    ).resolves.toBeUndefined();
+  });
 });

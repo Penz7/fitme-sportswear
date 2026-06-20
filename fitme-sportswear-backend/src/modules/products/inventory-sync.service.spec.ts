@@ -166,6 +166,7 @@ describe('InventorySyncService missing product creation', () => {
   it('does not create missing combo SKU on Shopify when missing product creation is enabled', async () => {
     const { service, pancakeClient, shopifyClient } = createService({
       'sync.products.createMissingPancake': true,
+      'sync.products.shopifyEnabled': true,
       'sync.products.createMissingShopify': true,
     });
     const comboSku = 'FM-ATSO01-DO-L-FM-VSFM01-TR-L';
@@ -525,6 +526,7 @@ describe('InventorySyncService missing product creation', () => {
 
   it('creates missing Shopify products as plain SKU products when enabled', async () => {
     const { service, shopifyClient, prisma } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.products.createMissingShopify': true,
     });
 
@@ -540,8 +542,29 @@ describe('InventorySyncService missing product creation', () => {
     expect(result.createdShopify).toBe(1);
   });
 
+  it('does not update Shopify inventory when Shopify product sync is disabled', async () => {
+    const { service, shopifyClient } = createService({
+      'sync.products.shopifyEnabled': false,
+    });
+
+    const result = await service.syncMappings([
+      {
+        ...sapoOnlyMapping({ sku: 'SKU-1', normalizedSku: 'SKU-1' }),
+        shopify: targetSnapshot('shopify', 'SKU-1', { available: 1 }),
+        status: 'matched',
+        conflictReason: null,
+      },
+    ]);
+
+    expect(shopifyClient.updateInventoryAndPrice).not.toHaveBeenCalled();
+    expect(shopifyClient.createProductFromSapo).not.toHaveBeenCalled();
+    expect(result.updatedShopify).toBe(0);
+    expect(result.createdShopify).toBe(0);
+  });
+
   it('sends Shopify inventory progress with remaining count and sample SKUs', async () => {
     const { service, notifier, prisma } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.shopifyProgressInterval': 1,
     });
 
@@ -597,6 +620,7 @@ describe('InventorySyncService missing product creation', () => {
 
   it('processes hot Shopify inventory candidates before backlog candidates', async () => {
     const { service, shopifyClient } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.shopifyInventoryHotWindowMinutes': 30,
     });
     const now = Date.now();
@@ -639,7 +663,9 @@ describe('InventorySyncService missing product creation', () => {
   });
 
   it('can skip Pancake writes while still syncing Shopify inventory', async () => {
-    const { service, pancakeClient, shopifyClient } = createService();
+    const { service, pancakeClient, shopifyClient } = createService({
+      'sync.products.shopifyEnabled': true,
+    });
 
     const result = await service.syncMappings(
       [
@@ -667,6 +693,7 @@ describe('InventorySyncService missing product creation', () => {
 
   it('reports Shopify hot and backlog candidate counts in progress notifications', async () => {
     const { service, notifier } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.shopifyProgressInterval': 1,
       'sync.shopifyInventoryHotWindowMinutes': 30,
     });
@@ -712,6 +739,7 @@ describe('InventorySyncService missing product creation', () => {
 
   it('creates old missing Shopify products when creation is enabled', async () => {
     const { service, shopifyClient } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.products.createMissingShopify': true,
       'sync.products.createMissingShopifyWindowMinutes': 60,
     });
@@ -737,6 +765,7 @@ describe('InventorySyncService missing product creation', () => {
 
   it('limits missing Shopify product creation per run', async () => {
     const { service, shopifyClient } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.products.createMissingShopify': true,
       'sync.products.createMissingShopifyMaxPerRun': 1,
     });
@@ -763,6 +792,7 @@ describe('InventorySyncService missing product creation', () => {
 
   it('creates only allowlisted missing Shopify products when an allowlist is configured', async () => {
     const { service, shopifyClient } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.products.createMissingShopify': true,
       'sync.products.createMissingShopifySkuAllowlist': ['SKU-NEW-2'],
     });
@@ -787,6 +817,7 @@ describe('InventorySyncService missing product creation', () => {
 
   it('persists created Shopify IDs when inventory and price update fails after create', async () => {
     const { service, shopifyClient, prisma } = createService({
+      'sync.products.shopifyEnabled': true,
       'sync.products.createMissingShopify': true,
     });
     shopifyClient.updateInventoryAndPrice.mockRejectedValueOnce(

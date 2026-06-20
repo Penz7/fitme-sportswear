@@ -159,6 +159,7 @@ export class ShopifyClient {
   async updateInventoryAndPrice(
     input: ShopifyInventoryUpdateInput,
   ): Promise<void> {
+    const available = this.integerQuantity(input.available);
     const variant = await this.fetchVariant(input.variantId);
 
     if (variant.inventory_management !== 'shopify') {
@@ -181,15 +182,16 @@ export class ShopifyClient {
         body: JSON.stringify({
           inventory_item_id: variant.inventory_item_id,
           location_id: locationId,
-          available: input.available,
+          available,
         }),
       },
       'Shopify inventory level update',
     );
 
     if (!response.ok) {
+      const body = await this.safeResponseSnippet(response);
       throw new Error(
-        `Shopify inventory level update failed with status ${response.status}`,
+        `Shopify inventory level update failed with status ${response.status}${body}`,
       );
     }
   }
@@ -592,6 +594,16 @@ export class ShopifyClient {
     return error instanceof Error ? error.message : String(error);
   }
 
+  private async safeResponseSnippet(response: Response): Promise<string> {
+    try {
+      const body = await response.text();
+      const trimmed = body.trim().replace(/\s+/g, ' ');
+      return trimmed.length > 0 ? `: ${trimmed.slice(0, 500)}` : '';
+    } catch {
+      return '';
+    }
+  }
+
   private extractNextLink(linkHeader: string | null): string | null {
     if (!linkHeader) {
       return null;
@@ -660,6 +672,14 @@ export class ShopifyClient {
   private samePrice(currentPrice: string | number | null, nextPrice: number): boolean {
     const current = Number(currentPrice);
     return Number.isFinite(current) && current === nextPrice;
+  }
+
+  private integerQuantity(value: number): number {
+    const quantity = Number(value);
+    if (!Number.isFinite(quantity)) {
+      throw new Error(`Shopify inventory quantity must be finite: ${value}`);
+    }
+    return Math.trunc(quantity);
   }
 
   private isFulfillableOrder(fulfillmentOrder: {

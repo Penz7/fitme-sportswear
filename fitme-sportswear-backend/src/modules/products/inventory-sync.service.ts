@@ -64,11 +64,14 @@ export class InventorySyncService {
     };
     const blockedSkus = this.productSyncSkuBlocklist();
     const shopifyCreateAllowlist = this.createMissingShopifySkuAllowlist();
-    const shopifyCandidateGroups = this.shopifyCandidateGroups(
-      mappings,
-      blockedSkus,
-      shopifyCreateAllowlist,
-    );
+    const syncShopify = this.shopifyProductSyncEnabled();
+    const shopifyCandidateGroups = syncShopify
+      ? this.shopifyCandidateGroups(
+          mappings,
+          blockedSkus,
+          shopifyCreateAllowlist,
+        )
+      : { ordered: [], hotCount: 0, backlogCount: 0 };
     const shopifyCandidates = shopifyCandidateGroups.ordered.length;
     const shopifyProgressInterval = this.configNumber(
       'sync.shopifyProgressInterval',
@@ -231,16 +234,19 @@ export class InventorySyncService {
 
       if (mapping.shopify?.variantId && !this.unchangedShopifyInventory(mapping)) {
         try {
+          const available = this.integerQuantity(mapping.sapo.available);
           await this.shopifyClient.updateInventoryAndPrice({
             variantId: mapping.shopify.variantId,
-            available: mapping.sapo.available,
+            available,
             retailPrice: mapping.sapo.retailPrice,
           });
           await this.prisma.shopifyProduct.update({
             where: { sku: mapping.sku },
             data: {
-              available: BigInt(mapping.sapo.available),
-              retailPrice: mapping.sapo.retailPrice,
+              available: BigInt(available),
+              ...(mapping.sapo.retailPrice === null
+                ? {}
+                : { retailPrice: mapping.sapo.retailPrice }),
               updatedBy: 'SAPO',
             },
           });
@@ -653,19 +659,29 @@ export class InventorySyncService {
     mapping: ProductMappingCandidate,
     target: ProductMappingCandidate['pancake'] | ProductMappingCandidate['shopify'],
   ): boolean {
-    if (!mapping.sapo || !target || !mapping.sapo.sourceUpdatedAt) {
+    if (!mapping.sapo || !target) {
       return false;
     }
 
-    const minutesDiff = Math.abs(
-      Date.now() - mapping.sapo.sourceUpdatedAt.getTime(),
-    ) / 60000;
-
     return (
-      minutesDiff < 10 &&
       mapping.sapo.available === target.available &&
-      mapping.sapo.retailPrice === target.retailPrice
+      this.unchangedPrice(mapping.sapo.retailPrice, target.retailPrice)
     );
+  }
+
+  private unchangedPrice(
+    sapoPrice: number | null,
+    targetPrice: number | null,
+  ): boolean {
+    return sapoPrice === null || sapoPrice === targetPrice;
+  }
+
+  private integerQuantity(value: number): number {
+    const quantity = Number(value);
+    if (!Number.isFinite(quantity)) {
+      throw new Error(`Inventory quantity must be finite: ${value}`);
+    }
+    return Math.trunc(quantity);
   }
 
   private resolvePancakeWarehouseId(warehouseId: string | null): string | null {
@@ -703,6 +719,10 @@ export class InventorySyncService {
 
   private createMissingShopifyProducts(): boolean {
     return this.configBoolean('sync.products.createMissingShopify', false);
+  }
+
+  private shopifyProductSyncEnabled(): boolean {
+    return this.configBoolean('sync.products.shopifyEnabled', false);
   }
 
   private createMissingShopifyMaxPerRun(): number {

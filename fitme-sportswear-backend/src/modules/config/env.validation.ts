@@ -117,7 +117,7 @@ export const envValidationSchema = Joi.object({
     .default(3),
   SYNC_SAPO_TO_PANCAKE_INVENTORY_MAX_UPDATES_PER_RUN: Joi.number()
     .integer()
-    .min(1)
+    .min(0)
     .max(1000)
     .default(200),
   SYNC_SAPO_TO_PANCAKE_INVENTORY_HOT_WINDOW_MINUTES: Joi.number()

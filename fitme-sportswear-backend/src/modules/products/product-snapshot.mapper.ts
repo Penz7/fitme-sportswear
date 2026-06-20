@@ -165,9 +165,9 @@ export const mapPancakeProductSnapshot = (product: PancakeProductInput): Platfor
   const sku = firstTrimmedString(
     product.customId,
     product.custom_id,
-    product.barcode,
     product.displayId,
     product.display_id,
+    product.barcode,
   );
   if (!sku) {
     return null;

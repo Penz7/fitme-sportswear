@@ -85,6 +85,27 @@ describe('SapoToPancakeInventorySyncService', () => {
             ],
           })),
       ),
+      fetchProductsBySku: jest.fn((sku: string) =>
+        Promise.resolve(
+          mappingInputs
+            .map((item, index) => ({ item, index }))
+            .filter(({ item }) => !item.missingPancake && item.sku === sku)
+            .map(({ item, index }) => ({
+              id: `pancake-variant-${index + 1}`,
+              product_id: `pancake-product-${index + 1}`,
+              barcode: item.sku,
+              retail_price: 100,
+              product: { name: 'Product' },
+              variations_warehouses: [
+                {
+                  warehouse_id: item.missingPancakeWarehouse ? null : 'warehouse-1',
+                  remain_quantity: item.pancakeAvailable,
+                  actual_remain_quantity: item.pancakeAvailable,
+                },
+              ],
+            })),
+        ),
+      ),
       updateInventory: jest.fn().mockResolvedValue(undefined),
       createProductFromSapo: jest.fn().mockResolvedValue({
         productId: 'created-pancake-product',
@@ -150,7 +171,10 @@ describe('SapoToPancakeInventorySyncService', () => {
         return undefined;
       }),
     };
-    const notifier = { sendMessage: jest.fn().mockResolvedValue(undefined) };
+    const notifier = {
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+      sendException: jest.fn().mockResolvedValue(undefined),
+    };
 
     return {
       prisma,
@@ -449,6 +473,47 @@ describe('SapoToPancakeInventorySyncService', () => {
       ],
     });
     expect(pancakeClient.updateInventory).not.toHaveBeenCalled();
+  });
+
+  it('loads combo components during targeted missing combo creation', async () => {
+    const comboSku = 'FM-AVBNU-XR-S-FM-QNTG01-DE-S';
+    const { service, pancakeClient } = createService({
+      createRecentMissingPancake: false,
+      mappings: [
+        {
+          sku: comboSku,
+          sapoAvailable: 12,
+          pancakeAvailable: 0,
+          missingPancake: true,
+        },
+        {
+          sku: 'FM-AVBNU-XR-S',
+          sapoAvailable: 20,
+          pancakeAvailable: 20,
+        },
+        {
+          sku: 'FM-QNTG01-DE-S',
+          sapoAvailable: 15,
+          pancakeAvailable: 15,
+        },
+      ],
+    });
+
+    const result = await service.run({
+      syncRunId: 'run-1',
+      approved: true,
+      skus: [comboSku],
+    });
+
+    expect(result.createdCompositePancake).toBe(1);
+    expect(result.skippedCompositeMissingComponents).toBe(0);
+    expect(pancakeClient.updateCompositeProduct).toHaveBeenCalledWith({
+      comboVariantId: 'created-pancake-variant',
+      components: [
+        { variationId: 'pancake-variant-2', quantity: 1 },
+        { variationId: 'pancake-variant-3', quantity: 1 },
+      ],
+    });
   });
 
   it('creates missing components before their combo in the same inventory sync run', async () => {

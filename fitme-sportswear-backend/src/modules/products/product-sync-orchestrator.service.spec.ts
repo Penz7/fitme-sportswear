@@ -72,6 +72,7 @@ describe('ProductSyncOrchestratorService', () => {
       snapshotService,
       matchingService,
       inventorySyncService,
+      { load: jest.fn().mockReturnValue(new Set()) } as any,
       notifier as any,
     );
 
@@ -188,6 +189,7 @@ describe('ProductSyncOrchestratorService', () => {
       snapshotService,
       matchingService,
       inventorySyncService,
+      { load: jest.fn().mockReturnValue(new Set()) } as any,
       notifier as any,
     );
 
@@ -195,7 +197,7 @@ describe('ProductSyncOrchestratorService', () => {
 
     expect(notifier.sendMessage).toHaveBeenCalledWith(
       'Product sync completed with issues: sync-run-1',
-      expect.stringContaining('conflict=1'),
+      expect.stringContaining('conflict=0'),
     );
     expect(notifier.sendMessage).toHaveBeenCalledWith(
       'Product sync completed with issues: sync-run-1',
@@ -251,6 +253,7 @@ describe('ProductSyncOrchestratorService', () => {
       snapshotService,
       matchingService,
       inventorySyncService,
+      { load: jest.fn().mockReturnValue(new Set()) } as any,
       notifier as any,
     );
 
@@ -380,6 +383,7 @@ describe('ProductSyncOrchestratorService', () => {
       snapshotService,
       matchingService,
       inventorySyncService,
+      { load: jest.fn().mockReturnValue(new Set()) } as any,
       notifier as any,
     );
 
@@ -469,6 +473,7 @@ describe('ProductSyncOrchestratorService', () => {
       snapshotService,
       matchingService,
       inventorySyncService,
+      { load: jest.fn().mockReturnValue(new Set()) } as any,
       notifier as any,
     );
 
@@ -572,18 +577,13 @@ describe('ProductSyncOrchestratorService', () => {
       snapshotService,
       matchingService,
       inventorySyncService,
+      { load: jest.fn().mockReturnValue(new Set()) } as any,
       notifier as any,
     );
 
     await service.run(syncRunId);
 
-    expect(prisma.productMapping.update).toHaveBeenCalledWith({
-      where: { sku: 'SKU-1' },
-      data: {
-        status: ProductMappingStatus.conflict,
-        conflictReason: expect.stringContaining('old-pancake-variant'),
-      },
-    });
+    expect(prisma.productMapping.update).not.toHaveBeenCalled();
     expect(prisma.productMapping.upsert).not.toHaveBeenCalledWith(
       expect.objectContaining({
         update: expect.objectContaining({
@@ -591,18 +591,10 @@ describe('ProductSyncOrchestratorService', () => {
         }),
       }),
     );
-    expect(inventorySyncService.syncMappings).toHaveBeenCalledWith(
-      [
-        expect.objectContaining({
-          status: 'conflict',
-          conflictDetail: expect.objectContaining({
-            type: 'ambiguous_mapping',
-            platform: 'mapping',
-          }),
-        }),
-      ],
-      { syncRunId, syncPancake: false },
-    );
+    expect(inventorySyncService.syncMappings).toHaveBeenCalledWith([], {
+      syncRunId,
+      syncPancake: false,
+    });
     expect(prisma.productSyncConflict.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -680,6 +672,7 @@ describe('ProductSyncOrchestratorService', () => {
       snapshotService,
       matchingService,
       inventorySyncService,
+      { load: jest.fn().mockReturnValue(new Set()) } as any,
       undefined,
     );
 

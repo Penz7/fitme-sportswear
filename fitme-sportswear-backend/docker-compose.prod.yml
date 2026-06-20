@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fitme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: fitme_sportswear_backend
+    volumes:
+      - fitme_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitme -d fitme_sportswear_backend"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - fitme_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    restart: unless-stopped
+    command: sh -c "npm run prisma:deploy && node dist/src/main.js"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://fitme:${POSTGRES_PASSWORD}@postgres:5432/fitme_sportswear_backend?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_PROCESSORS_ENABLED: "false"
+      SYNC_SCHEDULER_ENABLED: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: sh -c "npm run prisma:deploy && node dist/src/worker.js"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://fitme:${POSTGRES_PASSWORD}@postgres:5432/fitme_sportswear_backend?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2.10.0-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - fitme_caddy_data:/data
+      - fitme_caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  fitme_postgres_data:
+  fitme_redis_data:
+  fitme_caddy_data:
+  fitme_caddy_config:

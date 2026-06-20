@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TelegramNotifierService {
+  private readonly logger = new Logger(TelegramNotifierService.name);
+
   constructor(private readonly configService: ConfigService) {}
 
   async sendException(context: string, error: unknown): Promise<void> {
@@ -20,14 +22,25 @@ export class TelegramNotifierService {
       return;
     }
 
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: `${context}\n${message}`.slice(0, 3900),
-      }),
-    });
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: `${context}\n${message}`.slice(0, 3900),
+          }),
+        },
+      );
+      if (!response.ok) {
+        this.logger.warn(`Telegram notification failed with status ${response.status}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Telegram notification failed: ${message}`);
+    }
   }
 
   private configString(key: string): string | null {
