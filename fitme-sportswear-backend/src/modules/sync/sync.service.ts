@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma.service';
 import { AddressMappingSyncProducer } from '../queue/producers/address-mapping-sync.producer';
 import { ProductSyncProducer } from '../queue/producers/product-sync.producer';
@@ -18,6 +19,7 @@ export class SyncService {
     private readonly sapoToPancakeOrderSyncProducer: SapoToPancakeOrderSyncProducer,
     private readonly sapoToPancakeInventorySyncProducer: SapoToPancakeInventorySyncProducer,
     private readonly shopifyProductCleanupService: ShopifyProductCleanupService,
+    private readonly configService: ConfigService,
   ) {}
 
   async createTestSync(message = 'test sync') {
@@ -58,11 +60,26 @@ export class SyncService {
     });
 
     if (activeRun) {
-      return {
-        id: activeRun.id,
-        status: activeRun.status,
-        syncType: activeRun.syncType,
-      };
+      if (this.isStaleProductSyncRun(activeRun.createdAt)) {
+        await this.prisma.syncRun.updateMany({
+          where: {
+            syncType: 'product-inventory-sync',
+            status: { in: ['queued', 'running'] },
+            createdAt: { lte: activeRun.createdAt },
+          },
+          data: {
+            status: 'failed',
+            finishedAt: new Date(),
+            errorMessage: 'Product sync run marked stale before starting a new run',
+          },
+        });
+      } else {
+        return {
+          id: activeRun.id,
+          status: activeRun.status,
+          syncType: activeRun.syncType,
+        };
+      }
     }
 
     const syncRun = await this.prisma.syncRun.create({
@@ -80,6 +97,16 @@ export class SyncService {
       status: syncRun.status,
       syncType: syncRun.syncType,
     };
+  }
+
+  private isStaleProductSyncRun(createdAt: Date): boolean {
+    const staleRunMinutes = this.configNumber('sync.products.staleRunMinutes', 60);
+    return createdAt.getTime() <= Date.now() - staleRunMinutes * 60 * 1000;
+  }
+
+  private configNumber(key: string, fallback: number): number {
+    const configured = Number(this.configService.get<number | string | undefined>(key));
+    return Number.isFinite(configured) && configured > 0 ? configured : fallback;
   }
 
   async getProductSync(id: string) {

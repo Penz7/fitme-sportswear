@@ -76,6 +76,10 @@ interface ShopifyWebhooksResponse {
   webhooks?: ShopifyWebhookResponse[];
 }
 
+interface ShopifyOrdersPage {
+  orders?: Record<string, any>[];
+}
+
 interface ShopifyFulfillmentOrdersResponse {
   fulfillment_orders?: Array<{
     id: string | number;
@@ -338,6 +342,51 @@ export class ShopifyClient {
 
     const body = (await response.json()) as Record<string, any>;
     return this.objectPayload(body.order);
+  }
+
+  async fetchRecentOrders(input: {
+    limit?: number;
+    updatedAtMin?: Date | string;
+    status?: 'any' | 'open' | 'closed' | 'cancelled';
+  } = {}): Promise<Record<string, any>[]> {
+    const url = new URL(this.apiUrl('/orders.json'));
+    url.searchParams.set('limit', String(Math.min(input.limit ?? 50, 250)));
+    url.searchParams.set('status', input.status ?? 'any');
+    url.searchParams.set('order', 'updated_at desc');
+    url.searchParams.set(
+      'fields',
+      [
+        'id',
+        'name',
+        'order_number',
+        'cancelled_at',
+        'cancel_reason',
+        'financial_status',
+        'fulfillment_status',
+        'updated_at',
+        'created_at',
+      ].join(','),
+    );
+    if (input.updatedAtMin) {
+      const updatedAtMin =
+        input.updatedAtMin instanceof Date
+          ? input.updatedAtMin.toISOString()
+          : input.updatedAtMin;
+      url.searchParams.set('updated_at_min', updatedAtMin);
+    }
+
+    const response = await this.fetchWithRetry(
+      url.toString(),
+      { headers: this.authHeaders() },
+      'Shopify recent orders fetch',
+    );
+
+    if (!response.ok) {
+      throw new Error(`Shopify recent orders fetch failed with status ${response.status}`);
+    }
+
+    const body = (await response.json()) as ShopifyOrdersPage;
+    return (body.orders ?? []).map((order) => this.objectPayload(order));
   }
 
   async deleteProduct(productId: string): Promise<void> {

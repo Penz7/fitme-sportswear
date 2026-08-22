@@ -91,8 +91,15 @@ export class PancakeClient {
 
   async fetchProducts(): Promise<PancakeProductResponse[]> {
     const products: PancakeProductResponse[] = [];
+    const maxPages = this.configNumber('pancake.productFetchMaxPages', 50);
 
     for (let pageNumber = 1; ; pageNumber += 1) {
+      if (pageNumber > maxPages) {
+        throw new Error(
+          `Pancake product fetch exceeded max pages (${maxPages})`,
+        );
+      }
+
       const url = new URL(
         `/api/v1/shops/${this.requiredConfig('pancake.shopId')}/products/variations`,
         this.normalizedBaseUrl(),

@@ -195,7 +195,7 @@ describe('OrderWebhookProcessingService', () => {
     const result = service.buildProcessingPlan({
       id: 'event-6',
       sourcePlatform: 'shopify',
-      eventType: 'order',
+      eventType: 'orders/create',
       externalEventId: '12345',
       payload: {
         id: 12345,
@@ -205,7 +205,7 @@ describe('OrderWebhookProcessingService', () => {
 
     expect(result).toEqual({
       platform: 'shopify',
-      eventType: 'order',
+      eventType: 'orders/create',
       externalOrderId: '12345',
       statusCode: null,
       statusDescription: 'ORDER_WEBHOOK',
@@ -231,7 +231,7 @@ describe('OrderWebhookProcessingService', () => {
     const result = processingService.buildProcessingPlan({
       id: 'event-shopify-filtered',
       sourcePlatform: 'shopify',
-      eventType: 'order',
+      eventType: 'orders/create',
       externalEventId: 'shopify-real-order',
       payload: { id: 'shopify-real-order', note: 'normal order' },
     } as any);
@@ -255,7 +255,7 @@ describe('OrderWebhookProcessingService', () => {
     const result = processingService.buildProcessingPlan({
       id: 'event-shopify-test-order',
       sourcePlatform: 'shopify',
-      eventType: 'order',
+      eventType: 'orders/create',
       externalEventId: 'shopify-test-order',
       payload: {
         id: 'shopify-test-order',
@@ -282,7 +282,7 @@ describe('OrderWebhookProcessingService', () => {
     const result = processingService.buildProcessingPlan({
       id: 'event-shopify-cancelled',
       sourcePlatform: 'shopify',
-      eventType: 'order',
+      eventType: 'orders/cancelled',
       externalEventId: 'shopify-order-1',
       payload: {
         id: 'shopify-order-1',

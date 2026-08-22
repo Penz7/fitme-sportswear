@@ -47,7 +47,15 @@ describe('OrderWebhookExecutionService', () => {
             full_address: 'Ho Chi Minh',
             address1: 'Ho Chi Minh',
           },
-          fulfillments: [{ id: 'fulfillment-1', shipment: { tracking_code: 'VTP123' } }],
+          fulfillments: [
+            {
+              id: 'fulfillment-1',
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'VTP123',
+              },
+            },
+          ],
           status: 'finalized',
           packed_status: 'packed',
           fulfillment_status: 'shipped',
@@ -75,6 +83,14 @@ describe('OrderWebhookExecutionService', () => {
         wardName: 'Xa mapped',
         cityName: 'TP Ho Chi Minh',
         districtName: 'Hoc Mon',
+      }),
+      resolveSapoAddressText: jest.fn().mockResolvedValue({
+        provinceId: null,
+        districtId: null,
+        wardId: null,
+        wardName: null,
+        cityName: null,
+        districtName: null,
       }),
     };
     const configService = {
@@ -379,6 +395,73 @@ describe('OrderWebhookExecutionService', () => {
       {
         order: expect.objectContaining({
           customer_id: 88888,
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
+  it('uses text address mapping to fill Shopify order address parts before creating a Sapo order', async () => {
+    const { service, sapoClient, addressMappingService } = createService();
+    addressMappingService.resolveSapoAddressText.mockResolvedValueOnce({
+      provinceId: 42,
+      districtId: 4242,
+      wardId: 424242,
+      wardName: 'Phuong Hoanh Son',
+      cityName: 'Ha Tinh',
+      districtName: 'Thi xa Hong Linh',
+    });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'order',
+        externalOrderId: '7562806427957',
+        statusCode: null,
+        nextActions: ['create_sapo_order', 'upsert_order_mapping'],
+      },
+      {
+        id: 7562806427957,
+        order_number: 1814,
+        note: 'Call before shipping',
+        email: 'customer@example.com',
+        shipping_address: {
+          first_name: 'Liu',
+          last_name: 'Flora',
+          phone: '+84868557345',
+          city: 'KCN Phu Vinh',
+          province: '',
+          address1: 'KCN Phu Vinh TDP Lien Phu, Hoanh Son Ward, Ha Tinh Province',
+        },
+        line_items: [
+          {
+            id: 'line-item-1',
+            sku: 'FM-QNGL01-BN-M',
+            name: 'Shorts',
+            quantity: 1,
+            price: '174000',
+          },
+        ],
+      },
+    );
+
+    expect(addressMappingService.resolveSapoAddressText).toHaveBeenCalledWith({
+      provinceName: 'KCN Phu Vinh',
+      districtName: null,
+      wardName: 'KCN Phu Vinh TDP Lien Phu, Hoanh Son Ward, Ha Tinh Province',
+      fullAddress: 'KCN Phu Vinh TDP Lien Phu, Hoanh Son Ward, Ha Tinh Province',
+    });
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          code: 'AUTO_SHOPIFY_1814',
+          shipping_address: expect.objectContaining({
+            city: 'Ha Tinh',
+            district: 'Thi xa Hong Linh',
+            ward: 'Phuong Hoanh Son',
+            address1: 'KCN Phu Vinh TDP Lien Phu, Hoanh Son Ward, Ha Tinh Province',
+          }),
         }),
       },
       { locationId: '572310' },
@@ -756,6 +839,83 @@ describe('OrderWebhookExecutionService', () => {
         sapoStatus: 'finalized',
         sapoFulfillmentStatus: 'shipped',
       }),
+    });
+  });
+
+  it('uses legacy Shopify shipment values when creating a Sapo fulfillment', async () => {
+    const { service, sapoClient, prisma, addressMappingService } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+    addressMappingService.resolveSapoAddressText.mockResolvedValue({
+      provinceId: 79,
+      districtId: 784,
+      wardId: 27523,
+      wardName: 'Xa mapped',
+      cityName: 'TP Ho Chi Minh',
+      districtName: 'Hoc Mon',
+    });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'order',
+        externalOrderId: 'shopify-order-1',
+        statusCode: null,
+        nextActions: ['create_sapo_fulfillment', 'upsert_order_mapping'],
+      },
+      {
+        id: 'shopify-order-1',
+        order_number: 1862,
+        total_price: '300000',
+        contact_email: 'customer@example.com',
+        shipping_address: {
+          first_name: 'Nguyen',
+          last_name: 'Van A',
+          phone: '0909000000',
+          city: 'Ho Chi Minh',
+          province: 'Hoc Mon',
+          address1: 'Xa Xuan Thoi Thuong',
+          address2: '99A Pham Van Sang',
+          country: 'Vietnam',
+        },
+        line_items: [
+          { id: 'line-item-1', quantity: 1, sku: 'SKU-1', name: 'Shirt', price: '150000' },
+        ],
+      },
+    );
+
+    const fulfillmentPayload = sapoClient.createFulfillment.mock.calls[0][1];
+    const shipment = fulfillmentPayload.fulfillment.shipment;
+    const detail = JSON.parse(shipment.detail);
+    expect(shipment).toEqual(
+      expect.objectContaining({
+        freight_payer: 'shop',
+        cod_amount: 0,
+        sender_phone: '0707121868',
+        sender_province_id: 2,
+        sender_district_id: 55,
+        sender_ward_id: 947,
+      }),
+    );
+    expect(detail).toEqual(
+      expect.objectContaining({
+        cod_amount: 300000,
+        sender_phone: '0707121868',
+        sender_province_id: 2,
+        sender_district_id: 55,
+        sender_ward_id: 947,
+      }),
+    );
+    expect(sapoClient.getFreightAmount).toHaveBeenCalledWith({
+      senderProvinceId: 2,
+      senderDistrictId: 55,
+      receiverProvinceId: 79,
+      receiverDistrictId: 784,
+      codAmount: 0,
+      freightPayer: 'shop',
     });
   });
 
@@ -1346,6 +1506,53 @@ describe('OrderWebhookExecutionService', () => {
         sapoOrderId: 'sapo-order-1',
       }),
     });
+  });
+
+  it('does not create Shopify fulfillment from an uncompleted Sapo tracking code', async () => {
+    const { service, sapoClient, shopifyClient, prisma, configService } = createService();
+    configService.get.mockImplementation((key: string) => {
+      if (key === 'shopify.fulfillmentTrackingPollAttempts') {
+        return 1;
+      }
+      if (key === 'shopify.fulfillmentTrackingPollDelayMs') {
+        return 0;
+      }
+      return undefined;
+    });
+    prisma.orderMapping.findUnique.mockResolvedValueOnce({
+      sapoOrderId: 'sapo-order-1',
+    });
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-1',
+        fulfillments: [
+          {
+            id: 'fulfillment-1',
+            shipment: {
+              pushing_status: 'pending',
+              tracking_code: 'PACKING-CODE-1',
+            },
+          },
+        ],
+      },
+    });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'order',
+        externalOrderId: 'shopify-order-1',
+        statusCode: null,
+        nextActions: ['create_shopify_fulfillment', 'upsert_order_mapping'],
+      },
+      {
+        id: 'shopify-order-1',
+        line_items: [{ id: 'line-item-1', sku: 'SKU-1', name: 'Shirt', quantity: 1 }],
+      },
+    );
+
+    expect(shopifyClient.createFulfillment).not.toHaveBeenCalled();
   });
 
   it('polls Sapo shipment until tracking code is available before Shopify fulfillment', async () => {

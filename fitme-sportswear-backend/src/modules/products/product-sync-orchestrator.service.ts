@@ -123,6 +123,12 @@ export class ProductSyncOrchestratorService {
     const refreshShopify = this.snapshotService.refreshShopifySnapshots?.bind(
       this.snapshotService,
     );
+    const cachedPancake = this.snapshotService.cachedPancakeSnapshots?.bind(
+      this.snapshotService,
+    );
+    const livePancakeEnabled =
+      process.env.SYNC_PANCAKE_PRODUCT_SYNC_ENABLED !== 'false' ||
+      !cachedPancake;
 
     if (!refreshSapo || !refreshPancake || !refreshShopify) {
       await this.updateProgressMetadata(syncRunId, {
@@ -137,19 +143,51 @@ export class ProductSyncOrchestratorService {
     const sapo = await refreshSapo();
 
     await this.updateProgressMetadata(syncRunId, {
-      stage: 'refreshing_pancake_snapshots',
+      stage: livePancakeEnabled
+        ? 'refreshing_pancake_snapshots'
+        : 'loading_cached_pancake_snapshots',
       sapoSnapshots: sapo.length,
     });
-    const pancake = await refreshPancake();
+    const { snapshots: pancake, warning: pancakeWarning } = livePancakeEnabled
+      ? await this.refreshPancakeSnapshotsWithFallback(syncRunId, refreshPancake)
+      : {
+          snapshots: await cachedPancake(),
+          warning: 'Pancake live sync disabled; using cached Pancake snapshots.',
+        };
 
     await this.updateProgressMetadata(syncRunId, {
       stage: 'refreshing_shopify_snapshots',
       sapoSnapshots: sapo.length,
       pancakeSnapshots: pancake.length,
+      ...(pancakeWarning ? { warning: pancakeWarning } : {}),
     });
     const shopify = await refreshShopify();
 
     return [...sapo, ...pancake, ...shopify];
+  }
+
+  private async refreshPancakeSnapshotsWithFallback(
+    syncRunId: string,
+    refreshPancake: () => Promise<PlatformProductSnapshot[]>,
+  ): Promise<{ snapshots: PlatformProductSnapshot[]; warning: string | null }> {
+    try {
+      return { snapshots: await refreshPancake(), warning: null };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown Pancake snapshot error';
+      const cached = await this.snapshotService.cachedPancakeSnapshots();
+
+      await this.updateProgressMetadata(syncRunId, {
+        stage: 'refreshing_pancake_snapshots_fallback_to_cache',
+        warning: message,
+        cachedPancakeSnapshots: cached.length,
+      });
+
+      return {
+        snapshots: cached,
+        warning: `Pancake live snapshot failed; using cache: ${message}`,
+      };
+    }
   }
 
   private async notifyShopifyProgress(

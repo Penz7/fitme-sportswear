@@ -331,8 +331,16 @@ export class AddressMappingService {
     }
 
     const model = (this.prisma as any)[modelName];
-    if (!model?.findFirst) {
+    if (!model?.findFirst && !model?.findMany) {
       return null;
+    }
+
+    if (model?.findMany) {
+      const mappings = await model.findMany({
+        orderBy: [{ similarity: 'asc' }, { id: 'asc' }],
+      });
+
+      return this.selectByText(mappings, preferredText, fallbackText);
     }
 
     return model.findFirst({

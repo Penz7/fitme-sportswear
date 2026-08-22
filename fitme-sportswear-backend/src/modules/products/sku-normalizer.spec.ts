@@ -9,6 +9,10 @@ describe('normalizeSku', () => {
     expect(normalizeSku('AB  12\tCD')).toBe('AB 12 CD');
   });
 
+  it('removes accidental whitespace around separators', () => {
+    expect(normalizeSku('FM-APGR01 -DO-L')).toBe('FM-APGR01-DO-L');
+  });
+
   it('returns empty string for whitespace-only SKU', () => {
     expect(normalizeSku('   ')).toBe('');
   });

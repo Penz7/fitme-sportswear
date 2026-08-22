@@ -1,0 +1,21 @@
+status,reason,action,count
+partial,Missing Sapo source record,orphan_platform_sku_not_in_sapo,579
+partial,Missing Pancake and Shopify records,blocked_by_product_sync_blocklist,146
+partial,Missing Pancake and Shopify records,pancake_create_failed_422,2
+conflict,Duplicate SKU in shopify: product=8917969633589,variant=47393387217205,1
+conflict,Duplicate SKU in shopify: product=8917969633589,variant=47393387184437,1
+conflict,Duplicate SKU in shopify: product=8917969633589,variant=47393387151669,1
+conflict,Duplicate SKU in shopify: product=8917969633589,variant=47393387249973,1
+conflict,Duplicate SKU in shopify: product=10537454993717,variant=52952793710901,1
+conflict,Duplicate SKU in shopify: product=10537454993717,variant=52952793678133,1
+conflict,Duplicate SKU in shopify: product=10537454993717,variant=52952793645365,1
+conflict,Duplicate SKU in shopify: product=10537454993717,variant=52952793743669,1
+conflict,Duplicate SKU in pancake: product=c1ca8b3c-34c1-4727-9d77-47df189b4099,variant=a3903c7e-5ce8-4a88-acc8-ad17ffe5d39b,1
+conflict,Duplicate SKU in shopify: product=10537255043381,variant=52952117018933,1
+conflict,Duplicate SKU in shopify: product=10537255043381,variant=52952116986165,1
+conflict,Duplicate SKU in shopify: product=10537255043381,variant=52952116953397,1
+conflict,Duplicate SKU in shopify: product=10537255043381,variant=52952117051701,1
+conflict,Duplicate SKU in shopify: product=10399930614069,variant=52305408721205,1
+conflict,Duplicate SKU in shopify: product=10399930614069,variant=52305408688437,1
+conflict,Duplicate SKU in shopify: product=10399930614069,variant=52305408655669,1
+conflict,Duplicate SKU in shopify: product=10399930614069,variant=52305408753973,1

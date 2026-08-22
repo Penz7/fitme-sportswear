@@ -58,8 +58,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-shopify-hmac-sha256') hmac?: string,
+    @Headers('x-shopify-topic') topic?: string,
   ) {
-    return this.ingestShopifyWebhook('order', body, request, hmac);
+    return this.ingestShopifyWebhook('order', body, request, hmac, topic);
   }
 
   @Post('webhooks/product')
@@ -67,8 +68,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-shopify-hmac-sha256') hmac?: string,
+    @Headers('x-shopify-topic') topic?: string,
   ) {
-    return this.ingestShopifyWebhook('product', body, request, hmac);
+    return this.ingestShopifyWebhook('product', body, request, hmac, topic);
   }
 
   @Post('webhooks/fulfillment')
@@ -76,8 +78,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-shopify-hmac-sha256') hmac?: string,
+    @Headers('x-shopify-topic') topic?: string,
   ) {
-    return this.ingestShopifyWebhook('fulfillment', body, request, hmac);
+    return this.ingestShopifyWebhook('fulfillment', body, request, hmac, topic);
   }
 
   @Post('webhooks/shopify/order')
@@ -85,8 +88,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-shopify-hmac-sha256') hmac?: string,
+    @Headers('x-shopify-topic') topic?: string,
   ) {
-    return this.ingestShopifyWebhook('order', body, request, hmac);
+    return this.ingestShopifyWebhook('order', body, request, hmac, topic);
   }
 
   @Post('webhooks/shopify/product')
@@ -94,8 +98,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-shopify-hmac-sha256') hmac?: string,
+    @Headers('x-shopify-topic') topic?: string,
   ) {
-    return this.ingestShopifyWebhook('product', body, request, hmac);
+    return this.ingestShopifyWebhook('product', body, request, hmac, topic);
   }
 
   @Post('webhooks/shopify/fulfillment')
@@ -103,8 +108,9 @@ export class WebhookController {
     @Body() body: unknown,
     @Req() request: RequestWithRawBody,
     @Headers('x-shopify-hmac-sha256') hmac?: string,
+    @Headers('x-shopify-topic') topic?: string,
   ) {
-    return this.ingestShopifyWebhook('fulfillment', body, request, hmac);
+    return this.ingestShopifyWebhook('fulfillment', body, request, hmac, topic);
   }
 
   private ingestPancakeWebhookPayload(
@@ -128,6 +134,7 @@ export class WebhookController {
     body: unknown,
     request: RequestWithRawBody,
     hmac?: string,
+    topic?: string,
   ) {
     const rawPayload = this.rawPayload(body, request);
 
@@ -136,10 +143,21 @@ export class WebhookController {
     }
 
     if (!this.webhookEnabled('shopify')) {
-      return this.disabledResponse('shopify', eventType);
+      return this.disabledResponse('shopify', this.shopifyEventType(eventType, topic));
     }
 
-    return this.ingestionService.ingestShopify(eventType, rawPayload);
+    return this.ingestionService.ingestShopify(
+      this.shopifyEventType(eventType, topic),
+      rawPayload,
+    );
+  }
+
+  private shopifyEventType(
+    fallback: 'order' | 'product' | 'fulfillment',
+    topic?: string,
+  ): string {
+    const normalized = topic?.trim().toLowerCase();
+    return normalized || fallback;
   }
 
   private webhookEnabled(platform: 'pancake' | 'shopify'): boolean {

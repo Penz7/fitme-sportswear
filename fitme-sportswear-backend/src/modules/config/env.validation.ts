@@ -36,6 +36,7 @@ export const envValidationSchema = Joi.object({
   PANCAKE_PRODUCT_REQUEST_TIMEOUT_MS: Joi.number().integer().min(1000).default(15000),
   PANCAKE_PRODUCT_RETRY_ATTEMPTS: Joi.number().integer().min(1).default(3),
   PANCAKE_PRODUCT_RETRY_BACKOFF_MS: Joi.number().integer().min(0).default(1000),
+  PANCAKE_PRODUCT_FETCH_MAX_PAGES: Joi.number().integer().min(1).max(500).default(50),
 
   SHOPIFY_BASE_URL: Joi.string().uri().required(),
   SHOPIFY_ACCESS_TOKEN: Joi.string().required(),
@@ -76,10 +77,14 @@ export const envValidationSchema = Joi.object({
   }),
   TELEGRAM_BOT_TOKEN: Joi.string().allow('').optional(),
   TELEGRAM_CHAT_ID: Joi.string().allow('').optional(),
+  TELEGRAM_API_IP: Joi.string().ip({ version: ['ipv4'] }).allow('').optional(),
 
   SHIPPING_SENDER_PROVINCE_ID: Joi.number().integer().positive().default(2),
   SHIPPING_SENDER_DISTRICT_ID: Joi.number().integer().positive().default(55),
   SHIPPING_SENDER_WARD_ID: Joi.number().integer().min(0).default(0),
+  SHIPPING_SENDER_PHONE: Joi.string().allow('').optional(),
+  SHIPPING_SENDER_ADDRESS: Joi.string().allow('').optional(),
+  SHIPPING_SENDER_FULL_NAME: Joi.string().allow('').optional(),
   SHIPPING_PACKAGE_WEIGHT: Joi.number().integer().positive().default(300),
   SHIPPING_PACKAGE_HEIGHT: Joi.number().integer().positive().default(10),
   SHIPPING_PACKAGE_WIDTH: Joi.number().integer().positive().default(10),
@@ -96,6 +101,10 @@ export const envValidationSchema = Joi.object({
     .falsy('false')
     .default(false),
   SYNC_PRODUCT_CRON: Joi.string().allow('').optional(),
+  SYNC_PANCAKE_PRODUCT_SYNC_ENABLED: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
   SYNC_SAPO_TO_PANCAKE_INVENTORY_CRON: Joi.string().allow('').optional(),
   SYNC_SAPO_TO_PANCAKE_INVENTORY_CIRCUIT_BREAKER: Joi.number()
     .integer()
@@ -181,6 +190,11 @@ export const envValidationSchema = Joi.object({
     .truthy('true')
     .falsy('false')
     .default(false),
+  SYNC_PRODUCT_STALE_RUN_MINUTES: Joi.number()
+    .integer()
+    .min(5)
+    .max(1440)
+    .default(60),
   SYNC_UPDATE_PANCAKE_INVENTORY_BY_ORDER: Joi.boolean()
     .truthy('true')
     .falsy('false')

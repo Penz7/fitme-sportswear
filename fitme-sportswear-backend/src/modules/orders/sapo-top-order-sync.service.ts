@@ -300,7 +300,12 @@ export class SapoTopOrderSyncService {
     return this.firstString(
       ...this.arrayPayload(order.fulfillments).map((fulfillment) => {
         const shipment = this.objectPayload(fulfillment.shipment);
-        return this.firstString(shipment.tracking_code, shipment.trackingCode);
+        const pushingStatus = this.firstString(
+          shipment.pushing_status,
+          shipment.pushingStatus,
+        );
+        const code = this.firstString(shipment.tracking_code, shipment.trackingCode);
+        return pushingStatus === 'completed' ? code : null;
       }),
     );
   }

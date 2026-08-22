@@ -13,6 +13,7 @@ describe('SyncService', () => {
         findUnique: jest.fn(),
         findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({}),
       },
     };
     const testSyncProducer = { enqueue: jest.fn() };
@@ -33,6 +34,11 @@ describe('SyncService', () => {
         errors: [],
       }),
     };
+    const configService = {
+      get: jest.fn((key: string) =>
+        key === 'sync.products.staleRunMinutes' ? 60 : undefined,
+      ),
+    };
 
     return {
       prisma,
@@ -48,6 +54,7 @@ describe('SyncService', () => {
         sapoToPancakeOrderSyncProducer as any,
         sapoToPancakeInventorySyncProducer as any,
         shopifyProductCleanupService as any,
+        configService as any,
       ),
     };
   }
@@ -79,6 +86,7 @@ describe('SyncService', () => {
       id: 'active-product-sync',
       status: 'running',
       syncType: 'product-inventory-sync',
+      createdAt: new Date(),
     });
 
     await expect(service.createProductSync()).resolves.toEqual({
@@ -89,6 +97,44 @@ describe('SyncService', () => {
 
     expect(prisma.syncRun.create).not.toHaveBeenCalled();
     expect(productSyncProducer.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('marks stale product sync runs failed before enqueueing a new one', async () => {
+    const { service, prisma, productSyncProducer } = createService();
+    const staleCreatedAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    prisma.syncRun.findFirst.mockResolvedValueOnce({
+      id: 'stale-product-sync',
+      status: 'running',
+      syncType: 'product-inventory-sync',
+      createdAt: staleCreatedAt,
+    });
+    prisma.syncRun.create.mockResolvedValueOnce({
+      id: 'new-product-sync',
+      status: 'queued',
+      syncType: 'product-inventory-sync',
+    });
+
+    await expect(service.createProductSync()).resolves.toEqual({
+      id: 'new-product-sync',
+      status: 'queued',
+      syncType: 'product-inventory-sync',
+    });
+
+    expect(prisma.syncRun.updateMany).toHaveBeenCalledWith({
+      where: {
+        syncType: 'product-inventory-sync',
+        status: { in: ['queued', 'running'] },
+        createdAt: { lte: staleCreatedAt },
+      },
+      data: {
+        status: 'failed',
+        finishedAt: expect.any(Date),
+        errorMessage: 'Product sync run marked stale before starting a new run',
+      },
+    });
+    expect(productSyncProducer.enqueue).toHaveBeenCalledWith({
+      syncRunId: 'new-product-sync',
+    });
   });
 
   it('returns an address mapping sync run by id', async () => {

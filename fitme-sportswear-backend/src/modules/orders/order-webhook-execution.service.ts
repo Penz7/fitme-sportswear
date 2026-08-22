@@ -4,6 +4,7 @@ import { ProductMappingStatus } from '@prisma/client';
 import { AddressMappingService } from '../address/address-mapping.service';
 import { PrismaService } from '../database/prisma.service';
 import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
+import { normalizeSku } from '../products/sku-normalizer';
 import { SapoClient } from '../sapo/sapo.client';
 import { ShopifyClient } from '../shopify/shopify.client';
 import {
@@ -374,7 +375,7 @@ export class OrderWebhookExecutionService {
       isShopify ? this.arrayPayload(payload.line_items) : this.arrayPayload(payload.items),
     );
     const address = isShopify
-      ? this.shopifyAddress(payload)
+      ? await this.shopifyAddress(payload)
       : this.pancakeAddress(payload);
 
     return {
@@ -587,7 +588,7 @@ export class OrderWebhookExecutionService {
     return Promise.all(
       rawItems.map(async (item) => {
         const variation = this.objectPayload(item.variation_info ?? item.variationInfo);
-        const sku = this.firstString(variation.barcode, item.sku);
+        const sku = this.normalizedSku(variation.barcode, item.sku);
         if (!sku) {
           throw new Error('Missing SKU for Sapo order line item');
         }
@@ -646,37 +647,45 @@ export class OrderWebhookExecutionService {
     payload: Record<string, any>,
     sapoOrder: Record<string, any>,
   ): Promise<Record<string, any>> {
+    const isShopifyOrder = payload.line_items !== undefined;
     const shippingAddress =
-      payload.line_items === undefined
+      !isShopifyOrder
         ? this.pancakeAddress(payload)
-        : this.shopifyAddress(payload);
+        : await this.shopifyAddress(payload);
     const warehouse = this.objectPayload(payload.warehouse_info ?? payload.warehouseInfo);
     const sapoLineItems = this.arrayPayload(
       sapoOrder.order_line_items ?? sapoOrder.orderLineItems,
     );
     const items =
-      payload.line_items === undefined
+      !isShopifyOrder
         ? this.arrayPayload(payload.items)
         : this.arrayPayload(payload.line_items);
 
-    const fulfillmentLineItems = items.map((item) => {
+    const fulfillmentLineItems = await Promise.all(items.map(async (item) => {
       const variation = this.objectPayload(item.variation_info);
-      const sku = this.firstString(variation.barcode, item.sku);
-      const sapoLine = sapoLineItems.find((line) => line.sku === sku) ?? {};
+      const sku = this.normalizedSku(variation.barcode, item.sku);
+      const sapoLine = await this.findSapoLineItem(sapoLineItems, sku);
 
       return {
-        order_line_item_id: sapoLine.id ?? null,
+        order_line_item_id: sapoLine?.id ?? null,
         quantity: this.numberValue(item.quantity),
         sku,
-        product_name: sapoLine.product_name ?? item.name ?? null,
-        price: this.numberValue(sapoLine.price ?? variation.retail_price ?? item.price),
+        product_name: sapoLine?.product_name ?? item.name ?? null,
+        price: this.numberValue(sapoLine?.price ?? variation.retail_price ?? item.price),
       };
-    });
-    const freightPayer = payload.is_free_shipping ? 'shop' : 'customer';
-    const codAmount = this.numberValue(payload.cod ?? payload.money_to_collect) ?? 0;
+    }));
+    const freightPayer = isShopifyOrder
+      ? 'shop'
+      : payload.is_free_shipping ? 'shop' : 'customer';
+    const shipmentCodAmount = isShopifyOrder
+      ? 0
+      : this.numberValue(payload.cod ?? payload.money_to_collect) ?? 0;
+    const detailCodAmount = isShopifyOrder
+      ? this.numberValue(payload.total_price ?? payload.totalPrice) ?? 0
+      : shipmentCodAmount;
     const shipping = this.objectPayload(payload.shipping_address ?? payload.shippingAddress);
     const receiverAddress =
-      payload.line_items === undefined
+      !isShopifyOrder
         ? await this.addressMappingService.resolvePancakeAddress({
             provinceId: this.numberValue(shipping.province_id ?? shipping.provinceId),
             districtId: this.numberValue(shipping.district_id ?? shipping.districtId),
@@ -710,7 +719,9 @@ export class OrderWebhookExecutionService {
             ),
           })
         : await this.resolveShopifyTextAddress(shippingAddress);
-    const senderAddress = await this.resolveSenderAddress(warehouse);
+    const senderAddress = isShopifyOrder
+      ? { provinceId: 2, districtId: 55, wardId: 947, wardName: null }
+      : await this.resolveSenderAddress(warehouse);
     const senderProvinceId = this.requiredAddressId(
       senderAddress.provinceId,
       'sender province',
@@ -732,7 +743,7 @@ export class OrderWebhookExecutionService {
       senderDistrictId,
       receiverProvinceId,
       receiverDistrictId,
-      codAmount,
+      codAmount: shipmentCodAmount,
       freightPayer,
     });
     const shipmentDetail = this.toViettelShipmentDetail({
@@ -746,7 +757,8 @@ export class OrderWebhookExecutionService {
       senderDistrictId,
       receiverProvinceId,
       receiverDistrictId,
-      codAmount,
+      codAmount: detailCodAmount,
+      legacyShopifySender: isShopifyOrder,
     });
 
     return {
@@ -755,6 +767,12 @@ export class OrderWebhookExecutionService {
           'Co van de goi shop, khong tu y huy don, Goi khach truoc khi giao',
         delivery_type: 'courier',
         operation_system: 'web',
+        sender_phone: shipmentDetail.sender_phone,
+        sender_address: shipmentDetail.sender_address,
+        sender_full_name: shipmentDetail.sender_full_name,
+        sender_province_id: shipmentDetail.sender_province_id,
+        sender_district_id: shipmentDetail.sender_district_id,
+        sender_ward_id: shipmentDetail.sender_ward_id,
         shipping_address: shippingAddress,
         billing_address: {
           ...shippingAddress,
@@ -768,7 +786,13 @@ export class OrderWebhookExecutionService {
           freight_payer: freightPayer,
           operation_system: 'web',
           delivery_service_provider_id: this.configNumber('shipping.viettelPost.providerId', 508146),
-          cod_amount: codAmount,
+          sender_phone: shipmentDetail.sender_phone,
+          sender_address: shipmentDetail.sender_address,
+          sender_full_name: shipmentDetail.sender_full_name,
+          sender_province_id: shipmentDetail.sender_province_id,
+          sender_district_id: shipmentDetail.sender_district_id,
+          sender_ward_id: shipmentDetail.sender_ward_id,
+          cod_amount: shipmentCodAmount,
           delivery_fee: 0,
           freight_amount: freightAmount,
           height: this.configNumber('shipping.package.height', 10),
@@ -968,6 +992,7 @@ export class OrderWebhookExecutionService {
     receiverProvinceId: number;
     receiverDistrictId: number;
     codAmount: number;
+    legacyShopifySender?: boolean;
   }): Record<string, any> {
     const shipping = this.objectPayload(
       input.payload.shipping_address ?? input.payload.shippingAddress,
@@ -991,10 +1016,34 @@ export class OrderWebhookExecutionService {
         ),
       receiver_district_id: input.receiverDistrictId,
       receiver_province_id: input.receiverProvinceId,
-      sender_phone: this.firstString(input.warehouse.phone_number, input.payload.bill_phone_number),
-      sender_email: input.payload.bill_email ?? '',
-      sender_address: input.warehouse.full_address ?? input.warehouse.fullAddress ?? '',
-      sender_full_name: input.payload.bill_full_name ?? input.shippingAddress.full_name,
+      sender_phone: input.legacyShopifySender
+        ? '0707121868'
+        : this.firstString(
+            input.warehouse.phone_number,
+            input.warehouse.phoneNumber,
+            this.configService.get<string>('shipping.sender.phone'),
+            this.configService.get<string>('sapo.phoneNumber'),
+            input.payload.bill_phone_number,
+          ),
+      sender_email: input.legacyShopifySender ? 'mathkudo@gmail.com' : input.payload.bill_email ?? '',
+      sender_address:
+        input.legacyShopifySender
+          ? '11/4b Pham Van Sang Ap 2, X.Xuan Thoi Thuong, H.Hoc Mon, TP.Ho Chi Minh'
+          : this.firstString(
+              input.warehouse.full_address,
+              input.warehouse.fullAddress,
+              this.configService.get<string>('shipping.sender.address'),
+            ) ?? '',
+      sender_full_name: input.legacyShopifySender
+        ? input.shippingAddress.full_name
+        : this.firstString(
+            input.warehouse.name,
+            input.warehouse.full_name,
+            input.warehouse.fullName,
+            this.configService.get<string>('shipping.sender.fullName'),
+            input.payload.bill_full_name,
+            input.shippingAddress.full_name,
+          ),
       sender_province_id: input.senderProvinceId,
       sender_district_id: input.senderDistrictId,
       sender_ward_id:
@@ -1081,12 +1130,6 @@ export class OrderWebhookExecutionService {
     const delayMs = this.configNumber('shopify.fulfillmentTrackingPollDelayMs', 1000);
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const trackingNumber = this.firstString(
-        ...this.fulfillments(sapoOrder).map((fulfillment) => {
-          const shipment = this.objectPayload(fulfillment.shipment);
-          return this.firstString(shipment.tracking_code, shipment.trackingCode);
-        }),
-      );
       const completedTrackingNumber = this.firstString(
         ...this.fulfillments(sapoOrder).map((fulfillment) => {
           const shipment = this.objectPayload(fulfillment.shipment);
@@ -1099,8 +1142,8 @@ export class OrderWebhookExecutionService {
         }),
       );
 
-      if (completedTrackingNumber ?? trackingNumber) {
-        return completedTrackingNumber ?? trackingNumber;
+      if (completedTrackingNumber) {
+        return completedTrackingNumber;
       }
 
       const sapoOrderId = this.firstString(sapoOrder.id);
@@ -1157,7 +1200,7 @@ export class OrderWebhookExecutionService {
         plan.platform === 'pancake' ? plan.statusDescription : undefined,
       shopifyStatus:
         plan.platform === 'shopify'
-          ? existingMapping?.shopifyStatus ?? plan.statusDescription
+          ? this.shopifyStatusForPlan(plan, existingMapping?.shopifyStatus)
           : undefined,
       sapoStatus: currentSapoOrder?.status ?? undefined,
       sapoPackedStatus: currentSapoOrder?.packed_status ?? undefined,
@@ -1171,6 +1214,17 @@ export class OrderWebhookExecutionService {
       create: data,
       update: data,
     } as any);
+  }
+
+  private shopifyStatusForPlan(
+    plan: OrderWebhookProcessingPlan,
+    existingStatus: string | null | undefined,
+  ): string {
+    if (plan.statusDescription === 'SHOPIFY_CANCELLED') {
+      return 'CANCELLED';
+    }
+
+    return existingStatus ?? plan.statusDescription;
   }
 
   private async fetchSapoOrder(orderId: string): Promise<Record<string, any>> {
@@ -1303,7 +1357,7 @@ export class OrderWebhookExecutionService {
     };
   }
 
-  private shopifyAddress(payload: Record<string, any>): Record<string, any> {
+  private async shopifyAddress(payload: Record<string, any>): Promise<Record<string, any>> {
     const shipping = this.objectPayload(payload.shipping_address);
     const billing = this.objectPayload(payload.billing_address);
     const customer = this.objectPayload(payload.customer);
@@ -1312,6 +1366,38 @@ export class OrderWebhookExecutionService {
       shipping.address2,
       billing.address2,
       defaultAddress.address2,
+      shipping.address1,
+      billing.address1,
+      defaultAddress.address1,
+    );
+    const resolvedAddress = await this.resolveShopifyTextAddress({
+      city: this.firstString(shipping.city, billing.city, defaultAddress.city),
+      district: this.firstString(
+        shipping.province,
+        billing.province,
+        defaultAddress.province,
+      ),
+      ward: this.firstString(shipping.address1, billing.address1, defaultAddress.address1),
+      address1,
+      full_address: address1,
+    });
+    const cityName = this.firstString(
+      resolvedAddress.cityName,
+      shipping.province,
+      billing.province,
+      defaultAddress.province,
+      shipping.city,
+      billing.city,
+      defaultAddress.city,
+    );
+    const districtName = this.firstString(
+      resolvedAddress.districtName,
+      shipping.city,
+      billing.city,
+      defaultAddress.city,
+    );
+    const wardName = this.firstString(
+      resolvedAddress.wardName,
       shipping.address1,
       billing.address1,
       defaultAddress.address1,
@@ -1330,9 +1416,9 @@ export class OrderWebhookExecutionService {
         defaultAddress.phone,
       ),
       country: this.firstString(shipping.country, billing.country, defaultAddress.country),
-      city: this.firstString(shipping.city, billing.city, defaultAddress.city),
-      district: this.firstString(shipping.province, billing.province, defaultAddress.province),
-      ward: this.firstString(shipping.address1, billing.address1, defaultAddress.address1),
+      city: cityName,
+      district: districtName,
+      ward: wardName,
       address1,
       full_address: address1,
     };
@@ -1469,6 +1555,55 @@ export class OrderWebhookExecutionService {
     }
 
     return null;
+  }
+
+  private normalizedSku(...values: unknown[]): string | null {
+    const sku = this.firstString(...values);
+    const normalized = normalizeSku(sku);
+    return normalized === '' ? null : normalized;
+  }
+
+  private async findSapoLineItem(
+    sapoLineItems: Record<string, any>[],
+    sku: string | null,
+  ): Promise<Record<string, any> | null> {
+    if (!sku) {
+      return null;
+    }
+
+    const exactSkuLine = sapoLineItems.find((line) => this.normalizedSku(line.sku) === sku);
+    if (exactSkuLine) {
+      return exactSkuLine;
+    }
+
+    const mapping = await this.prisma.productMapping.findUnique({
+      where: { sku },
+      select: { sapoVariantId: true, sapoProductId: true },
+    });
+    const mappedVariantId = this.firstString(mapping?.sapoVariantId);
+    const mappedProductId = this.firstString(mapping?.sapoProductId);
+
+    return (
+      sapoLineItems.find((line) => {
+        const lineVariantId = this.firstString(
+          line.variant_id,
+          line.variantId,
+          line.product_variant_id,
+          line.productVariantId,
+        );
+        const lineProductId = this.firstString(
+          line.product_id,
+          line.productId,
+          line.sapo_product_id,
+          line.sapoProductId,
+        );
+
+        return (
+          (mappedVariantId !== null && lineVariantId === mappedVariantId) ||
+          (mappedProductId !== null && lineProductId === mappedProductId)
+        );
+      }) ?? null
+    );
   }
 
   private normalizeComparableString(value: unknown): string | null {

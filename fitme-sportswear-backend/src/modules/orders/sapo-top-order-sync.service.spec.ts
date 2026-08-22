@@ -296,7 +296,14 @@ describe('SapoTopOrderSyncService', () => {
           id: 'sapo-order-1',
           status: 'finalized',
           fulfillment_status: 'shipped',
-          fulfillments: [{ shipment: { tracking_code: 'VTP123' } }],
+          fulfillments: [
+            {
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'VTP123',
+              },
+            },
+          ],
         },
       ],
       metadata: { total: 1 },
@@ -328,6 +335,45 @@ describe('SapoTopOrderSyncService', () => {
     });
     expect(result.results[0]).toEqual({
       action: 'updated',
+      sapoOrderId: 'sapo-order-1',
+      pancakeOrderId: null,
+    });
+  });
+
+  it('does not create Shopify fulfillment for shipped AUTO_SHOPIFY orders with uncompleted tracking', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [
+        {
+          id: 'sapo-order-1',
+          status: 'finalized',
+          fulfillment_status: 'shipped',
+          fulfillments: [
+            {
+              shipment: {
+                pushing_status: 'pending',
+                tracking_code: 'PACKING-CODE-1',
+              },
+            },
+          ],
+        },
+      ],
+      metadata: { total: 1 },
+    });
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-1',
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+
+    const result = await service.syncOrderType({
+      orderType: 'SHIPPED',
+      prefix: 'AUTO_SHOPIFY',
+    });
+
+    expect(shopifyClient.createFulfillment).not.toHaveBeenCalled();
+    expect(result.results[0]).toEqual({
+      action: 'skipped',
       sapoOrderId: 'sapo-order-1',
       pancakeOrderId: null,
     });

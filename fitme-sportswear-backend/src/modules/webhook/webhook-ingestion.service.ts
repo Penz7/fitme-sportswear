@@ -34,7 +34,7 @@ export class WebhookIngestionService {
   }
 
   async ingestShopify(
-    eventType: 'order' | 'product' | 'fulfillment',
+    eventType: string,
     rawPayload: string,
   ): Promise<WebhookIngestionResult> {
     const payload = this.parsePayload(rawPayload);
@@ -166,9 +166,14 @@ export class WebhookIngestionService {
   private isUpdateLikeEvent(platform: WebhookPlatform, eventType: string): boolean {
     return (
       (platform === 'pancake' && eventType === 'order_updated') ||
+      (platform === 'shopify' && this.isShopifyOrderEvent(eventType)) ||
       eventType.endsWith('_updated') ||
       eventType.includes('updated')
     );
+  }
+
+  private isShopifyOrderEvent(eventType: string): boolean {
+    return eventType === 'order' || eventType.startsWith('orders/');
   }
 
   private idempotencyExpiry(): Date {

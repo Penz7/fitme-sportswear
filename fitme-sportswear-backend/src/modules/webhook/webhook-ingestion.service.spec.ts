@@ -65,25 +65,56 @@ describe('WebhookIngestionService', () => {
     });
   });
 
-  it('stores and enqueues a Shopify order webhook', async () => {
+  it('stores and enqueues a Shopify order webhook with the Shopify topic', async () => {
     const { prisma, service } = createService();
     const rawPayload = JSON.stringify({ id: 12345, name: '#1001' });
 
-    const result = await service.ingestShopify('order', rawPayload);
+    const result = await service.ingestShopify('orders/create', rawPayload);
 
     expect(result).toMatchObject({
       id: 'webhook-event-1',
       duplicate: false,
-      eventType: 'order',
+      eventType: 'orders/create',
+    });
+    expect(prisma.idempotencyKey.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        key: expect.stringMatching(/^shopify:orders\/create:12345:[a-f0-9]{32}$/),
+        scope: 'webhook:shopify',
+      }),
     });
     expect(prisma.webhookEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         sourcePlatform: 'shopify',
-        eventType: 'order',
+        eventType: 'orders/create',
         externalEventId: '12345',
         payload: { id: 12345, name: '#1001' },
       }),
     });
+  });
+
+  it('uses distinct Shopify idempotency keys for order create and cancelled topics', async () => {
+    const { prisma, service } = createService();
+
+    await service.ingestShopify(
+      'orders/create',
+      JSON.stringify({ id: 12345, name: '#1001' }),
+    );
+    await service.ingestShopify(
+      'orders/cancelled',
+      JSON.stringify({
+        id: 12345,
+        name: '#1001',
+        cancelled_at: '2026-08-05T10:51:58+07:00',
+      }),
+    );
+
+    const createdKeys = prisma.idempotencyKey.create.mock.calls.map(
+      ([call]) => call.data.key,
+    );
+    expect(createdKeys).toHaveLength(2);
+    expect(createdKeys[0]).toMatch(/^shopify:orders\/create:12345:[a-f0-9]{32}$/);
+    expect(createdKeys[1]).toMatch(/^shopify:orders\/cancelled:12345:[a-f0-9]{32}$/);
+    expect(createdKeys[0]).not.toBe(createdKeys[1]);
   });
 
   it('returns duplicate without storing or enqueueing when idempotency key already exists', async () => {

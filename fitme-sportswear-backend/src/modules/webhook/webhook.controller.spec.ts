@@ -101,4 +101,20 @@ describe('WebhookController', () => {
     });
     expect(ingestionService.ingestShopify).not.toHaveBeenCalled();
   });
+
+  it('passes the Shopify topic to ingestion when available', async () => {
+    const { controller, ingestionService } = createController();
+
+    await controller.ingestShopifyOrderWebhook(
+      { id: 123 },
+      request,
+      'hmac',
+      'orders/cancelled',
+    );
+
+    expect(ingestionService.ingestShopify).toHaveBeenCalledWith(
+      'orders/cancelled',
+      '{"id":"order-1"}',
+    );
+  });
 });

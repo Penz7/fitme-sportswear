@@ -117,7 +117,7 @@ export class OrderWebhookProcessingService {
   }
 
   private buildShopifyPlan(event: WebhookEventLike): OrderWebhookProcessingPlan {
-    if (event.eventType === 'product') {
+    if (event.eventType === 'product' || event.eventType.startsWith('products/')) {
       return this.ignoredPlan(
         event,
         this.resolveExternalOrderId(event),
@@ -125,7 +125,11 @@ export class OrderWebhookProcessingService {
       );
     }
 
-    if (event.eventType === 'fulfillment') {
+    if (
+      event.eventType === 'fulfillment' ||
+      event.eventType.startsWith('fulfillments/') ||
+      event.eventType.startsWith('fulfillment_')
+    ) {
       return this.ignoredPlan(
         event,
         this.resolveExternalOrderId(event),
@@ -133,7 +137,7 @@ export class OrderWebhookProcessingService {
       );
     }
 
-    if (event.eventType !== 'order') {
+    if (!this.isShopifyOrderEvent(event.eventType)) {
       return this.ignoredPlan(event, this.resolveExternalOrderId(event));
     }
 
@@ -146,7 +150,10 @@ export class OrderWebhookProcessingService {
       );
     }
 
-    if (this.isShopifyCancelledOrder(payload)) {
+    if (
+      event.eventType === 'orders/cancelled' ||
+      this.isShopifyCancelledOrder(payload)
+    ) {
       return {
         platform: 'shopify',
         eventType: event.eventType,
@@ -311,6 +318,10 @@ export class OrderWebhookProcessingService {
         payload.cancelReason,
       ),
     );
+  }
+
+  private isShopifyOrderEvent(eventType: string): boolean {
+    return eventType === 'order' || eventType.startsWith('orders/');
   }
 
   private firstString(...values: unknown[]): string | null {

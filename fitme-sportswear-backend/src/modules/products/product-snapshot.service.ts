@@ -11,6 +11,7 @@ import {
   mapShopifyProductSnapshots,
 } from './product-snapshot.mapper';
 import { PlatformProductSnapshot } from './types/platform-product-snapshot';
+import { normalizeSku } from './sku-normalizer';
 
 @Injectable()
 export class ProductSnapshotService {
@@ -78,6 +79,24 @@ export class ProductSnapshotService {
     }
 
     return snapshots;
+  }
+
+  async cachedPancakeSnapshots(): Promise<PlatformProductSnapshot[]> {
+    const rows = await this.prisma.pancakeProduct.findMany();
+
+    return rows.map((row) => ({
+      platform: 'pancake',
+      sku: row.sku,
+      normalizedSku: normalizeSku(row.sku),
+      productId: row.productId,
+      variantId: row.variantId,
+      name: row.name,
+      available: row.available,
+      remain: row.remain,
+      retailPrice: this.decimalToNumber(row.retailPrice),
+      warehouseId: row.warehouseId,
+      warehouseCount: row.warehouseId ? 1 : null,
+    }));
   }
 
   async refreshShopifySnapshots() {
@@ -177,5 +196,9 @@ export class ProductSnapshotService {
       retailPrice: snapshot.retailPrice,
       updatedBy: 'SHOPIFY',
     };
+  }
+
+  private decimalToNumber(value: Prisma.Decimal | null): number | null {
+    return value === null ? null : Number(value);
   }
 }

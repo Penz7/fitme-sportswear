@@ -76,6 +76,9 @@ export default () => ({
     productRetryBackoffMs: Number(
       process.env.PANCAKE_PRODUCT_RETRY_BACKOFF_MS ?? 1000,
     ),
+    productFetchMaxPages: Number(
+      process.env.PANCAKE_PRODUCT_FETCH_MAX_PAGES ?? 50,
+    ),
   },
   shopify: {
     baseUrl: process.env.SHOPIFY_BASE_URL as string,
@@ -105,12 +108,16 @@ export default () => ({
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
     chatId: process.env.TELEGRAM_CHAT_ID,
+    apiIp: process.env.TELEGRAM_API_IP,
   },
   shipping: {
     sender: {
       provinceId: Number(process.env.SHIPPING_SENDER_PROVINCE_ID ?? 2),
       districtId: Number(process.env.SHIPPING_SENDER_DISTRICT_ID ?? 55),
       wardId: Number(process.env.SHIPPING_SENDER_WARD_ID ?? 0),
+      phone: process.env.SHIPPING_SENDER_PHONE,
+      address: process.env.SHIPPING_SENDER_ADDRESS,
+      fullName: process.env.SHIPPING_SENDER_FULL_NAME,
     },
     package: {
       weight: Number(process.env.SHIPPING_PACKAGE_WEIGHT ?? 300),
@@ -161,6 +168,11 @@ export default () => ({
       ),
       shopifyEnabled:
         process.env.SYNC_SHOPIFY_PRODUCT_SYNC_ENABLED === 'true',
+      pancakeEnabled:
+        process.env.SYNC_PANCAKE_PRODUCT_SYNC_ENABLED !== 'false',
+      staleRunMinutes: Number(
+        process.env.SYNC_PRODUCT_STALE_RUN_MINUTES ?? 60,
+      ),
     },
     sapoToPancakeInventory: {
       circuitBreakerThreshold: Number(
