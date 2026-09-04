@@ -191,7 +191,7 @@ describe('OrderWebhookProcessingService', () => {
     );
   });
 
-  it('plans Shopify order webhook using the legacy order-to-Sapo plus fulfillment flow', () => {
+  it('plans Shopify order webhook for Sapo order sync while warehouse owns VTP fulfillment', () => {
     const result = service.buildProcessingPlan({
       id: 'event-6',
       sourcePlatform: 'shopify',
@@ -215,8 +215,6 @@ describe('OrderWebhookProcessingService', () => {
         'create_sapo_order_if_missing',
         'finalize_sapo_order',
         'update_sapo_order',
-        'create_sapo_fulfillment',
-        'create_shopify_fulfillment',
         'upsert_order_mapping',
       ],
     });
@@ -267,8 +265,6 @@ describe('OrderWebhookProcessingService', () => {
       'create_sapo_order_if_missing',
       'finalize_sapo_order',
       'update_sapo_order',
-      'create_sapo_fulfillment',
-      'create_shopify_fulfillment',
       'upsert_order_mapping',
     ]);
   });

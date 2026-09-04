@@ -87,9 +87,17 @@ export class SapoTopOrderSyncService {
     });
     const trackedIds = new Set(this.stringArray(tracked?.orderIds));
     const newOrders = orders.filter((order) => !trackedIds.has(String(order.id)));
+    const ordersToProcess =
+      prefix === 'AUTO_SHOPIFY'
+        ? orders.filter(
+            (order) =>
+              !trackedIds.has(String(order.id)) ||
+              (mapping.key !== 'CANCELED' && this.sapoTrackingNumber(order) !== null),
+          )
+        : newOrders;
     const results = [];
 
-    for (const order of newOrders) {
+    for (const order of ordersToProcess) {
       results.push(await this.processOrderSafely(order, mapping.key, prefix));
     }
 
@@ -110,8 +118,8 @@ export class SapoTopOrderSyncService {
       orderType: mapping.key,
       prefix,
       fetched: currentIds.length,
-      processed: newOrders.length,
-      skippedTracked: currentIds.length - newOrders.length,
+      processed: ordersToProcess.length,
+      skippedTracked: currentIds.length - ordersToProcess.length,
       results,
     };
   }
@@ -199,21 +207,22 @@ export class SapoTopOrderSyncService {
       return this.shopifyResult(updated ? 'updated' : 'skipped', sapoOrderId);
     }
 
-    if (this.shouldCreateShopifyFulfillment(orderType, shopifyOrder)) {
-      const trackingNumber = this.sapoTrackingNumber(order);
-      if (trackingNumber) {
-        await this.shopifyClient.createFulfillment({
-          orderId: shopifyOrderId,
-          trackingCompany: this.configString(
-            'shipping.viettelPost.trackingCompany',
-            'Viettel',
-          ),
-          trackingNumber,
-          notifyCustomer: true,
-          lineItems: this.shopifyLineItems(shopifyOrder),
-        });
-        updated = true;
-      }
+    const trackingNumber = this.sapoTrackingNumber(order);
+    if (
+      trackingNumber &&
+      this.shouldCreateShopifyFulfillment(orderType, shopifyOrder, trackingNumber)
+    ) {
+      await this.shopifyClient.createFulfillment({
+        orderId: shopifyOrderId,
+        trackingCompany: this.configString(
+          'shipping.viettelPost.trackingCompany',
+          'Viettel',
+        ),
+        trackingNumber,
+        notifyCustomer: true,
+        lineItems: this.shopifyLineItems(shopifyOrder),
+      });
+      updated = true;
     }
 
     if (
@@ -270,8 +279,9 @@ export class SapoTopOrderSyncService {
   private shouldCreateShopifyFulfillment(
     orderType: string,
     shopifyOrder: Record<string, any>,
+    trackingNumber: string | null,
   ): boolean {
-    if (!['SHIPPED', 'RECEIVED', 'COMPLETED'].includes(orderType)) {
+    if (orderType === 'CANCELED' || !trackingNumber) {
       return false;
     }
 

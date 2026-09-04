@@ -183,8 +183,6 @@ export class OrderWebhookProcessingService {
         'create_sapo_order_if_missing',
         'finalize_sapo_order',
         'update_sapo_order',
-        'create_sapo_fulfillment',
-        'create_shopify_fulfillment',
         'upsert_order_mapping',
       ],
     };

@@ -371,12 +371,22 @@ export class OrderWebhookExecutionService {
     sapoLocationId = this.resolveSapoLocationId(plan, payload),
   ): Promise<Record<string, any>> {
     const isShopify = plan.platform === 'shopify';
+    const shopifyVoucherDiscount = isShopify
+      ? this.shopifyVoucherDiscount(payload)
+      : null;
     const lineItems = await this.toSapoLineItems(
       isShopify ? this.arrayPayload(payload.line_items) : this.arrayPayload(payload.items),
+      !shopifyVoucherDiscount,
     );
     const address = isShopify
       ? await this.shopifyAddress(payload)
       : this.pancakeAddress(payload);
+    const note = isShopify
+      ? this.mergeSapoNote(existingOrder.note, this.shopifyOrderNote(payload))
+      : payload.note ?? payload.name ?? existingOrder.note ?? null;
+    const shopifyShippingFee = isShopify
+      ? this.shopifyShippingFee(payload)
+      : null;
 
     return {
       ...existingOrder,
@@ -384,7 +394,33 @@ export class OrderWebhookExecutionService {
         ? `AUTO_SHOPIFY_${payload.order_number ?? plan.externalOrderId}`
         : `AUTO_PANCAKE_${plan.externalOrderId}`,
       total: this.numberValue(payload.total_price ?? payload.totalPrice),
-      note: payload.note ?? payload.name ?? existingOrder.note ?? null,
+      note,
+      ...(shopifyShippingFee !== null
+        ? {
+            delivery_fee: {
+              shipping_cost_name: 'Phi van chuyen Shopify',
+              fee: shopifyShippingFee,
+            },
+          }
+        : {}),
+      ...(shopifyVoucherDiscount
+        ? {
+            order_discount_rate: 0,
+            order_discount_value: shopifyVoucherDiscount.amount,
+            order_discount_amount: shopifyVoucherDiscount.amount,
+            discount_items: [
+              {
+                source: 'manual',
+                rate: 0,
+                value: shopifyVoucherDiscount.amount,
+                amount: shopifyVoucherDiscount.amount,
+                reason: `voucher seller: [${shopifyVoucherDiscount.codes.join(', ')}]`,
+                promotion_redemption_id: null,
+                promotion_condition_item_id: null,
+              },
+            ],
+          }
+        : {}),
       tags: this.arrayPayload(payload.tags),
       shipping_address: address,
       email: payload.bill_email ?? payload.email ?? payload.contact_email ?? null,
@@ -403,11 +439,117 @@ export class OrderWebhookExecutionService {
         tags: [],
         addresses: [address],
       },
+      // The shop's Sapo endpoint requires `order_line_items` for every order
+      // create. Unlike Sapo's public legacy API, `line_items` is rejected here.
       order_line_items: lineItems,
       status: 'draft',
       source_id: this.configNumber('sapo.pancakeSourceId', 307258),
       location_id: Number(sapoLocationId),
     };
+  }
+
+  private shopifyOrderNote(payload: Record<string, any>): string | null {
+    const parts: string[] = [];
+    const customerNote = this.firstString(payload.note);
+    if (customerNote) {
+      parts.push(`Khach Shopify: ${customerNote}`);
+    }
+
+    for (const attribute of this.arrayPayload(
+      payload.note_attributes ?? payload.noteAttributes,
+    )) {
+      const name = this.firstString(attribute.name, attribute.key, attribute.label);
+      const value = this.firstString(attribute.value);
+      if (name && value) {
+        parts.push(`Shopify - ${name}: ${value}`);
+      }
+    }
+
+    const voucherCodes = this.shopifyVoucherCodes(payload);
+    if (voucherCodes.length > 0) {
+      parts.push(`Voucher Shopify: ${voucherCodes.join(', ')}`);
+    }
+
+    return parts.length > 0 ? parts.join('\n') : null;
+  }
+
+  private shopifyShippingFee(payload: Record<string, any>): number | null {
+    const shippingLines = this.arrayPayload(
+      payload.shipping_lines ?? payload.shippingLines,
+    ).filter((line) => line.is_removed !== true && line.isRemoved !== true);
+    if (shippingLines.length === 0) {
+      return null;
+    }
+
+    return shippingLines.reduce(
+      (total, line) =>
+        total +
+        (this.numberValue(
+          line.discounted_price ?? line.discountedPrice ?? line.price,
+        ) ?? 0),
+      0,
+    );
+  }
+
+  private shopifyVoucherCodes(payload: Record<string, any>): string[] {
+    const codes = this.shopifyDiscountCodes(payload)
+      .map((discount) => this.firstString(discount.code))
+      .filter((code): code is string => Boolean(code));
+    return [...new Set(codes)];
+  }
+
+  private shopifyDiscountCodes(payload: Record<string, any>): Array<Record<string, any>> {
+    const codes: Array<Record<string, any>> = [];
+
+    for (const discount of this.arrayPayload(
+      payload.discount_codes ?? payload.discountCodes,
+    )) {
+      const code = this.firstString(discount.code);
+      const amount = this.numberValue(discount.amount);
+      const type = this.firstString(discount.type);
+      if (code && amount !== null && amount > 0 && type) {
+        codes.push({ code, amount, type });
+      }
+    }
+
+    return codes;
+  }
+
+  private shopifyVoucherDiscount(
+    payload: Record<string, any>,
+  ): { codes: string[]; amount: number } | null {
+    const codes = this.shopifyVoucherCodes(payload);
+    const amount = this.numberValue(
+      payload.total_discounts ?? payload.totalDiscounts,
+    );
+    if (codes.length === 0 || amount === null || amount <= 0) {
+      return null;
+    }
+
+    return { codes, amount };
+  }
+
+  private mergeSapoNote(existingNote: unknown, incomingNote: string | null): string | null {
+    const existing = this.firstString(existingNote);
+    if (!incomingNote) {
+      return existing;
+    }
+    if (!existing) {
+      return incomingNote;
+    }
+
+    const existingLines = new Set(
+      existing
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0),
+    );
+    const additions = incomingNote
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !existingLines.has(line));
+
+    return additions.length > 0 ? `${existing}\n${additions.join('\n')}` : existing;
   }
 
   private resolveSapoLocationId(
@@ -584,6 +726,7 @@ export class OrderWebhookExecutionService {
 
   private async toSapoLineItems(
     rawItems: Record<string, any>[],
+    includeDiscounts = true,
   ): Promise<Record<string, any>[]> {
     return Promise.all(
       rawItems.map(async (item) => {
@@ -600,7 +743,9 @@ export class OrderWebhookExecutionService {
 
         return {
           quantity: this.numberValue(item.quantity),
-          discount_amount: this.numberValue(item.total_discount ?? item.totalDiscount),
+          discount_amount: includeDiscounts
+            ? this.shopifyLineDiscountAmount(item)
+            : 0,
           variant_name: this.firstString(variation.name, item.name, item.title),
           barcode: sku,
           sku,
@@ -610,6 +755,23 @@ export class OrderWebhookExecutionService {
         };
       }),
     );
+  }
+
+  private shopifyLineDiscountAmount(item: Record<string, any>): number {
+    const declaredDiscount =
+      this.numberValue(item.total_discount ?? item.totalDiscount) ?? 0;
+    const allocatedDiscount = this.arrayPayload(
+      item.discount_allocations ?? item.discountAllocations,
+    ).reduce(
+      (total, allocation) =>
+        total +
+        (this.numberValue(
+          allocation.amount ?? allocation.discount_amount ?? allocation.discountAmount,
+        ) ?? 0),
+      0,
+    );
+
+    return Math.max(declaredDiscount, allocatedDiscount);
   }
 
   private async resolveSapoProductMapping(sku: string) {

@@ -340,6 +340,53 @@ describe('SapoTopOrderSyncService', () => {
     });
   });
 
+  it('reconciles a tracked packed AUTO_SHOPIFY order once Sapo has completed VTP tracking', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [
+        {
+          id: 'sapo-order-1',
+          status: 'finalized',
+          packed_status: 'packed',
+          fulfillment_status: 'unshipped',
+          fulfillments: [
+            {
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'VTP123',
+              },
+            },
+          ],
+        },
+      ],
+      metadata: { total: 1 },
+    });
+    prisma.sapoOrderTracking.findUnique.mockResolvedValueOnce({
+      type: 'PACKED_AUTO_SHOPIFY',
+      orderIds: ['sapo-order-1'],
+    });
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-1',
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+
+    const result = await service.syncOrderType({
+      orderType: 'PACKED',
+      prefix: 'AUTO_SHOPIFY',
+    });
+
+    expect(shopifyClient.createFulfillment).toHaveBeenCalledWith({
+      orderId: 'shopify-order-1',
+      trackingCompany: 'Viettel',
+      trackingNumber: 'VTP123',
+      notifyCustomer: true,
+      lineItems: [{ id: 'line-item-1', quantity: 1 }],
+    });
+    expect(result.processed).toBe(1);
+    expect(result.skippedTracked).toBe(0);
+  });
+
   it('does not create Shopify fulfillment for shipped AUTO_SHOPIFY orders with uncompleted tracking', async () => {
     const { service, prisma, sapoClient, shopifyClient } = createService();
     sapoClient.fetchOrders.mockResolvedValueOnce({

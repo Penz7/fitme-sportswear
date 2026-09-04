@@ -236,6 +236,80 @@ describe('OrderWebhookExecutionService', () => {
     });
   });
 
+  it('maps a Shopify voucher to Sapo order discount items without double-counting line allocations', async () => {
+    const { service, sapoClient } = createService();
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'orders/create',
+        externalOrderId: 'shopify-finance-1',
+        statusCode: null,
+        nextActions: ['create_sapo_order', 'upsert_order_mapping'],
+      },
+      {
+        id: 'shopify-finance-1',
+        order_number: 1982,
+        total_price: '170000',
+        total_discounts: '50000',
+        discount_codes: [
+          { code: 'WELCOME50', amount: '50000', type: 'fixed_amount' },
+        ],
+        shipping_lines: [
+          { price: '30000', discounted_price: '20000' },
+        ],
+        shipping_address: {
+          first_name: 'Nguyen Van A',
+          phone: '0909000000',
+          address1: 'Ho Chi Minh',
+          city: 'Ho Chi Minh',
+        },
+        line_items: [
+          {
+            sku: 'SKU-1',
+            name: 'Shirt',
+            quantity: 1,
+            price: '200000',
+            total_discount: '0',
+            discount_allocations: [{ amount: '50000' }],
+          },
+        ],
+      },
+    );
+
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          code: 'AUTO_SHOPIFY_1982',
+          total: 170000,
+          order_discount_amount: 50000,
+          order_discount_value: 50000,
+          discount_items: [
+            expect.objectContaining({
+              source: 'manual',
+              amount: 50000,
+              reason: 'voucher seller: [WELCOME50]',
+            }),
+          ],
+          delivery_fee: {
+            shipping_cost_name: 'Phi van chuyen Shopify',
+            fee: 20000,
+          },
+          note: 'Voucher Shopify: WELCOME50',
+          order_line_items: [
+            expect.objectContaining({
+              sku: 'SKU-1',
+              price: 200000,
+              discount_amount: 0,
+            }),
+          ],
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
   it('normalizes SKU before resolving product mapping for Sapo line items', async () => {
     const { service, sapoClient, prisma } = createService();
 
@@ -425,6 +499,10 @@ describe('OrderWebhookExecutionService', () => {
         id: 7562806427957,
         order_number: 1814,
         note: 'Call before shipping',
+        note_attributes: [
+          { name: 'Khung gio giao', value: 'Buoi sang' },
+          { name: 'Goi qua', value: 'Co' },
+        ],
         email: 'customer@example.com',
         shipping_address: {
           first_name: 'Liu',
@@ -456,12 +534,60 @@ describe('OrderWebhookExecutionService', () => {
       {
         order: expect.objectContaining({
           code: 'AUTO_SHOPIFY_1814',
+          note:
+            'Khach Shopify: Call before shipping\nShopify - Khung gio giao: Buoi sang\nShopify - Goi qua: Co',
           shipping_address: expect.objectContaining({
             city: 'Ha Tinh',
             district: 'Thi xa Hong Linh',
             ward: 'Phuong Hoanh Son',
             address1: 'KCN Phu Vinh TDP Lien Phu, Hoanh Son Ward, Ha Tinh Province',
           }),
+        }),
+      },
+      { locationId: '572310' },
+    );
+  });
+
+  it('preserves warehouse notes while appending Shopify customer notes on updates', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+    sapoClient.fetchOrder.mockResolvedValue({
+      order: {
+        id: 'sapo-order-1',
+        note: 'Kho: goi hang can than',
+        order_line_items: [{ id: 'sapo-line-1', sku: 'SKU-1' }],
+        fulfillments: [],
+      },
+    });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'order_updated',
+        externalOrderId: 'shopify-order-1',
+        statusCode: null,
+        nextActions: ['update_sapo_order'],
+      },
+      {
+        id: 'shopify-order-1',
+        order_number: 1814,
+        note: 'Call before shipping',
+        note_attributes: [{ name: 'Khung gio giao', value: 'Buoi sang' }],
+        shipping_address: { first_name: 'Nguyen Van A', phone: '0909000000' },
+        line_items: [{ sku: 'SKU-1', quantity: 1, price: '150000' }],
+      },
+    );
+
+    expect(sapoClient.updateOrder).toHaveBeenCalledWith(
+      'sapo-order-1',
+      {
+        order: expect.objectContaining({
+          note:
+            'Kho: goi hang can than\nKhach Shopify: Call before shipping\nShopify - Khung gio giao: Buoi sang',
         }),
       },
       { locationId: '572310' },
