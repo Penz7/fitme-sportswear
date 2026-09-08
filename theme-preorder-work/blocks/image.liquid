@@ -1,0 +1,93 @@
+{%- if block.settings.image != blank -%}
+  {%- assign alignment = block.settings.alignment | replace: 'left', 'start' | replace: 'right', 'end' -%}
+
+  <div class="v-stack" {{ block.shopify_attributes }}>
+    {%- if block.settings.width_mode == 'custom' -%}
+      {%- capture image_style_attribute -%}--image-max-width: {{ block.settings.max_width }}px; --image-mobile-max-width: {{ block.settings.mobile_max_width }}px{%- endcapture -%}
+      {%- capture image_sizes_attribute -%}(max-width: 699px) {{ block.settings.mobile_max_width }}px, {{ block.settings.max_width }}px{%- endcapture -%}
+    {%- else -%}
+      {%- capture image_sizes_attribute -%}{{ settings.page_width }}px{%- endcapture -%}
+    {%- endif -%}
+
+    <div class="justify-self-{{ alignment }}">
+      <picture>
+        {%- if block.settings.mobile_image != blank -%}
+          <source
+            media="(max-width: 699px)"
+            srcset="{{ block.settings.mobile_image | image_url: width: 400 }} 400w, {{ block.settings.mobile_image | image_url: width: 600 }} 600w, {{ block.settings.mobile_image | image_url: width: 800 }} 800w, {{ block.settings.mobile_image | image_url: width: 1000 }} 1000w, {{ block.settings.mobile_image | image_url: width: 1200 }} 1200w"
+          >
+        {%- endif -%}
+
+        {{- block.settings.image | image_url: width: block.settings.image.width | image_tag: sizes: image_sizes_attribute, widths: '200,300,400,500,600,800,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200', style: image_style_attribute -}}
+      </picture>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Image",
+  "tag": null,
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image",
+      "info": "3200 x 1600px .jpg recommended"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "Mobile image",
+      "info": "1300 x 1500px .jpg recommended. Default to desktop image."
+    },
+    {
+      "type": "text_alignment",
+      "id": "alignment",
+      "label": "Image alignment",
+      "default": "center"
+    },
+    {
+      "type": "radio",
+      "id": "width_mode",
+      "label": "Width",
+      "options": [
+        {
+          "value": "full_width",
+          "label": "Full width"
+        },
+        {
+          "value": "custom",
+          "label": "Custom"
+        }
+      ],
+      "default": "custom"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 100,
+      "max": 1000,
+      "step": 10,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 600
+    },
+    {
+      "type": "range",
+      "id": "mobile_max_width",
+      "min": 100,
+      "max": 600,
+      "step": 10,
+      "unit": "px",
+      "label": "Mobile maximum width",
+      "default": 400
+    }
+  ],
+  "presets": [
+    {
+      "name": "Image"
+    }
+  ]
+}
+{% endschema %}

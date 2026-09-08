@@ -1,0 +1,80 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_WBWMae": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_4CDzqn": {
+          "type": "heading",
+          "settings": {
+            "text": "ÁO SÁT NÁCH & CROPTOP",
+            "heading_tag": "h2",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_FzgrDX": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Tự do chuyển động, mát mẻ suốt ngày dài – áo sát nách và croptop thể thao của Fitme là lựa chọn lý tưởng cho những cô nàng yêu thích pickleball, tennis và các hoạt động ngoài trời. Thiết kế tối giản, tôn vóc dáng, phối cùng chất vải co giãn thoáng khí giúp thấm hút mồ hôi hiệu quả. Croptop trẻ trung, áo sát nách năng động – mỗi item đều mang đến cảm giác nhẹ tênh và tự tin trên từng bước di chuyển.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_4CDzqn",
+        "richtext_FzgrDX"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_WBWMae",
+    "main"
+  ]
+}

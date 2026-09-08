@@ -1,0 +1,44 @@
+{%- liquid
+  assign home_text = 'Home'
+  if request.locale.iso_code == 'vi'
+    assign home_text = 'Trang chủ'
+  endif
+-%}
+
+<nav class="fitme-breadcrumbs" aria-label="Breadcrumb" style="font-size: 0.8125rem;">
+  <ol class="h-stack gap-2 align-center list-none p-0 m-0" style="display: flex; align-items: center; gap: 0.5rem; list-style: none; padding: 0; margin: 0; flex-wrap: wrap;">
+    <li>
+      <a href="{{ routes.root_url }}" class="reversed-link" style="color: inherit; text-decoration: underline; text-underline-offset: 3px; opacity: 0.75;">
+        {{ home_text }}
+      </a>
+    </li>
+    <li aria-hidden="true" style="opacity: 0.4;">/</li>
+    {%- if template contains 'collection' and collection.title != blank -%}
+      <li>
+        <span class="bold" aria-current="page" style="font-weight: 500; opacity: 0.9;">
+          {{ collection.title }}
+        </span>
+      </li>
+    {%- elsif template contains 'page' and page.title != blank -%}
+      <li>
+        <span class="bold" aria-current="page" style="font-weight: 500; opacity: 0.9;">
+          {{ page.title }}
+        </span>
+      </li>
+    {%- elsif template contains 'product' and product.title != blank -%}
+      {%- if collection != blank -%}
+        <li>
+          <a href="{{ collection.url }}" class="reversed-link" style="color: inherit; text-decoration: underline; text-underline-offset: 3px; opacity: 0.75;">
+            {{ collection.title }}
+          </a>
+        </li>
+        <li aria-hidden="true" style="opacity: 0.4;">/</li>
+      {%- endif -%}
+      <li>
+        <span class="bold" aria-current="page" style="font-weight: 500; opacity: 0.9;">
+          {{ product.title }}
+        </span>
+      </li>
+    {%- endif -%}
+  </ol>
+</nav>

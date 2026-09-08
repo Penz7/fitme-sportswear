@@ -1,0 +1,574 @@
+{%- comment -%}
+  Custom Section: Grid Gingham Princess (Theme Impact/Dawn Compatible)
+  File name: grid-gingham.liquid
+  Save to: sections/grid-gingham.liquid
+{%- endcomment -%}
+
+<section class="gingham-bento-section-{{ section.id }} gingham-bento-wrapper" id="GinghamBento-{{ section.id }}">
+  <div class="gingham-container">
+    
+    {%- if section.settings.eyebrow != blank or section.settings.title != blank -%}
+      <header class="gingham-section-header">
+        {%- if section.settings.eyebrow != blank -%}
+          <span class="gingham-section-eyebrow">{{ section.settings.eyebrow | escape }}</span>
+        {%- endif -%}
+        {%- if section.settings.title != blank -%}
+          <h2 class="gingham-section-title">{{ section.settings.title }}</h2>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+    
+    <div class="gingham-bento-grid">
+      
+      <!-- Card 1: Large Princess Card (Checkered Gingham Background) -->
+      <div class="gingham-bento-card bento-card-large">
+        <div class="gingham-bento-card-inner card-1-inner-{{ section.id }}">
+          
+          {%- if section.settings.card_1_bg_type == 'gingham' -%}
+            <div class="gingham-checkered-pattern-{{ section.id }} absolute-fill"></div>
+          {%- elsif section.settings.card_1_bg_type == 'image' and section.settings.card_1_image != blank -%}
+            <div class="gingham-image-bg absolute-fill" style="background-image: url('{{ section.settings.card_1_image | img_url: '1000x' }}');"></div>
+          {%- endif -%}
+          
+          <div class="gingham-bento-overlay absolute-fill" style="background: linear-gradient(to top, rgba(44, 40, 36, {{ section.settings.card_1_overlay_opacity | divided_by: 100.0 }}), transparent 70%);"></div>
+
+          <div class="gingham-editorial-content text-color-{{ section.settings.card_1_text_theme }}">
+            <div>
+              {%- if section.settings.card_1_tag != blank -%}
+                <span class="gingham-tag-mini">{{ section.settings.card_1_tag | escape }}</span>
+              {%- endif -%}
+              {%- if section.settings.card_1_heading != blank -%}
+                <h3 class="gingham-card-title">{{ section.settings.card_1_heading }}</h3>
+              {%- endif -%}
+              {%- if section.settings.card_1_desc != blank -%}
+                <p class="gingham-card-desc">{{ section.settings.card_1_desc }}</p>
+              {%- endif -%}
+            </div>
+            {%- if section.settings.card_1_footer != blank -%}
+              <div class="gingham-card-footer-text">{{ section.settings.card_1_footer | escape }}</div>
+            {%- endif -%}
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- Card 2: Medium Accessory Card (Gradient Background) -->
+      <div class="gingham-bento-card bento-card-medium">
+        <div class="gingham-bento-card-inner card-2-inner-{{ section.id }}">
+          
+          {%- if section.settings.card_2_bg_type == 'image' and section.settings.card_2_image != blank -%}
+            <div class="gingham-image-bg absolute-fill" style="background-image: url('{{ section.settings.card_2_image | img_url: '800x' }}');"></div>
+          {%- endif -%}
+          
+          <div class="gingham-bento-overlay absolute-fill" style="background: linear-gradient(to top, rgba(44, 40, 36, {{ section.settings.card_2_overlay_opacity | divided_by: 100.0 }}), transparent 70%);"></div>
+
+          <div class="gingham-editorial-content text-color-{{ section.settings.card_2_text_theme }}">
+            <div>
+              {%- if section.settings.card_2_tag != blank -%}
+                <span class="gingham-tag-mini">{{ section.settings.card_2_tag | escape }}</span>
+              {%- endif -%}
+              {%- if section.settings.card_2_heading != blank -%}
+                <h3 class="gingham-card-title">{{ section.settings.card_2_heading }}</h3>
+              {%- endif -%}
+              {%- if section.settings.card_2_desc != blank -%}
+                <p class="gingham-card-desc">{{ section.settings.card_2_desc }}</p>
+              {%- endif -%}
+            </div>
+            {%- if section.settings.card_2_link_text != blank -%}
+              <a href="{{ section.settings.card_2_link_url | default: '#' }}" class="gingham-card-action-link">
+                {{ section.settings.card_2_link_text | escape }} →
+              </a>
+            {%- endif -%}
+          </div>
+          
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&subset=vietnamese&display=swap');
+
+  /* ---------------------------------------------------------------------
+   * SYSTEM CONSTANTS & GENERAL STYLING
+   * --------------------------------------------------------------------- */
+  .gingham-bento-wrapper {
+    background: {{ section.settings.section_background }};
+    padding: {{ section.settings.padding_top }}px 0 {{ section.settings.padding_bottom }}px;
+  }
+  .gingham-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    box-sizing: border-box;
+  }
+  .absolute-fill {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: 22px;
+    overflow: hidden;
+  }
+  .gingham-image-bg {
+    background-size: cover;
+    background-position: center;
+    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .gingham-bento-card-inner:hover .gingham-image-bg {
+    transform: scale(1.04);
+  }
+
+  /* Header structure */
+  .gingham-section-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .gingham-section-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #9a938d;
+    margin-bottom: 12px;
+    display: block;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+  }
+  .gingham-section-title {
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-weight: 400;
+    font-size: 36px;
+    color: #2c2824;
+    line-height: 1.2;
+    margin: 0 auto;
+    max-width: 600px;
+  }
+  .gingham-section-title em {
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-style: italic !important;
+  }
+
+  /* Bento Grid */
+  .gingham-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+  }
+  .gingham-bento-card {
+    background: {{ section.settings.outer_bezel_color }};
+    border: 1px solid {{ section.settings.outer_border_color }};
+    padding: 6px;
+    border-radius: 28px;
+    display: flex;
+    box-sizing: border-box;
+    transition: all 0.8s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .gingham-bento-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px -10px rgba(44, 40, 36, 0.08);
+  }
+  .gingham-bento-card-inner {
+    width: 100%;
+    border-radius: 22px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  /* Card Sizing */
+  .bento-card-large {
+    grid-column: span 7;
+    height: 480px;
+  }
+  .bento-card-medium {
+    grid-column: span 5;
+    height: 480px;
+  }
+
+  /* Dynamic Checkered Gingham styling */
+  .gingham-checkered-pattern-{{ section.id }} {
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(90deg, {{ section.settings.card_1_gingham_accent | color_modify: 'alpha', 0.25 }} 50%, transparent 50%),
+      linear-gradient({{ section.settings.card_1_gingham_accent | color_modify: 'alpha', 0.25 }} 50%, transparent 50%);
+    background-color: {{ section.settings.card_1_gingham_base }};
+    opacity: 0.95;
+  }
+
+  /* Editorial details */
+  .gingham-editorial-content {
+    position: relative;
+    z-index: 5;
+    padding: 48px;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+  }
+  .gingham-tag-mini {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: {{ section.settings.tag_background }};
+    color: {{ section.settings.tag_text_color }};
+    padding: 4px 10px;
+    border-radius: 6px;
+    width: max-content;
+    display: block;
+    margin-bottom: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .gingham-card-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400;
+    font-size: 38px;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .gingham-card-title em {
+    font-style: italic;
+  }
+  .gingham-card-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 320px;
+    margin-top: 14px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .gingham-card-footer-text {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .gingham-card-action-link {
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    transition: all 0.3s ease;
+  }
+  .gingham-card-action-link:hover {
+    letter-spacing: 0.5px;
+  }
+
+  /* Theme Text Colors */
+  .text-color-dark {
+    color: #2c2824;
+  }
+  .text-color-dark .gingham-card-desc {
+    color: #5a534d;
+  }
+  .text-color-dark .gingham-card-footer-text,
+  .text-color-dark .gingham-card-action-link {
+    color: #2c2824;
+  }
+
+  .text-color-light {
+    color: #ffffff;
+  }
+  .text-color-light .gingham-card-desc {
+    color: rgba(255,255,255,0.85);
+  }
+  .text-color-light .gingham-card-footer-text,
+  .text-color-light .gingham-card-action-link {
+    color: #ffffff;
+  }
+
+  /* Specific Card 1 Inner fallbacks */
+  .card-1-inner-{{ section.id }} {
+    background: {{ section.settings.card_1_solid_bg }};
+  }
+
+  /* Specific Card 2 Inner gradient */
+  .card-2-inner-{{ section.id }} {
+    background: {% if section.settings.card_2_bg_type == 'gradient' %}linear-gradient(135deg, {{ section.settings.card_2_grad_start }}, {{ section.settings.card_2_grad_end }}){% else %}{{ section.settings.card_2_solid_bg }}{% endif %};
+  }
+
+  /* ---------------------------------------------------------------------
+   * RESPONSIVE LAYOUT (Universal stack for mobile compatibility)
+   * --------------------------------------------------------------------- */
+  @media (max-width: 900px) {
+    .gingham-bento-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .bento-card-large,
+    .bento-card-medium {
+      grid-column: span 12;
+      height: 380px;
+    }
+    .gingham-editorial-content {
+      padding: 32px;
+    }
+    .gingham-card-title {
+      font-size: 28px;
+    }
+    .gingham-section-title {
+      font-size: 28px;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Grid Gingham",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Bố cục & Khoảng cách"
+    },
+    {
+      "type": "color",
+      "id": "section_background",
+      "label": "Màu nền Section",
+      "default": "#FDFAF5"
+    },
+    {
+      "type": "color",
+      "id": "outer_bezel_color",
+      "label": "Màu viền Bezel ngoài của Card",
+      "default": "rgba(245, 230, 163, 0.1)"
+    },
+    {
+      "type": "color",
+      "id": "outer_border_color",
+      "label": "Màu đường viền ngoài (Border)",
+      "default": "rgba(245, 230, 163, 0.3)"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Khoảng cách trên (Padding Top)",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Khoảng cách dưới (Padding Bottom)",
+      "default": 48
+    },
+    {
+      "type": "header",
+      "content": "Tiêu đề Section"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Nhãn phụ (Eyebrow)",
+      "default": "ĐI TẬP CŨNG PHẢI ĐẸP"
+    },
+    {
+      "type": "html",
+      "id": "title",
+      "label": "Tiêu đề chính (Heading - Hỗ trợ HTML)",
+      "default": "Đẹp không phải ngẫu nhiên<br>đẹp là <em>được thiết kế</em>."
+    },
+    {
+      "type": "header",
+      "content": "Card 1: Bento Trái (Large)"
+    },
+    {
+      "type": "select",
+      "id": "card_1_bg_type",
+      "label": "Loại nền",
+      "options": [
+        { "value": "gingham", "label": "Họa tiết Kẻ Gingham" },
+        { "value": "image", "label": "Hình ảnh tùy chọn" },
+        { "value": "solid", "label": "Màu trơn" }
+      ],
+      "default": "gingham"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Hình ảnh nền (Nếu chọn Loại nền là Hình ảnh)"
+    },
+    {
+      "type": "color",
+      "id": "card_1_gingham_accent",
+      "label": "Màu sọc Gingham",
+      "default": "#F5E6A3"
+    },
+    {
+      "type": "color",
+      "id": "card_1_gingham_base",
+      "label": "Màu nền Gingham",
+      "default": "#FDFAF5"
+    },
+    {
+      "type": "color",
+      "id": "card_1_solid_bg",
+      "label": "Màu trơn nền (Nếu chọn Loại nền là Màu trơn)",
+      "default": "#FBF4D6"
+    },
+    {
+      "type": "range",
+      "id": "card_1_overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "label": "Độ mờ phủ tối hình ảnh (Overlay)",
+      "default": 10
+    },
+    {
+      "type": "select",
+      "id": "card_1_text_theme",
+      "label": "Màu chữ chủ đạo",
+      "options": [
+        { "value": "dark", "label": "Chữ Tối (Nâu đất)" },
+        { "value": "light", "label": "Chữ Sáng (Trắng)" }
+      ],
+      "default": "dark"
+    },
+    {
+      "type": "text",
+      "id": "card_1_tag",
+      "label": "Nhãn nhỏ (Tag)",
+      "default": "BST MỚI NHẤT"
+    },
+    {
+      "type": "html",
+      "id": "card_1_heading",
+      "label": "Tiêu đề (Heading - Hỗ trợ HTML)",
+      "default": "Đặc quyền của Nàng Princess"
+    },
+    {
+      "type": "textarea",
+      "id": "card_1_desc",
+      "label": "Mô tả ngắn",
+      "default": "Không gồng mình, không cầu kỳ, sự sang trọng của Gingham Princess đến từ chất liệu bơ Buttery ôm dáng và họa tiết kẻ ô cổ điển ngọt ngào. Bạn chính là tiêu điểm của mọi ánh nhìn."
+    },
+    {
+      "type": "text",
+      "id": "card_1_footer",
+      "label": "Chữ dưới chân trang",
+      "default": "DESIGNED FOR PRINCESS"
+    },
+    {
+      "type": "header",
+      "content": "Card 2: Bento Phải (Medium)"
+    },
+    {
+      "type": "select",
+      "id": "card_2_bg_type",
+      "label": "Loại nền",
+      "options": [
+        { "value": "gradient", "label": "Loại loang Gradient" },
+        { "value": "image", "label": "Hình ảnh tùy chọn" },
+        { "value": "solid", "label": "Màu trơn" }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Hình ảnh nền (Nếu chọn Loại nền là Hình ảnh)"
+    },
+    {
+      "type": "color",
+      "id": "card_2_grad_start",
+      "label": "Màu loang 1 (Gradient Start)",
+      "default": "#FDFAF5"
+    },
+    {
+      "type": "color",
+      "id": "card_2_grad_end",
+      "label": "Màu loang 2 (Gradient End)",
+      "default": "#F5E6A3"
+    },
+    {
+      "type": "color",
+      "id": "card_2_solid_bg",
+      "label": "Màu trơn nền (Nếu chọn Loại nền là Màu trơn)",
+      "default": "#FDFAF5"
+    },
+    {
+      "type": "range",
+      "id": "card_2_overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "label": "Độ mờ phủ tối hình ảnh (Overlay)",
+      "default": 0
+    },
+    {
+      "type": "select",
+      "id": "card_2_text_theme",
+      "label": "Màu chữ chủ đạo",
+      "options": [
+        { "value": "dark", "label": "Chữ Tối (Nâu đất)" },
+        { "value": "light", "label": "Chữ Sáng (Trắng)" }
+      ],
+      "default": "dark"
+    },
+    {
+      "type": "text",
+      "id": "card_2_tag",
+      "label": "Nhãn nhỏ (Tag)",
+      "default": "COMPLETE THE LOOK"
+    },
+    {
+      "type": "html",
+      "id": "card_2_heading",
+      "label": "Tiêu đề (Heading - Hỗ trợ HTML)",
+      "default": "MẢNH GHÉP<br><em>Hoàn hảo</em>"
+    },
+    {
+      "type": "textarea",
+      "id": "card_2_desc",
+      "label": "Mô tả ngắn",
+      "default": "Một Princess thực thụ luôn chỉn chu trong mọi khoảnh khắc xuất hiện. Bộ phụ kiện vớ và băng đô gingham đồng điệu giúp bạn sẵn sàng tỏa sáng từ phòng tập ra phố."
+    },
+    {
+      "type": "text",
+      "id": "card_2_link_text",
+      "label": "Chữ hiển thị của liên kết (Link text)",
+      "default": "Xem trọn bộ Princess Accessories"
+    },
+    {
+      "type": "url",
+      "id": "card_2_link_url",
+      "label": "Địa chỉ liên kết (Link URL)"
+    },
+    {
+      "type": "header",
+      "content": "Màu sắc Chung cho Tags"
+    },
+    {
+      "type": "color",
+      "id": "tag_background",
+      "label": "Màu nền của Tag Mini",
+      "default": "#FBF4D6"
+    },
+    {
+      "type": "color",
+      "id": "tag_text_color",
+      "label": "Màu chữ của Tag Mini",
+      "default": "#2c2824"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Grid Gingham",
+      "category": "Custom Sections"
+    }
+  ]
+}
+{% endschema %}

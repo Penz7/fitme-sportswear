@@ -1,0 +1,581 @@
+{% schema %}
+{
+  "name": "Công nghệ & Tính năng",
+  "tag": "section",
+  "class": "section-feature-blocks",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Tiêu đề section",
+      "default": "CÔNG NGHỆ VÀI NỔI BẬT"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Căn lề văn bản",
+      "options": [
+        {
+          "value": "left",
+          "label": "Trái"
+        },
+        {
+          "value": "center",
+          "label": "Giữa"
+        },
+        {
+          "value": "right",
+          "label": "Phải"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "text",
+      "id": "benefits_title",
+      "label": "Tiêu đề phần đặc điểm",
+      "default": "Đặc điểm:"
+    },
+    {
+      "type": "text",
+      "id": "applications_title",
+      "label": "Tiêu đề phần công dụng",
+      "default": "Công dụng tốt nhất:"
+    },
+    {
+      "type": "select",
+      "id": "desktop_columns",
+      "label": "Số cột trên màn hình lớn",
+      "options": [
+        {
+          "value": "1",
+          "label": "1 cột"
+        },
+        {
+          "value": "2",
+          "label": "2 cột"
+        },
+        {
+          "value": "3",
+          "label": "3 cột"
+        },
+        {
+          "value": "4",
+          "label": "4 cột"
+        }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "select",
+      "id": "tablet_columns",
+      "label": "Số cột trên tablet",
+      "options": [
+        {
+          "value": "1",
+          "label": "1 cột"
+        },
+        {
+          "value": "2",
+          "label": "2 cột"
+        }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "header",
+      "content": "Hình ảnh"
+    },
+    {
+      "type": "range",
+      "id": "image_aspect_ratio",
+      "min": 0.5,
+      "max": 2.0,
+      "step": 0.1,
+      "label": "Tỷ lệ khung hình",
+      "default": 1.0,
+      "info": "1.0 = hình vuông, 1.33 = tỷ lệ 4:3, 1.78 = tỷ lệ 16:9"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Bo tròn góc hình ảnh",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Màu sắc"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Màu nền",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Màu chữ",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Màu tiêu đề",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "section_title_color",
+      "label": "Màu tiêu đề phần",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Màu đường ngăn cách",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "header",
+      "content": "Khoảng cách"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding trên",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding dưới",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Khoảng cách giữa các ô",
+      "default": 30
+    }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Tính năng",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Hình ảnh"
+        },
+        {
+          "type": "checkbox",
+          "id": "custom_border_radius",
+          "label": "Tùy chỉnh bo góc riêng",
+          "default": false,
+          "info": "Nếu bật, sẽ bỏ qua cài đặt bo góc chung của section"
+        },
+        {
+          "type": "range",
+          "id": "image_border_radius",
+          "min": 0,
+          "max": 30,
+          "step": 1,
+          "unit": "px",
+          "label": "Bo tròn góc hình ảnh riêng",
+          "default": 8
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Tiêu đề",
+          "default": "BUTTERY™"
+        },
+        {
+          "type": "text",
+          "id": "subtitle",
+          "label": "Tiêu đề phụ",
+          "default": "MỀM NHẸ NHƯ BƠ"
+        },
+        {
+          "type": "text",
+          "id": "composition",
+          "label": "Thành phần",
+          "default": "Nylon & Spandex"
+        },
+        {
+          "type": "header",
+          "content": "Đặc điểm"
+        },
+        {
+          "type": "checkbox",
+          "id": "custom_benefits_title",
+          "label": "Tùy chỉnh tiêu đề phần đặc điểm",
+          "default": false
+        },
+        {
+          "type": "text",
+          "id": "benefits_title",
+          "label": "Tiêu đề phần đặc điểm",
+          "default": "Đặc điểm:"
+        },
+        {
+          "type": "textarea",
+          "id": "benefits",
+          "label": "Những điểm nổi bật",
+          "default": "Siêu mềm mịn\nThấm hút tốt\nCo giãn 4 chiều\nCông nghệ kháng khuẩn"
+        },
+        {
+          "type": "header",
+          "content": "Ứng dụng"
+        },
+        {
+          "type": "checkbox",
+          "id": "custom_applications_title",
+          "label": "Tùy chỉnh tiêu đề phần ứng dụng",
+          "default": false
+        },
+        {
+          "type": "text",
+          "id": "applications_title",
+          "label": "Tiêu đề phần ứng dụng",
+          "default": "Công dụng tốt nhất:"
+        },
+        {
+          "type": "textarea",
+          "id": "applications",
+          "label": "Ứng dụng sản phẩm",
+          "default": "Buttery™ được phát triển để đáp ứng các nhu cầu cao cấp nhất khi tập Yoga, Pilates và Gym. Buttery Fabric mang đến cảm giác như làn da thứ 2. Sở hữu tất cả những đặc tính mà các Yogi yêu thích như thấm hút mồ hôi, co giãn bốn chiều, độ che phủ tuyệt với với điểm công cuối cùng là cảm giác nhẹ, mềm mịn như bơ"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "Đường dẫn nút",
+          "default": "/collections/all"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "label": "Chữ trên nút",
+          "default": "SẢN PHẨM BUTTERY™"
+        },
+        {
+          "type": "color",
+          "id": "button_color",
+          "label": "Màu nền nút",
+          "default": "#FFFFFF"
+        },
+        {
+          "type": "color",
+          "id": "button_text_color",
+          "label": "Màu chữ nút",
+          "default": "#000000"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Công nghệ & Tính năng",
+      "blocks": [
+        {
+          "type": "feature"
+        },
+        {
+          "type": "feature"
+        },
+        {
+          "type": "feature"
+        },
+        {
+          "type": "feature"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<section class="feature-blocks" 
+  style="background-color: {{ section.settings.background_color }}; 
+         color: {{ section.settings.text_color }};
+         padding-top: {{ section.settings.padding_top }}px;
+         padding-bottom: {{ section.settings.padding_bottom }}px;
+         text-align: {{ section.settings.text_alignment }};">
+  <div class="container">
+    {% if section.settings.title != blank %}
+      <h2 class="feature-blocks__title" style="color: {{ section.settings.title_color }};">{{ section.settings.title }}</h2>
+    {% endif %}
+    
+    <div class="feature-blocks__grid" style="--desktop-columns: {{ section.settings.desktop_columns }}; 
+                                             --tablet-columns: {{ section.settings.tablet_columns }};
+                                             --grid-gap: {{ section.settings.grid_gap }}px;">
+      {% for block in section.blocks %}
+        <div class="feature-block" {{ block.shopify_attributes }}>
+          {% if block.settings.image != blank %}
+            {% assign image_border_radius = section.settings.image_border_radius %}
+            {% if block.settings.custom_border_radius %}
+              {% assign image_border_radius = block.settings.image_border_radius %}
+            {% endif %}
+            <div class="feature-block__image-wrapper" 
+                 style="--aspect-ratio: {{ section.settings.image_aspect_ratio }}; 
+                        --image-border-radius: {{ image_border_radius }}px;">
+              <img src="{{ block.settings.image | img_url: 'master' }}" 
+                   alt="{{ block.settings.title | escape }}" 
+                   class="feature-block__image">
+            </div>
+          {% endif %}
+          
+          <div class="feature-block__content">
+            <h3 class="feature-block__title" style="color: {{ section.settings.title_color }};">{{ block.settings.title }}</h3>
+            
+            {% if block.settings.subtitle != blank %}
+              <div class="feature-block__subtitle">{{ block.settings.subtitle }}</div>
+              <div class="feature-block__divider" style="background-color: {{ section.settings.divider_color }};"></div>
+            {% endif %}
+            
+            {% if block.settings.composition != blank %}
+              <div class="feature-block__composition">{{ block.settings.composition }}</div>
+              <div class="feature-block__divider" style="background-color: {{ section.settings.divider_color }};"></div>
+            {% endif %}
+            
+            <div class="feature-block__details">
+              <div class="feature-block__section">
+                {% assign benefits_title = section.settings.benefits_title %}
+                {% if block.settings.custom_benefits_title %}
+                  {% assign benefits_title = block.settings.benefits_title %}
+                {% endif %}
+                <h4 class="feature-block__section-title" style="color: {{ section.settings.section_title_color }};">{{ benefits_title }}</h4>
+                <div class="feature-block__section-content">
+                  {% assign benefits_lines = block.settings.benefits | newline_to_br | split: '<br />' %}
+                  {% for line in benefits_lines %}
+                    <div class="feature-block__point">{{ line }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+              
+              <div class="feature-block__divider" style="background-color: {{ section.settings.divider_color }};"></div>
+              
+              <div class="feature-block__section">
+                {% assign applications_title = section.settings.applications_title %}
+                {% if block.settings.custom_applications_title %}
+                  {% assign applications_title = block.settings.applications_title %}
+                {% endif %}
+                <h4 class="feature-block__section-title" style="color: {{ section.settings.section_title_color }};">{{ applications_title }}</h4>
+                <div class="feature-block__section-content">
+                  {% assign applications_lines = block.settings.applications | newline_to_br | split: '<br />' %}
+                  {% for line in applications_lines %}
+                    <div class="feature-block__point">{{ line }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            
+            {% if block.settings.button_text != blank and block.settings.button_link != blank %}
+              <div class="feature-block__button-wrapper">
+                <a href="{{ block.settings.button_link }}" 
+                   class="feature-block__button" 
+                   style="background-color: {{ block.settings.button_color }}; 
+                          color: {{ block.settings.button_text_color }}; 
+                          border-color: {{ block.settings.text_color }};">
+                  {{ block.settings.button_text }}
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<style>
+  .feature-blocks {
+    width: 100%;
+  }
+  
+  .container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  .feature-blocks__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+  }
+  
+  .feature-blocks__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--desktop-columns), 1fr);
+    gap: var(--grid-gap);
+  }
+  
+  .feature-block {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid #e0e0e0;
+    border-radius: 0px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    padding: 0;
+    position: relative;
+  }
+  
+  .feature-block:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  }
+  
+  .feature-block__image-wrapper {
+    width: 100%;
+    position: relative;
+    padding-bottom: calc(100% / var(--aspect-ratio));
+    overflow: hidden;
+    border-radius: var(--image-border-radius);
+    margin: 0;
+  }
+  
+  .feature-block__image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+    border-radius: var(--image-border-radius);
+  }
+  
+  .feature-block:hover .feature-block__image {
+    transform: scale(1.05);
+  }
+  
+  .feature-block__content {
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .feature-block__title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 5px;
+    line-height: 1.2;
+  }
+  
+  .feature-block__subtitle {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: inherit;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  
+  .feature-block__divider {
+    height: 1px;
+    width: 100%;
+    margin: 12px 0;
+  }
+  
+  .feature-block__composition {
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+  
+  .feature-block__details {
+    margin-bottom: 20px;
+  }
+  
+  .feature-block__section {
+    margin: 12px 0;
+  }
+  
+  .feature-block__section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+  
+  .feature-block__section-content {
+    font-size: 14px;
+  }
+  
+  .feature-block__point {
+    margin-bottom: 5px;
+    line-height: 1.5;
+  }
+  
+  .feature-block__button-wrapper {
+    margin-top: auto;
+    padding-top: 15px;
+    text-align: center;
+  }
+  
+  .feature-block__button {
+    display: inline-block;
+    padding: 12px 25px;
+    text-decoration: none;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .feature-block__button:hover {
+    opacity: 0.9;
+    background-color: #f5f5f5;
+  }
+  
+  /* Tablet */
+  @media (max-width: 991px) {
+    .feature-blocks__grid {
+      grid-template-columns: repeat(var(--tablet-columns), 1fr);
+    }
+    
+    .feature-block {
+      margin-bottom: 20px;
+    }
+  }
+  
+  /* Mobile */
+  @media (max-width: 767px) {
+    .feature-blocks__grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .feature-block__content {
+      padding: 15px;
+    }
+    
+    .feature-block__title {
+      font-size: 18px;
+    }
+  }
+</style>

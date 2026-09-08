@@ -1,0 +1,326 @@
+{%- render 'section-spacing-collapsing' -%}
+{%- assign text_position = section.settings.text_position -%}
+
+{%- comment -%}
+------------------------------------------------------------------------------------------------------------------------
+CSS
+------------------------------------------------------------------------------------------------------------------------
+{%- endcomment -%}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    --feature-chart-values-columns-count: 1;
+  }
+
+  @media screen and (min-width: 700px) {
+    {%- if text_position == 'center' -%}
+      #shopify-section-{{ section.id }} .section-stack__main {
+        width: 680px;
+        min-width: 680px;
+        margin-inline: auto;
+      }
+    {%- else -%}
+      #shopify-section-{{ section.id }} .section-stack {
+        flex-wrap: wrap;
+        justify-content: start;
+      }
+
+      #shopify-section-{{ section.id }} .section-stack__intro {
+        flex: 1 0 350px; /* Allow to grow and shrink with a range from 350px to 750px */
+        max-width: 750px;
+        width: auto;
+      }
+
+      #shopify-section-{{ section.id }} .section-stack__main {
+        flex: 1 1 600px;
+        min-width: 450px;
+        width: auto;
+      }
+    {%- endif -%}
+  }
+</style>
+
+{%- comment -%}
+------------------------------------------------------------------------------------------------------------------------
+LIQUID
+------------------------------------------------------------------------------------------------------------------------
+{%- endcomment -%}
+
+<div {% render 'section-properties' %}>
+  <div class="section-stack {% if text_position != 'center' %}section-stack--horizontal{% else %}section-stack--center{% endif %} {% if text_position == 'end' %}section-stack--reverse{% endif %}">
+    {%- if section.settings.subheading != blank or section.settings.title != blank or section.settings.content != blank or section.settings.button_text != blank -%}
+      <div class="section-stack__intro">
+        <div class="prose {% if text_position == 'center' %}text-center{% endif %}">
+          {%- if section.settings.subheading != blank -%}
+            <p class="subheading">{{ section.settings.subheading | escape }}</p>
+          {%- endif -%}
+
+          {%- if section.settings.title != blank -%}
+            <h2 class="h2">
+              {%- render 'styled-text', content: section.settings.title, text_color: section.settings.heading_color, gradient: section.settings.heading_gradient -%}
+            </h2>
+          {%- endif -%}
+
+          {{- section.settings.content -}}
+
+          {%- if section.settings.button_text != blank -%}
+            {%- render 'button', size: 'lg', href: section.settings.button_url, content: section.settings.button_text, background: section.settings.button_background, text_color: section.settings.button_text_color -%}
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endif -%}
+
+    <div class="section-stack__main">
+      {%- assign text_color = section.settings.chart_text_color | default: settings.text_color -%}
+      {%- assign background_color = section.settings.chart_background -%}
+
+      {%- if background_color == blank or background_color == 'rgba(0,0,0,0)' -%}
+        {%- assign background_color = settings.background | color_mix: text_color, 95 -%}
+      {%- endif -%}
+
+      <feature-chart max-rows="{{ section.settings.max_rows }}" {% render 'surface', class: 'feature-chart', background: background_color, text_color: text_color %}>
+        <div class="feature-chart__table divide-y scroll-area">
+          {%- assign outputted_count = 0 -%}
+
+          {%- for block in section.blocks -%}
+            {%- if block.settings.value == blank -%}
+              {%- continue -%}
+            {%- endif -%}
+
+            {%- assign outputted_count = outputted_count | plus: 1 -%}
+
+            <div class="feature-chart__table-row" {% if outputted_count > section.settings.max_rows %}hidden{% endif %} {{ block.shopify_attributes }}>
+              {%- if block.settings.heading != blank -%}
+                <div class="feature-chart__heading bold">{{ block.settings.heading }}</div>
+              {%- endif -%}
+
+              {%- assign stripped_value = block.settings.value | strip_html | strip -%}
+
+              <div class="feature-chart__value prose text-subdued">
+                {%- if stripped_value == 'FALSE' -%}
+                  <svg fill="none" class="icon offset-icon" width="16" height="16" viewBox="0 0 16 16" style="--icon-height: 16px">
+                    <path d="m.94 3.06 12 12 2.12-2.12-12-12L.94 3.06Zm2.12 12 12-12L12.94.94l-12 12 2.12 2.12Z" fill="{{ section.settings.chart_true_false_color | default: section.settings.chart_text_color | default: settings.text_color }}"></path>
+                  </svg>
+                {%- elsif stripped_value == 'TRUE' -%}
+                  <svg fill="none" class="icon offset-icon" width="20" height="16" viewBox="0 0 20 16" style="--icon-height: 16px">
+                    <path d="m2 7.6 5.259 5.6L18 2" stroke="{{ section.settings.chart_true_false_color | default: section.settings.chart_text_color | default: settings.text_color }}" stroke-width="3"></path>
+                  </svg>
+                {%- else -%}
+                  {{- block.settings.value -}}
+                {%- endif -%}
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+
+        {%- if outputted_count > section.settings.max_rows -%}
+          <div class="feature-chart__toggle">
+            <button data-action="toggle-rows" data-view-more="{{ section.settings.view_all_text | escape }}" data-view-less="{{ section.settings.view_less_text | escape }}" class="text-with-icon group">
+              <span class="feature-chart__toggle-text reversed-link">{{- section.settings.view_all_text | escape -}}</span>
+              <span class="circle-chevron group-hover:colors">{%- render 'icon' with 'chevron-bottom-small' -%}</span>
+            </button>
+          </div>
+        {%- endif -%}
+      </feature-chart>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Specification table",
+  "class": "shopify-section--specification-table",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Full width",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Learn more"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Heading",
+      "default": "Product specification"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "Content",
+      "default": "<p>Showcase specifications about a product to help your customers making an informed decision about their purchase.</p>"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Button URL"
+    },
+    {
+      "type": "select",
+      "id": "text_position",
+      "label": "Text position",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "start"
+    },
+    {
+      "type": "header",
+      "content": "Table presentation"
+    },
+    {
+      "type": "range",
+      "id": "max_rows",
+      "min": 1,
+      "max": 100,
+      "label": "Rows revealed by default",
+      "default": 5
+    },
+    {
+      "type": "text",
+      "id": "view_all_text",
+      "label": "View all text",
+      "default": "View all"
+    },
+    {
+      "type": "text",
+      "id": "view_less_text",
+      "label": "View less text",
+      "default": "View less"
+    },
+    {
+      "type": "header",
+      "content": "Colors",
+      "info": "Gradient replaces solid colors when set."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Background"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Background gradient"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color"
+    },
+    {
+      "type": "color_background",
+      "id": "heading_gradient",
+      "label": "Heading gradient"
+    },
+    {
+      "type": "color",
+      "id": "button_background",
+      "label": "Button background"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text"
+    },
+    {
+      "type": "color",
+      "id": "chart_background",
+      "label": "Chart background"
+    },
+    {
+      "type": "color",
+      "id": "chart_text_color",
+      "label": "Chart text"
+    },
+    {
+      "type": "color",
+      "id": "chart_true_false_color",
+      "label": "True/false color"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "Row",
+      "type": "row",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Row without value are automatically hidden."
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Heading"
+        },
+        {
+          "type": "richtext",
+          "id": "value",
+          "label": "Value",
+          "default": "<p>Value</p>"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Specification table",
+      "category": "Content",
+      "blocks": [
+        {
+          "type": "row",
+          "settings": {
+            "heading": "Heading 1",
+            "value": "<p>Value 1</p>"
+          }
+        },
+        {
+          "type": "row",
+          "settings": {
+            "heading": "Heading 2",
+            "value": "<p>Value 2</p>"
+          }
+        },
+        {
+          "type": "row",
+          "settings": {
+            "heading": "Heading 3",
+            "value": "<p>Value 3</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

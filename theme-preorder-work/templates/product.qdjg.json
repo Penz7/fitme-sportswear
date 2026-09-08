@@ -1,0 +1,484 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "vendor": {
+          "type": "vendor",
+          "settings": {}
+        },
+        "title": {
+          "type": "title",
+          "settings": {
+            "heading_tag": "h2"
+          }
+        },
+        "badges": {
+          "type": "badges",
+          "settings": {}
+        },
+        "judge_me_reviews_preview_badge_cw": {
+          "type": "shopify://apps/judge-me-reviews/blocks/preview_badge/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8",
+          "settings": {}
+        },
+        "price": {
+          "type": "price",
+          "settings": {
+            "show_taxes_notice": false
+          }
+        },
+        "payment_terms": {
+          "type": "payment_terms",
+          "settings": {}
+        },
+        "separator": {
+          "type": "separator",
+          "settings": {}
+        },
+        "efb0fc9f-395e-4547-bf99-ea74254aa238": {
+          "type": "product_variations",
+          "settings": {
+            "option_name": "Màu sắc",
+            "option_value_metafield": "custom.variation_value",
+            "products": "{{ product.metafields.custom.variation_product.value }}",
+            "selector_style": "swatch"
+          }
+        },
+        "981ca8f2-bd63-4169-bf90-0bab72d4f793": {
+          "type": "variant_picker",
+          "settings": {
+            "hide_sold_out_variants": false,
+            "stack_blocks": true,
+            "selector_style": "block",
+            "swatch_selector_style": "swatch",
+            "variant_image_options": "",
+            "size_chart_page": "bảng-size-quần-thể-thao-11"
+          }
+        },
+        "quantity_selector": {
+          "type": "quantity_selector",
+          "settings": {}
+        },
+        "inventory": {
+          "type": "inventory",
+          "disabled": true,
+          "settings": {
+            "low_inventory_threshold": 0
+          }
+        },
+        "buy_buttons": {
+          "type": "buy_buttons",
+          "settings": {
+            "show_payment_button": false,
+            "show_gift_card_recipient": true,
+            "atc_button_background": "",
+            "atc_button_text_color": "",
+            "payment_button_background": "",
+            "payment_button_text_color": ""
+          }
+        },
+        "d2656b4a-4700-422a-a9b4-87fd1ba0853e": {
+          "type": "image",
+          "settings": {
+            "image": "shopify://shop_images/badges_e0c63105-e816-46ce-969b-26fb118f2a7a.png",
+            "alignment": "start",
+            "max_width": 500
+          }
+        },
+        "d59febd3-132f-4a14-af33-d277393e4953": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Quần jogger thể thao là sự kết hợp hoàn hảo giữa thoải mái và phong cách. Có khả năng mix dễ dàng với nhiều phong cách trang phục khác nhau từ đến thể thao đến smart-casual .</p><p>Cho dù bạn đang tập luyện ở phòng gym, tham gia các hoạt động ngoài trời, hay chỉ muốn diện một bộ trang phục đơn giản, quần jogger thể thao sẽ làm bạn nổi bật với sự phong cách và thoải mái.</p>"
+          }
+        },
+        "9109fb43-01cf-4eab-96d7-d1d743313ce6": {
+          "type": "collapsible_text",
+          "settings": {
+            "icon": "none",
+            "icon_width": 20,
+            "title": "Mô tả sản phẩm",
+            "content": "",
+            "page": ""
+          }
+        },
+        "5c194ed6-2953-4658-ab8a-94756bf25b25": {
+          "type": "collapsible_text",
+          "settings": {
+            "icon": "none",
+            "icon_width": 20,
+            "title": "Chính sách vận chuyển và đổi trả",
+            "content": "<ul><li>Miễn phí vận chuyển cho đơn hàng từ 300.000 VNĐ</li><li>Hỗ trợ đổi trả hàng trong vòng 14 ngày với điều kiện đồ chưa vứt tag hoặc đã sử dụng</li></ul>",
+            "page": ""
+          }
+        },
+        "9f7e9310-d9b0-4bae-af01-ef439a17dd2e": {
+          "type": "collapsible_text",
+          "settings": {
+            "icon": "none",
+            "icon_width": 20,
+            "title": "Hướng dẫn sử dụng và bảo quản",
+            "content": "<ul><li> Nên giặt sản phẩm trước khi sử dụng. </li><li>Chỉ giặt tay và không nên chà mạnh bằng bàn chải có sợi cứng.</li><li>Không ủi sản phẩm ở nhiệt độ cao vì có thể làm hư hại chất liệu vải.</li><li>Không nên sử dụng chất giặt tẩy. </li><li>Không nên ngâm chung với trang phục ra bị màu. </li><li>Tránh phơi với ánh nắng trực tiếp.</li></ul>",
+            "page": ""
+          }
+        },
+        "10498563-8d61-4ccf-bb31-e468e87ccbbb": {
+          "type": "associated_products",
+          "settings": {
+            "title": "Có thể phối với",
+            "stack_products": true,
+            "products_count": 5,
+            "background": "",
+            "text_color": ""
+          }
+        }
+      },
+      "block_order": [
+        "vendor",
+        "title",
+        "badges",
+        "judge_me_reviews_preview_badge_cw",
+        "price",
+        "payment_terms",
+        "separator",
+        "efb0fc9f-395e-4547-bf99-ea74254aa238",
+        "981ca8f2-bd63-4169-bf90-0bab72d4f793",
+        "quantity_selector",
+        "inventory",
+        "buy_buttons",
+        "d2656b4a-4700-422a-a9b4-87fd1ba0853e",
+        "d59febd3-132f-4a14-af33-d277393e4953",
+        "9109fb43-01cf-4eab-96d7-d1d743313ce6",
+        "5c194ed6-2953-4658-ab8a-94756bf25b25",
+        "9f7e9310-d9b0-4bae-af01-ef439a17dd2e",
+        "10498563-8d61-4ccf-bb31-e468e87ccbbb"
+      ],
+      "settings": {
+        "full_width": true,
+        "show_fixed_add_to_cart": false,
+        "desktop_media_width": 50,
+        "desktop_media_layout": "carousel_thumbnails_left",
+        "mobile_media_size": "contained",
+        "mobile_carousel_control": "floating_dots",
+        "enable_video_autoplay": true,
+        "enable_video_looping": true,
+        "enable_image_zoom": true,
+        "max_image_zoom_level": 3,
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "input_background": "rgba(0,0,0,0)",
+        "input_text_color": ""
+      }
+    },
+    "12b35c17-ea59-4f54-a9ec-57f684ab8ca8": {
+      "type": "text-with-icons",
+      "blocks": {
+        "template--21279861342517__12b35c17-ea59-4f54-a9ec-57f684ab8ca8-item-1": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-coupon",
+            "custom_icon": "shopify://shop_images/360-view.png",
+            "mobile_icon_width": 24,
+            "icon_width": 44,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "",
+            "title": "Co giãn 360°",
+            "content": "<p>Chất vải ôm sát cơ thể, mang lại cho bạn sự thoải mái và tự do vận động</p>"
+          }
+        },
+        "template--21279861342517__12b35c17-ea59-4f54-a9ec-57f684ab8ca8-item-2": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-coupon",
+            "custom_icon": "shopify://shop_images/breathable.png",
+            "mobile_icon_width": 24,
+            "icon_width": 44,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "",
+            "title": "Thoáng khí",
+            "content": "<p>Mồ hôi thoát ra nhanh chóng thông qua sợi vải giúp các bạn luôn khô thoáng trong suốt quá trình tập luyện</p>"
+          }
+        },
+        "template--21279861342517__12b35c17-ea59-4f54-a9ec-57f684ab8ca8-item-3": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-coupon",
+            "custom_icon": "shopify://shop_images/bacteria.png",
+            "mobile_icon_width": 24,
+            "icon_width": 44,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "",
+            "title": "Kháng khuẩn",
+            "content": "<p>Vải được phủ 1 lớp kháng khuẩn cao cấp giúp ngăn ngừa mùi hôi trong và sau khi vận động</p>"
+          }
+        },
+        "58031069-e6f9-4fea-a3e1-64ab0028fad3": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-coupon",
+            "custom_icon": "shopify://shop_images/feather.png",
+            "mobile_icon_width": 24,
+            "icon_width": 44,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "",
+            "title": "Siêu mịn",
+            "content": "<p>Mang đến cho bạn cảm giác mềm mịn chưa từng có, mặc như chưa mặc</p>"
+          }
+        },
+        "db560b33-20a1-447f-8632-de2717379a8c": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-coupon",
+            "custom_icon": "shopify://shop_images/uv-protection.png",
+            "mobile_icon_width": 24,
+            "icon_width": 44,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "",
+            "title": "Chống tia UV",
+            "content": "<p>Ngăn cản các bức xạ từ ánh sáng mặt trời có hại cho da như tia UVA và UVB</p>"
+          }
+        }
+      },
+      "block_order": [
+        "template--21279861342517__12b35c17-ea59-4f54-a9ec-57f684ab8ca8-item-1",
+        "template--21279861342517__12b35c17-ea59-4f54-a9ec-57f684ab8ca8-item-2",
+        "template--21279861342517__12b35c17-ea59-4f54-a9ec-57f684ab8ca8-item-3",
+        "58031069-e6f9-4fea-a3e1-64ab0028fad3",
+        "db560b33-20a1-447f-8632-de2717379a8c"
+      ],
+      "settings": {
+        "full_width": true,
+        "stack_on_mobile": false,
+        "title": "",
+        "heading_tag": "h4",
+        "text_alignment": "center",
+        "icon_spacing": "small",
+        "background": "rgba(0,0,0,0)",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "4507000a-3862-478b-8376-ad2eb583ef38": {
+      "type": "media-with-text",
+      "blocks": {
+        "cf1c079a-c40b-485c-9483-8002527a9f39": {
+          "type": "video",
+          "settings": {
+            "video": "shopify://files/videos/qdzt.mov",
+            "external_video_url": "",
+            "autoplay": true,
+            "media_width": 45,
+            "media_position": "end",
+            "text_position": "place-self-center text-center",
+            "icon": "none",
+            "custom_icon": "shopify://shop_images/textile.png",
+            "icon_width": 60,
+            "subheading": "",
+            "title": "Chất liệu Nylon Spandex cao cấp",
+            "content": "<h4>Bề mặt vải mượt, mềm mịn và co giãn 4 chiều. Chất liệu dễ giặt, độ bền cao, giữ form tốt, không bị mất đi tính năng ban đầu và mang đến sự thoải mái cho người mặc.</h4>",
+            "link_text": "",
+            "link_url": "",
+            "background": "#ededed",
+            "background_gradient": "",
+            "text_color": "#000000",
+            "text_gradient": "",
+            "button_background": "",
+            "button_text_color": ""
+          }
+        }
+      },
+      "block_order": [
+        "cf1c079a-c40b-485c-9483-8002527a9f39"
+      ],
+      "disabled": true,
+      "custom_css": [
+        ".h2 {font-weight: bold; font-size: 22px;}"
+      ],
+      "settings": {
+        "full_width": false,
+        "alternate_media_position": false,
+        "spacing": "none"
+      }
+    },
+    "5571f5bd-b2ce-4c31-868f-5460beae39e3": {
+      "type": "rich-text",
+      "blocks": {
+        "template--21626422198581__5571f5bd-b2ce-4c31-868f-5460beae39e3-heading-1": {
+          "type": "heading",
+          "settings": {
+            "text": "Heading",
+            "heading_tag": "h1",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "4cbb66d4-25d7-4588-b6b5-fa016113acdc": {
+          "type": "image",
+          "settings": {
+            "image": "shopify://shop_images/DSC08823_edited.jpg",
+            "width_mode": "custom",
+            "max_width": 600,
+            "mobile_max_width": 400
+          }
+        },
+        "f948bb89-13a5-4949-9568-ef78eb418d1e": {
+          "type": "divider",
+          "settings": {}
+        },
+        "template--21626422198581__5571f5bd-b2ce-4c31-868f-5460beae39e3-subheading-1": {
+          "type": "subheading",
+          "settings": {
+            "text": "Subheading"
+          }
+        },
+        "template--21626422198581__5571f5bd-b2ce-4c31-868f-5460beae39e3-richtext-1": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Use this text to share information about your brand with your customers. Describe a product, share announcements, or welcome customers to your store.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "template--21626422198581__5571f5bd-b2ce-4c31-868f-5460beae39e3-heading-1",
+        "4cbb66d4-25d7-4588-b6b5-fa016113acdc",
+        "f948bb89-13a5-4949-9568-ef78eb418d1e",
+        "template--21626422198581__5571f5bd-b2ce-4c31-868f-5460beae39e3-subheading-1",
+        "template--21626422198581__5571f5bd-b2ce-4c31-868f-5460beae39e3-richtext-1"
+      ],
+      "disabled": true,
+      "settings": {
+        "full_width": false,
+        "content_width": "small",
+        "text_position": "center",
+        "background": "#ededed",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "02d1a40b-106a-49b7-b66a-101a73a33f48": {
+      "type": "rich-text",
+      "blocks": {
+        "template--21626422198581__02d1a40b-106a-49b7-b66a-101a73a33f48-heading-1": {
+          "type": "heading",
+          "settings": {
+            "text": "Heading",
+            "heading_tag": "h1",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "9dcc66ea-6459-4818-8eb3-2dfc9936d3a1": {
+          "type": "image",
+          "settings": {
+            "image": "shopify://shop_images/theta_qu_n_dai_den_3.jpg",
+            "width_mode": "custom",
+            "max_width": 600,
+            "mobile_max_width": 400
+          }
+        },
+        "192656f6-5e3c-4170-8348-35e486729bc9": {
+          "type": "divider",
+          "settings": {}
+        },
+        "template--21626422198581__02d1a40b-106a-49b7-b66a-101a73a33f48-subheading-1": {
+          "type": "subheading",
+          "settings": {
+            "text": "Subheading"
+          }
+        },
+        "template--21626422198581__02d1a40b-106a-49b7-b66a-101a73a33f48-richtext-1": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Use this text to share information about your brand with your customers. Describe a product, share announcements, or welcome customers to your store.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "template--21626422198581__02d1a40b-106a-49b7-b66a-101a73a33f48-heading-1",
+        "9dcc66ea-6459-4818-8eb3-2dfc9936d3a1",
+        "192656f6-5e3c-4170-8348-35e486729bc9",
+        "template--21626422198581__02d1a40b-106a-49b7-b66a-101a73a33f48-subheading-1",
+        "template--21626422198581__02d1a40b-106a-49b7-b66a-101a73a33f48-richtext-1"
+      ],
+      "disabled": true,
+      "settings": {
+        "full_width": false,
+        "content_width": "small",
+        "text_position": "center",
+        "background": "#fafafa",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "related-products": {
+      "type": "related-products",
+      "settings": {
+        "recommendations_count": 4,
+        "products": [],
+        "full_width": true,
+        "stack_products": true,
+        "show_progress_bar": false,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "subheading": "",
+        "title": "Có thể bạn sẽ thích",
+        "content": "",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": ""
+      }
+    },
+    "judgeme_reviews_widget_cw": {
+      "type": "apps",
+      "blocks": {
+        "judge_me_reviews_review_widget_cw": {
+          "type": "shopify://apps/judge-me-reviews/blocks/review_widget/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8",
+          "settings": {
+            "review_data": "sample_data",
+            "max_width": 1200,
+            "show_shop_reviews": false,
+            "empty_state": "empty_widget"
+          }
+        }
+      },
+      "block_order": [
+        "judge_me_reviews_review_widget_cw"
+      ],
+      "settings": {
+        "full_width": true,
+        "remove_vertical_spacing": false,
+        "remove_horizontal_spacing": false,
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    }
+  },
+  "order": [
+    "main",
+    "12b35c17-ea59-4f54-a9ec-57f684ab8ca8",
+    "4507000a-3862-478b-8376-ad2eb583ef38",
+    "5571f5bd-b2ce-4c31-868f-5460beae39e3",
+    "02d1a40b-106a-49b7-b66a-101a73a33f48",
+    "related-products",
+    "judgeme_reviews_widget_cw"
+  ]
+}

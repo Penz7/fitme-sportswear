@@ -1,0 +1,402 @@
+{% comment %}
+  ================================================================================================
+  SECTION NÂNG CAO - GOOGLE MAP (CUSTOM WITH BLOCKS & CUSTOM RATIO)
+  Bao gồm các tùy chỉnh:
+  - Chia làm 2 block độc lập: Nội dung chữ & Bản đồ Google
+  - Cho phép tùy chỉnh tỷ lệ chiều rộng của mỗi cột trên Desktop (20% - 80%)
+  - Tùy chỉnh màu sắc, kích cỡ, căn lề
+  - Tự động responsive và tối ưu hóa lazy load
+  ================================================================================================
+{% endcomment %}
+
+<style>
+  /* Section background & spacing */
+  #shopify-section-{{ section.id }} {
+    background-color: {{ section.settings.section_bg }};
+    padding-top: {{ section.settings.section_padding_top }}px;
+    padding-bottom: {{ section.settings.section_padding_bottom }}px;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .section-{{ section.id }}-padding .map-container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-{{ section.id }}-padding .map-container > * {
+    width: 100%;
+  }
+
+  /* Style cho block Content */
+  {%- for block in section.blocks -%}
+    {%- if block.type == 'content' -%}
+      .block-{{ block.id }} {
+        text-align: {{ block.settings.text_alignment }};
+        padding-left: {{ block.settings.text_padding_x }}px;
+        padding-right: {{ block.settings.text_padding_x }}px;
+        margin-bottom: 30px;
+      }
+      .block-{{ block.id }}-title {
+        color: {{ block.settings.title_color }};
+        font-size: {{ block.settings.title_size }}px;
+        margin: 0;
+        line-height: 1.2;
+      }
+      .block-{{ block.id }}-subheading {
+        color: {{ block.settings.subheading_color }};
+        font-size: {{ block.settings.subheading_size }}px;
+        margin-top: 10px;
+        margin-bottom: 0;
+        font-weight: 500;
+      }
+      .block-{{ block.id }}-paragraph {
+        color: {{ block.settings.paragraph_color }};
+        font-size: {{ block.settings.paragraph_size }}px;
+        margin-top: 10px;
+      }
+      .block-{{ block.id }}-paragraph p {
+        color: inherit;
+        font-size: inherit;
+        margin: 0;
+      }
+    {%- endif -%}
+
+    {%- if block.type == 'map' -%}
+      .block-{{ block.id }}-map {
+        overflow: hidden;
+        position: relative;
+        height: 0;
+        padding-bottom: {{ block.settings.desktop_map_ratio }}%;
+        border-radius: {{ block.settings.map_border_radius }}px;
+      }
+      .block-{{ block.id }}-map iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+    {%- endif -%}
+  {%- endfor -%}
+
+  /* Desktop (Màn hình máy tính) */
+  @media screen and (min-width: 750px) {
+    {%- assign block_count = section.blocks.size -%}
+    {%- if block_count > 1 -%}
+      .section-{{ section.id }}-padding .map-container {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 50px;
+      }
+      {%- for block in section.blocks -%}
+        .block-{{ block.id }} {
+          flex: 0 0 calc({{ block.settings.column_width }}% - 25px);
+          width: calc({{ block.settings.column_width }}% - 25px) !important;
+          margin-bottom: 0;
+        }
+      {%- endfor -%}
+    {%- else -%}
+      .section-{{ section.id }}-padding .map-container {
+        display: block;
+      }
+      {%- for block in section.blocks -%}
+        .block-{{ block.id }} {
+          width: 100% !important;
+          margin-bottom: 0;
+        }
+      {%- endfor -%}
+    {%- endif -%}
+  }
+
+  /* Mobile (Điện thoại) */
+  @media screen and (max-width: 749px) {
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'content' -%}
+        .block-{{ block.id }}-title {
+          font-size: {{ block.settings.title_size | times: 0.8 | round: 0 }}px;
+        }
+        .block-{{ block.id }}-subheading {
+          font-size: {{ block.settings.subheading_size | times: 0.9 | round: 0 }}px;
+        }
+      {%- endif -%}
+      {%- if block.type == 'map' -%}
+        .block-{{ block.id }}-map {
+          padding-bottom: {{ block.settings.mobile_map_ratio }}%;
+        }
+      {%- endif -%}
+    {%- endfor -%}
+  }
+</style>
+
+<div class="page-width section-{{ section.id }}-padding">
+  <div class="map-container">
+
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+        
+        {%- when 'content' -%}
+          <div class="map-text-wrapper block-{{ block.id }}" {{ block.shopify_attributes }}>
+            {% if block.settings.map_title != blank %}
+              <h2 class="map-title block-{{ block.id }}-title">
+                {{ block.settings.map_title | escape }}
+              </h2>
+            {% endif %}
+
+            {% if block.settings.subheading != blank %}
+              <h3 class="map-subheading block-{{ block.id }}-subheading">
+                {{ block.settings.subheading | escape }}
+              </h3>
+            {% endif %}
+
+            {% if block.settings.paragraph != blank %}
+              <div class="map-paragraph block-{{ block.id }}-paragraph rte">
+                {{ block.settings.paragraph }}
+              </div>
+            {% endif %}
+          </div>
+
+        {%- when 'map' -%}
+          <div class="map-responsive-wrapper block-{{ block.id }}" {{ block.shopify_attributes }}>
+            {% if block.settings.map_embed_code != blank %}
+              <div class="map-responsive block-{{ block.id }}-map" id="map-wrap-{{ block.id }}">
+                {{ block.settings.map_embed_code }}
+              </div>
+              <script>
+                // Add lazy loading to map iframe
+                (function() {
+                  var wrap = document.getElementById('map-wrap-{{ block.id }}');
+                  if (wrap) {
+                    var iframe = wrap.querySelector('iframe');
+                    if (iframe) iframe.setAttribute('loading', 'lazy');
+                  }
+                })();
+              </script>
+            {% else %}
+              <div style="text-align: center; border: 1px dashed #ccc; padding: 50px; flex: 1; width: 100%;">
+                <p>Vui lòng dán Mã nhúng Google Map vào đây.</p>
+              </div>
+            {% endif %}
+          </div>
+
+      {%- endcase -%}
+    {%- endfor -%}
+
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "⭐ Google Map Pro",
+  "max_blocks": 2,
+  "settings": [
+    {
+      "type": "header",
+      "content": "🎨 Nền & Spacing"
+    },
+    {
+      "type": "color",
+      "id": "section_bg",
+      "label": "Màu nền Section",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Khoảng cách trên (Margin Top)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Khoảng cách dưới (Margin Bottom)",
+      "default": 0
+    }
+  ],
+  "blocks": [
+    {
+      "type": "content",
+      "name": "Nội dung chữ",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "map_title",
+          "label": "Tiêu đề",
+          "default": "Vị trí cửa hàng Fitme"
+        },
+        {
+          "type": "color",
+          "id": "title_color",
+          "label": "Màu chữ Tiêu đề",
+          "default": "#111111"
+        },
+        {
+          "type": "range",
+          "id": "title_size",
+          "label": "Cỡ chữ Tiêu đề (Desktop)",
+          "min": 20,
+          "max": 60,
+          "step": 1,
+          "unit": "px",
+          "default": 30
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Tiêu đề phụ (Subheading)",
+          "default": "Ghé thăm showroom đầu tiên của Fitme tại :"
+        },
+        {
+          "type": "color",
+          "id": "subheading_color",
+          "label": "Màu chữ Tiêu đề phụ",
+          "default": "#333333"
+        },
+        {
+          "type": "range",
+          "id": "subheading_size",
+          "label": "Cỡ chữ Tiêu đề phụ",
+          "min": 12,
+          "max": 30,
+          "step": 1,
+          "unit": "px",
+          "default": 17
+        },
+        {
+          "type": "richtext",
+          "id": "paragraph",
+          "label": "Đoạn văn (Paragraph)",
+          "default": "<p>Mô tả địa chỉ, số điện thoại hoặc giờ mở cửa của bạn ở đây.</p>"
+        },
+        {
+          "type": "color",
+          "id": "paragraph_color",
+          "label": "Màu chữ Đoạn văn",
+          "default": "#555555"
+        },
+        {
+          "type": "range",
+          "id": "paragraph_size",
+          "label": "Cỡ chữ Đoạn văn",
+          "min": 12,
+          "max": 24,
+          "step": 1,
+          "unit": "px",
+          "default": 16
+        },
+        {
+          "type": "select",
+          "id": "text_alignment",
+          "label": "Căn lề văn bản",
+          "options": [
+            { "value": "left", "label": "Trái" },
+            { "value": "center", "label": "Giữa" },
+            { "value": "right", "label": "Phải" }
+          ],
+          "default": "left"
+        },
+        {
+          "type": "range",
+          "id": "text_padding_x",
+          "min": 0,
+          "max": 60,
+          "step": 5,
+          "unit": "px",
+          "label": "Text padding trái/phải",
+          "info": "Khoảng cách văn bản so với viền cột",
+          "default": 15
+        },
+        {
+          "type": "range",
+          "id": "column_width",
+          "label": "Chiều rộng cột (Desktop)",
+          "min": 20,
+          "max": 80,
+          "step": 5,
+          "unit": "%",
+          "default": 50
+        }
+      ]
+    },
+    {
+      "type": "map",
+      "name": "Bản đồ Google",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "map_embed_code",
+          "label": "Mã nhúng Google Map (iframe)",
+          "info": "Dán mã <iframe> từ Google Maps vào đây. Code sẽ tự động responsive."
+        },
+        {
+          "type": "range",
+          "id": "map_border_radius",
+          "label": "Bo góc bản đồ",
+          "min": 0,
+          "max": 30,
+          "step": 2,
+          "unit": "px",
+          "default": 8
+        },
+        {
+          "type": "range",
+          "id": "desktop_map_ratio",
+          "label": "Tỷ lệ cao/rộng (Desktop)",
+          "min": 30,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 56,
+          "info": "56% = 16:9 (ngang). 75% = 4:3. 100% = 1:1 (vuông)."
+        },
+        {
+          "type": "range",
+          "id": "mobile_map_ratio",
+          "label": "Tỷ lệ cao/rộng (Mobile)",
+          "min": 50,
+          "max": 150,
+          "step": 1,
+          "unit": "%",
+          "default": 100,
+          "info": "100% = 1:1 (vuông). 133% = 3:4 (dọc)."
+        },
+        {
+          "type": "range",
+          "id": "column_width",
+          "label": "Chiều rộng cột (Desktop)",
+          "min": 20,
+          "max": 80,
+          "step": 5,
+          "unit": "%",
+          "default": 50
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "⭐ Google Map Pro",
+      "blocks": [
+        {
+          "type": "content"
+        },
+        {
+          "type": "map"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

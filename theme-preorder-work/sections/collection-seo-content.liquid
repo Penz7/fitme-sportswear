@@ -1,0 +1,39 @@
+{%- comment -%} Collection SEO/AIO content block — renders the collection description below the product grid. Added by Cowork. {%- endcomment -%}
+{%- if collection.description != blank -%}
+  <section class="collection-seo-content">
+    <div class="container">
+      <div class="collection-seo-content__inner">
+        {{ collection.description }}
+      </div>
+    </div>
+  </section>
+  <style>
+    .collection-seo-content{margin:3rem 0 2rem}
+    .collection-seo-content__inner{max-width:860px;margin:0 auto;padding-top:2rem;border-top:1px solid rgba(0,0,0,.08)}
+    .collection-seo-content__inner h2{font-size:1.5rem;line-height:1.3;margin:2rem 0 1rem;color:#1a1a1a}
+    .collection-seo-content__inner h3{font-size:1.2rem;line-height:1.35;margin:1.5rem 0 .8rem;color:#222222}
+    .collection-seo-content__inner p,.collection-seo-content__inner li{line-height:1.8;color:#444444}
+    .collection-seo-content__inner p{margin:.8rem 0}
+    .collection-seo-content__inner ul{padding-left:1.5rem;margin:.8rem 0}
+    .collection-seo-content__inner li{margin:.4rem 0}
+    .collection-seo-content__inner table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.95rem;border:1px solid rgba(0,0,0,.08)}
+    .collection-seo-content__inner th,.collection-seo-content__inner td{border:1px solid rgba(0,0,0,.08);padding:12px 16px;text-align:left;vertical-align:middle}
+    .collection-seo-content__inner th{background:rgba(0,0,0,.03);font-weight:600;color:#1a1a1a}
+    .collection-seo-content__inner tr:nth-child(even) td{background:rgba(0,0,0,.01)}
+    .collection-seo-content__inner th:first-child, .collection-seo-content__inner td:first-child{padding-left:16px !important}
+    .collection-seo-content__inner th:last-child, .collection-seo-content__inner td:last-child{padding-right:16px !important}
+    .collection-seo-content__inner a{text-decoration:underline;color:inherit}
+  </style>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Collection SEO content",
+  "tag": "section",
+  "class": "shopify-section--collection-seo-content",
+  "settings": [
+    { "type": "paragraph", "content": "Hiển thị Mô tả của collection (buying-guide) bên dưới lưới sản phẩm. Sửa nội dung ở phần Mô tả của từng collection." }
+  ],
+  "presets": [ { "name": "Collection SEO content" } ]
+}
+{% endschema %}

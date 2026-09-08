@@ -1,0 +1,129 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": true,
+        "show_collection_title": false,
+        "show_collection_description": false,
+        "show_collection_image": true,
+        "collection_title_size": "h4",
+        "image_size": "auto",
+        "image": "shopify://shop_images/b3_1ce609fd-2cef-47ff-b107-1d515f8d9004.webp",
+        "mobile_image": "shopify://shop_images/b3-2_b8e90fd3-3de6-4088-92d7-d0b6b9fdd78e.webp",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_g6WiDQ": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_mLCgUU": {
+          "type": "heading",
+          "settings": {
+            "text": "ÁO THUN TAY NGẮN",
+            "heading_tag": "h2",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_XBNr8d": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Tối giản, tinh tế và cực kỳ dễ mặc – áo thun nữ Fitme được thiết kế để đồng hành cùng bạn trong mọi khoảnh khắc. Từ chất liệu co giãn mềm mại, thoáng khí đến form dáng vừa vặn, tôn dáng tự nhiên, mỗi chiếc áo là sự kết hợp giữa sự thoải mái và phong cách. Dù là luyện tập, đi làm hay dạo phố, áo thun Fitme luôn mang đến cảm giác dễ chịu và vẻ ngoài hiện đại.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_mLCgUU",
+        "richtext_XBNr8d"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "small",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "blocks": {
+        "promotion_video_8MHTck": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 12,
+            "column_span": "1",
+            "video": "shopify://files/videos/3772494.mp4",
+            "external_video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+            "title": "",
+            "content": "",
+            "link_url": "shopify://products/ao-the-thao-acnb01-den-co-gian-4-chieu",
+            "link_text": "Nhấn để xem thêm",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 0
+          }
+        },
+        "promotion_video_nbVnby": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 27,
+            "column_span": "1",
+            "video": "shopify://files/videos/raglan cut.mov",
+            "external_video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+            "title": "",
+            "content": "",
+            "link_url": "shopify://products/ao-raglan-croptop-cotton-atnrl-cream-den",
+            "link_text": "Nhấn để xem thêm",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 0
+          }
+        }
+      },
+      "block_order": [
+        "promotion_video_8MHTck",
+        "promotion_video_nbVnby"
+      ],
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "seo_content": {
+      "type": "collection-seo-content",
+      "settings": {}
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_g6WiDQ",
+    "main",
+    "seo_content"
+  ]
+}

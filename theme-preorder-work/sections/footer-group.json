@@ -1,0 +1,96 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "type": "footer",
+  "name": "Footer group",
+  "sections": {
+    "footer": {
+      "type": "footer",
+      "blocks": {
+        "links": {
+          "type": "links",
+          "settings": {
+            "menu": "footer",
+            "show_menu_title": true,
+            "menu_title": ""
+          }
+        },
+        "7120f8ae-b9a5-4c52-8346-4e526a8672a8": {
+          "type": "links",
+          "settings": {
+            "menu": "customer-service",
+            "show_menu_title": true,
+            "menu_title": ""
+          }
+        },
+        "links_3qKRMN": {
+          "type": "links",
+          "settings": {
+            "menu": "cong-dong",
+            "show_menu_title": true,
+            "menu_title": ""
+          }
+        },
+        "links_6MCaqd": {
+          "type": "links",
+          "settings": {
+            "menu": "h-th-ng-c-a-h-ng",
+            "show_menu_title": true,
+            "menu_title": "Cửa hàng"
+          }
+        }
+      },
+      "block_order": [
+        "links",
+        "7120f8ae-b9a5-4c52-8346-4e526a8672a8",
+        "links_3qKRMN",
+        "links_6MCaqd"
+      ],
+      "custom_css": [],
+      "settings": {
+        "show_social_media": true,
+        "show_payment_icons": true,
+        "show_powered_by_shopify": true,
+        "show_policy_links": false,
+        "show_country_selector": false,
+        "show_country_flag": true,
+        "show_country_name": true,
+        "show_locale_selector": false
+      }
+    },
+    "rich_text_qRTLhn": {
+      "type": "rich-text",
+      "blocks": {
+        "richtext_fckgDF": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>CÔNG TY TNHH SẢN XUẤT MAY MẶC HAVA</p><p>Mã số doanh nghiệp: 0316466365<br/>Giấy chứng nhận đăng ký doanh nghiệp do <strong>Sở Kế hoạch và Đầu tư TP</strong>.<strong>HCM</strong> cấp lần đầu ngày 2020-09-01.<br/><br/></p>"
+          }
+        }
+      },
+      "block_order": [
+        "richtext_fckgDF"
+      ],
+      "name": "Rich text",
+      "settings": {
+        "full_width": true,
+        "content_width": "small",
+        "text_position": "start",
+        "background": "#000000",
+        "background_gradient": "",
+        "text_color": "#ffffff"
+      }
+    }
+  },
+  "order": [
+    "footer",
+    "rich_text_qRTLhn"
+  ]
+}

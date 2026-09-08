@@ -1,0 +1,29 @@
+
+{% if settings.popup_upsell and product.metafields.custom.popup_upsell_heading != blank and product.metafields.custom.popup_upsell_description != blank %}
+  <modal-dialog id="popup-upsell" class="hidden fixed w-full h-full bg-black bg-opacity-20 top-0 left-0 z-19">
+    <div class="scroll-thin p-4 lg:p-10 rounded-xl shadow-popup max-w-[calc(100vw_-_32px)] max-h-[calc(100vh_-_32px)]  w-[620px] overflow-auto bg-background absolute top-1/2 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
+      {% if product.metafields.custom.popup_upsell_heading %}
+        <div class="popup-heading font-bold color-sale">{{ product.metafields.custom.popup_upsell_heading }}      
+          <span class="close">
+            {% render 'icon-close', class: 'w-6 h-6' %}
+          </span>
+        </div>
+      {% else %}
+        <span class="text-grey-700 shadow-megamenu cursor-pointer bg-background w-6 h-6 flex items-center justify-center rounded-full absolute top-3 right-3 lg:top-2 lg:right-2 close">
+          {% render 'icon-close', class: 'w-6 h-6' %}
+        </span>
+      {% endif %}
+      <div class="popup-content">
+        {% if product.metafields.custom.popup_upsell_description %}
+          <span class="font-bold color-sale">{{ product.metafields.custom.popup_upsell_description }}</span>
+        {% endif %}
+      </div>
+      <div class="popup-footer">
+        <button type="button" class="close w-full text-center">Cancel</button>
+      </div>
+    </div>
+  </modal-dialog>
+{% endif %}
+{% if settings.popup_recommend %}
+
+{% endif %}

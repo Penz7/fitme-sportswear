@@ -5,7 +5,11 @@ import { ShopifyClient } from '../shopify/shopify.client';
 @Injectable()
 export class ShopifyWebhookStartupService implements OnApplicationBootstrap {
   private readonly logger = new Logger(ShopifyWebhookStartupService.name);
-  private readonly topics = ['orders/create', 'orders/cancelled'];
+  private readonly topics = [
+    'orders/create',
+    'orders/updated',
+    'orders/cancelled',
+  ];
 
   constructor(
     private readonly configService: ConfigService,

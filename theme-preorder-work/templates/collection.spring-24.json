@@ -1,0 +1,125 @@
+{
+  "sections": {
+    "rich_text_BF7qGM": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_Vgpgqn": {
+          "type": "heading",
+          "settings": {
+            "text": "FLOW COLLECTION",
+            "heading_tag": "h3",
+            "text_color": "",
+            "gradient": ""
+          }
+        }
+      },
+      "block_order": [
+        "heading_Vgpgqn"
+      ],
+      "disabled": true,
+      "custom_css": [
+        ".h1 {font-weight: bold;}"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "small",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "video_3FraWa": {
+      "type": "video",
+      "blocks": {
+        "play_cGMfq7": {
+          "type": "play",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "play_cGMfq7"
+      ],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "autoplay": true,
+        "video_size": "md",
+        "video": "shopify://files/videos/CLIP-LAUNCHING-WEBSITE.mov",
+        "external_video_url": "",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_n89Cm9": {
+      "type": "rich-text",
+      "blocks": {
+        "richtext_cTYH37": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Để mọi động tác trở nên nhẹ nhàng thoải mái, đúng định quyến và đầy tận hương, cuộc sống trở nên trọn vẹn, 𝑭𝑳𝑶𝑾 là BST tiên phong của FITME trong việc sử dụng chất vải <a href=\"/collections/vai-buttery\" title=\"Vải buttery\">𝐁𝐔𝐓𝐓𝐄𝐑𝐘™</a> tạo nên một tiêu chuẩn mới cho các sản phẩm đồ tập yoga, chắc chắn là đồ tập yoga khi mặc lên người là một sự tận hưởng, nói không khó chịu và những gò bó <br/></p>"
+          }
+        }
+      },
+      "block_order": [
+        "richtext_cTYH37"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h4",
+        "image_size": "auto",
+        "mobile_image": "shopify://shop_images/2.jpg",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    }
+  },
+  "order": [
+    "rich_text_BF7qGM",
+    "video_3FraWa",
+    "rich_text_n89Cm9",
+    "main",
+    "banner"
+  ]
+}

@@ -1,0 +1,57 @@
+{%- if block.settings.text != blank -%}
+  {%- assign text_alignment = block.settings.text_alignment | replace: 'left', 'start' | replace: 'right', 'end' -%}
+
+  <div class="rich-text justify-{{ text_alignment }}">
+    <div class="rich-text__wrapper" style="--rich-text-max-width: {% if block.settings.content_width == 'small' %}650px{% elsif block.settings.content_width == 'medium' %}780px{% else %}100%{% endif %}" {{ block.shopify_attributes }}>
+      <div class="prose justify-items-{{ text_alignment }} text-{{ text_alignment }}">
+        {{- block.settings.text -}}
+      </div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Rich text",
+  "tag": null,
+  "settings": [
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Content",
+      "default": "<p>Write some text about your products or your brand.</p>"
+    },
+    {
+      "type": "select",
+      "id": "content_width",
+      "label": "Content width",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "text_alignment",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "default": "center"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Rich text"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,553 @@
+{%- comment -%}
+  announcement-bar-body.liquid
+  Custom Announcement Bar — placeable anywhere in body
+  Modes: Static Auto-Rotate (slide-up/fade) | Marquee Ticker
+  Performance: CSS-only animations, GPU composited, minimal DOM
+{%- endcomment -%}
+
+{%- assign sid = section.id -%}
+{%- assign mode = section.settings.mode -%}
+{%- assign msg_blocks = section.blocks | where: 'type', 'message' -%}
+{%- assign msg_count = msg_blocks.size -%}
+
+{%- comment -%} Skip render if no messages {%- endcomment -%}
+{%- if msg_count == 0 -%}{%- break -%}{%- endif -%}
+
+{%- comment -%} Gradient background logic {%- endcomment -%}
+{%- assign has_gradient = false -%}
+{%- if section.settings.gradient_color != blank and section.settings.gradient_color != section.settings.bg_color -%}
+  {%- assign has_gradient = true -%}
+{%- endif -%}
+
+<section class="abbar abbar-{{ sid }}"
+         id="abbar-{{ sid }}"
+         style="--ab-bg: {{ section.settings.bg_color }};
+                {%- if has_gradient -%}
+                --ab-bg2: {{ section.settings.gradient_color }};
+                --ab-grad-dir: {{ section.settings.gradient_direction }};
+                {%- endif -%}
+                --ab-text: {{ section.settings.text_color }};
+                --ab-link: {{ section.settings.link_color }};
+                --ab-link-hover: {{ section.settings.link_hover_color }};
+                --ab-height: {{ section.settings.bar_height }}px;
+                --ab-font-size: {{ section.settings.font_size }}px;
+                --ab-radius: {{ section.settings.border_radius }}px;"
+         role="complementary"
+         aria-label="Announcement">
+
+  {%- comment -%} ======== MODE 1: STATIC AUTO-ROTATE ======== {%- endcomment -%}
+  {%- if mode == 'static' -%}
+
+    <div class="abbar__rotator" data-rotate-speed="{{ section.settings.rotate_speed }}">
+      {%- for block in msg_blocks -%}
+        <div class="abbar__msg {%- if forloop.first %} abbar__msg--active{%- endif %}"
+             {{ block.shopify_attributes }}>
+          <span class="abbar__text">
+            {%- if block.settings.icon != blank -%}
+              <span class="abbar__icon" aria-hidden="true">{{ block.settings.icon }}</span>
+            {%- endif -%}
+            {{ block.settings.text | escape }}
+          </span>
+          {%- if block.settings.link != blank and block.settings.link_label != blank -%}
+            <a class="abbar__link" href="{{ block.settings.link }}">
+              {{ block.settings.link_label | escape }}
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+
+    {%- if section.settings.show_close -%}
+      <button class="abbar__close" id="abbar-close-{{ sid }}" aria-label="Close announcement">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round"/>
+        </svg>
+      </button>
+    {%- endif -%}
+
+  {%- comment -%} ======== MODE 2: MARQUEE TICKER ======== {%- endcomment -%}
+  {%- else -%}
+
+    <div class="abbar__marquee {%- if section.settings.pause_hover %} abbar__marquee--pausable{%- endif -%}"
+         style="--ab-speed: {{ section.settings.marquee_speed }}s;">
+      {%- comment -%} Tape 1 (original) {%- endcomment -%}
+      <div class="abbar__tape" aria-hidden="false">
+        {%- for block in msg_blocks -%}
+          <span class="abbar__tape-item" {{ block.shopify_attributes }}>
+            {%- if block.settings.icon != blank -%}
+              <span class="abbar__icon" aria-hidden="true">{{ block.settings.icon }}</span>
+            {%- endif -%}
+            {{ block.settings.text | escape }}
+            {%- if block.settings.link != blank and block.settings.link_label != blank -%}
+              <a class="abbar__link" href="{{ block.settings.link }}">{{ block.settings.link_label | escape }}</a>
+            {%- endif -%}
+          </span>
+        {%- endfor -%}
+      </div>
+      {%- comment -%} Tape 2 (clone for seamless loop) {%- endcomment -%}
+      <div class="abbar__tape" aria-hidden="true">
+        {%- for block in msg_blocks -%}
+          <span class="abbar__tape-item">
+            {%- if block.settings.icon != blank -%}
+              <span class="abbar__icon" aria-hidden="true">{{ block.settings.icon }}</span>
+            {%- endif -%}
+            {{ block.settings.text | escape }}
+            {%- if block.settings.link != blank and block.settings.link_label != blank -%}
+              <a class="abbar__link" href="{{ block.settings.link }}" tabindex="-1">{{ block.settings.link_label | escape }}</a>
+            {%- endif -%}
+          </span>
+        {%- endfor -%}
+      </div>
+    </div>
+
+  {%- endif -%}
+</section>
+
+{%- comment -%} ===================================================================
+    CSS
+=================================================================== {%- endcomment -%}
+<style>
+/* ---- Base ---- */
+.abbar-{{ sid }} {
+  position: relative;
+  width: 100%;
+  height: var(--ab-height, 40px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--ab-font-size, 13px);
+  font-weight: {{ section.settings.font_weight }};
+  {%- if section.settings.uppercase %}text-transform: uppercase;{%- endif %}
+  letter-spacing: {{ section.settings.letter_spacing }}em;
+  color: var(--ab-text, #fff);
+  border-radius: var(--ab-radius, 0);
+  contain: content;
+  {%- if has_gradient -%}
+  background: linear-gradient(var(--ab-grad-dir, 90deg), var(--ab-bg) 0%, var(--ab-bg2) 100%);
+  {%- else -%}
+  background-color: var(--ab-bg, #111);
+  {%- endif -%}
+}
+
+/* ============ STATIC AUTO-ROTATE ============ */
+.abbar-{{ sid }} .abbar__rotator {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.abbar-{{ sid }} .abbar__msg {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  /* Hidden state: below + invisible */
+  opacity: 0;
+  transform: translateY(100%);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+}
+
+/* Active message: visible + centered */
+.abbar-{{ sid }} .abbar__msg--active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Exiting message: slide up + fade */
+.abbar-{{ sid }} .abbar__msg--exit {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+.abbar-{{ sid }} .abbar__text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.abbar-{{ sid }} .abbar__icon {
+  flex-shrink: 0;
+}
+
+.abbar-{{ sid }} .abbar__link {
+  color: var(--ab-link, #FFD700);
+  text-decoration: underline;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.abbar-{{ sid }} .abbar__link:hover {
+  color: var(--ab-link-hover, #fff);
+  text-decoration: underline;
+}
+
+/* Close button */
+.abbar-{{ sid }} .abbar__close {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--ab-text, #fff);
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+
+.abbar-{{ sid }} .abbar__close:hover { opacity: 1; }
+
+/* Section hidden state */
+.abbar-{{ sid }}.abbar--hidden {
+  display: none;
+}
+
+/* ============ MARQUEE TICKER ============ */
+.abbar-{{ sid }} .abbar__marquee {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  overflow: hidden;
+}
+
+.abbar-{{ sid }} .abbar__tape {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  white-space: nowrap;
+  padding: 0 20px;
+  /* GPU-accelerated infinite scroll */
+  animation: abbar-scroll-{{ sid }} var(--ab-speed, 20s) linear infinite;
+  will-change: transform;
+}
+
+.abbar-{{ sid }} .abbar__tape-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Pause on hover */
+.abbar-{{ sid }} .abbar__marquee--pausable:hover .abbar__tape {
+  animation-play-state: paused;
+}
+
+@keyframes abbar-scroll-{{ sid }} {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ============ MOBILE ============ */
+@media (max-width: 767px) {
+  .abbar-{{ sid }} {
+    font-size: calc(var(--ab-font-size, 13px) - 1px);
+    letter-spacing: 0.02em;
+  }
+
+  .abbar-{{ sid }} .abbar__close {
+    right: 8px;
+  }
+}
+</style>
+
+{%- comment -%} ===================================================================
+    JS — Only for Static mode (rotate + close)
+=================================================================== {%- endcomment -%}
+{%- if mode == 'static' -%}
+<script>
+(function() {
+  'use strict';
+  var SID = '{{ sid }}';
+
+  function init(sectionId) {
+    var section = document.getElementById('abbar-' + sectionId);
+    if (!section) return;
+
+    /* ---- Close button ---- */
+    var closeBtn = document.getElementById('abbar-close-' + sectionId);
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        section.classList.add('abbar--hidden');
+      });
+    }
+
+    /* ---- Auto-rotate messages ---- */
+    var msgs = Array.prototype.slice.call(section.querySelectorAll('.abbar__msg'));
+    if (msgs.length <= 1) return;
+
+    var current = 0;
+    var speed = parseInt(section.querySelector('.abbar__rotator').getAttribute('data-rotate-speed')) || 4;
+    speed = Math.max(2, Math.min(15, speed)) * 1000;
+
+    function rotate() {
+      var oldMsg = msgs[current];
+      /* Slide old message up + fade out */
+      oldMsg.classList.remove('abbar__msg--active');
+      oldMsg.classList.add('abbar__msg--exit');
+
+      /* After transition ends, reset old message to below position */
+      setTimeout(function() {
+        oldMsg.classList.remove('abbar__msg--exit');
+      }, 450);
+
+      /* Next message */
+      current = (current + 1) % msgs.length;
+      msgs[current].classList.add('abbar__msg--active');
+    }
+
+    var timer = setInterval(rotate, speed);
+
+    /* Pause rotation on hover */
+    section.addEventListener('mouseenter', function() { clearInterval(timer); });
+    section.addEventListener('mouseleave', function() { timer = setInterval(rotate, speed); });
+
+    /* ---- Cleanup ---- */
+    document.addEventListener('shopify:section:unload', function _c(e) {
+      if (e.detail && e.detail.sectionId === sectionId) {
+        clearInterval(timer);
+        document.removeEventListener('shopify:section:unload', _c);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { init(SID); });
+  } else {
+    init(SID);
+  }
+  document.addEventListener('shopify:section:load', function(e) {
+    if (e.detail && e.detail.sectionId === SID) init(SID);
+  });
+}());
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Announcement Bar (Body)",
+  "class": "announcement-bar-body",
+  "tag": "div",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Chế độ hiển thị"
+    },
+    {
+      "type": "select",
+      "id": "mode",
+      "label": "Chế độ",
+      "options": [
+        {"value": "static", "label": "Static Auto-Rotate (giống Coolmate)"},
+        {"value": "marquee", "label": "Marquee Ticker (chữ chạy vô hạn)"}
+      ],
+      "default": "static"
+    },
+    {
+      "type": "range",
+      "id": "rotate_speed",
+      "label": "Thời gian chuyển tin (giây) — Static",
+      "min": 2, "max": 15, "step": 1,
+      "default": 4,
+      "info": "Chỉ áp dụng cho chế độ Static"
+    },
+    {
+      "type": "select",
+      "id": "marquee_speed",
+      "label": "Tốc độ cuộn — Marquee",
+      "options": [
+        {"value": "35", "label": "Chậm"},
+        {"value": "20", "label": "Trung bình"},
+        {"value": "12", "label": "Nhanh"},
+        {"value": "8",  "label": "Rất nhanh"}
+      ],
+      "default": "20",
+      "info": "Chỉ áp dụng cho chế độ Marquee"
+    },
+    {
+      "type": "checkbox",
+      "id": "pause_hover",
+      "label": "Dừng khi hover (Marquee)",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Giao diện"
+    },
+    {
+      "type": "range",
+      "id": "bar_height",
+      "label": "Chiều cao thanh (px)",
+      "min": 28, "max": 80, "step": 2,
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Cỡ chữ (px)",
+      "min": 11, "max": 20, "step": 1,
+      "default": 13
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Độ đậm chữ",
+      "options": [
+        {"value": "400", "label": "Normal"},
+        {"value": "500", "label": "Medium"},
+        {"value": "600", "label": "Semi-bold"},
+        {"value": "700", "label": "Bold"}
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "letter_spacing",
+      "label": "Letter spacing (em)",
+      "min": 0, "max": 0.3, "step": 0.1,
+      "default": 0.1
+    },
+    {
+      "type": "checkbox",
+      "id": "uppercase",
+      "label": "Viết hoa toàn bộ",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Bo góc (px)",
+      "min": 0, "max": 20, "step": 1,
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "show_close",
+      "label": "Hiện nút đóng X (Static)",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Màu sắc"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Màu nền",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color",
+      "label": "Gradient nền (color 2)",
+      "info": "Bỏ trống = không gradient"
+    },
+    {
+      "type": "select",
+      "id": "gradient_direction",
+      "label": "Hướng gradient",
+      "options": [
+        {"value": "90deg",  "label": "Trái → Phải"},
+        {"value": "180deg", "label": "Trên → Dưới"},
+        {"value": "135deg", "label": "Chéo ↘"},
+        {"value": "45deg",  "label": "Chéo ↗"}
+      ],
+      "default": "90deg"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Màu chữ",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "link_color",
+      "label": "Màu link",
+      "default": "#FFD700"
+    },
+    {
+      "type": "color",
+      "id": "link_hover_color",
+      "label": "Màu link khi hover",
+      "default": "#FFFFFF"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "message",
+      "name": "Tin nhắn",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Nội dung",
+          "default": "SIÊU SALE 3.3 - GIẢM 33K CHO ĐƠN TỪ 299K"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "Icon/Emoji (tuỳ chọn)",
+          "info": "Ví dụ: ⚡ 🔥 🎉 ✨"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link URL"
+        },
+        {
+          "type": "text",
+          "id": "link_label",
+          "label": "Nhãn link",
+          "default": "MUA NGAY"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Announcement Bar (Body)",
+      "category": "Custom Sections",
+      "blocks": [
+        {
+          "type": "message",
+          "settings": {
+            "text": "SIÊU SALE 3.3 - GIẢM 33K CHO ĐƠN TỪ 299K",
+            "link_label": "MUA NGAY"
+          }
+        },
+        {
+          "type": "message",
+          "settings": {
+            "text": "ĐỒ LÓT NAM - MUA 3 TẶNG 1",
+            "link_label": "MUA NGAY"
+          }
+        },
+        {
+          "type": "message",
+          "settings": {
+            "text": "DEAL XINH CHO NÀNG 8.3 - MUA 2 GIẢM THÊM 10%",
+            "link_label": "MUA NGAY"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

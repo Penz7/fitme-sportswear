@@ -1,0 +1,76 @@
+<link rel="stylesheet" href="{{ 'template-series.css' | asset_url }}" type="text/css">
+
+<div class="container">
+  <div class="page-spacer">
+    <div class="page">
+      <h1 class="h1 text-center">{{ metaobject.heading.value }}</h1>
+    </div>
+  </div>
+  <tabs-component class="series-wrapper">
+    <div class="tab-details">
+      {{ metaobject.clip.value.size }}
+      {% for clip in metaobject.clips.value %}
+        <div class="serie tab-detail{% if forloop.first %} active{% endif %}" data-id="tab-{{ forloop.index }}">
+          <div class="serie-navigation">
+            {% unless forloop.first %}
+              <button type="button" class="btn button--subdued tab-heading" data-id="tab-{{ forloop.index | minus: 1 }}">{%- render 'icon' with 'chevron-left', direction_aware: true -%} {{ section.settings.button_prev | default: "Bài tập trước" }}</button>
+            {% endunless %}
+            {% unless forloop.last %}
+              <button type="button" class="btn tab-heading" data-id="tab-{{ forloop.index | plus: 1 }}"> {{ section.settings.button_next | default: "Hoàn thành và tiếp tục" }} {%- render 'icon' with 'chevron-right', direction_aware: true -%}</button>
+            {% endunless %}
+          </div>
+          <h2 class="serie-title">{{ clip.title.value }}</h2>
+          <div class="serie-video">
+            {{ clip.video.value }}
+          </div>
+          <div class="serie-description">
+            <span class="serie-description-intro"></span>
+            {{ clip.description.value }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <select-toggle class="tab-headings clickout-accordion">
+      <div class="details">
+        <div class="tab-headingList">
+          {% for clip in metaobject.clips.value %}
+            <div class="serie tab-heading{% if forloop.first %} active{% endif %}" data-id="tab-{{ forloop.index }}" title="{{ clip.title.value }}">{{ clip.title.value }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="summary">
+        <button type="button" class="btn main-btn">{{ section.settings.button_list | default: "Danh sách nội dung" }}</button>
+      </div>
+    </select-toggle>
+  </tabs-component>
+</div>
+
+<script src="{{ 'template-series.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Template series",
+  "tag": "section",
+  "settings": [
+          {
+            "type": "text",
+            "id": "button_prev",
+            "label": "Button prev text",
+            "default": "Bài tập trước"
+            
+          },
+          {
+            "type": "text",
+            "id": "button_next",
+            "label": "Button next text",
+            "default": "Hoàn thành và tiếp tục"
+          },
+          {
+            "type": "text",
+            "id": "button_list",
+            "label": "Button list text",
+            "default": "Danh sách nội dung"
+          }
+  ]
+}
+{% endschema %}

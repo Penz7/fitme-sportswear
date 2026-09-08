@@ -1,0 +1,151 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "show_collection_title": false,
+        "show_collection_description": false,
+        "show_collection_image": true,
+        "collection_title_size": "h4",
+        "image_size": "auto",
+        "mobile_image": "shopify://shop_images/2.jpg",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "3c50a8e3-a5c1-4778-8da6-991bf13194dd": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_jnzBrc": {
+          "type": "heading",
+          "settings": {
+            "text": "Đồ Tập Nhẹ Nhàng – Form Chuẩn Mọi Động Tác",
+            "heading_tag": "h2",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_PLA6pm": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p><br/>Các sản phẩm được thiết kế để bạn cảm thấy <strong>thoải mái tuyệt đối</strong> trong mọi chuyển động – từ tư thế plank chắc chắn đến những phút thả lỏng trên thảm yoga.<br/><br/>Chất vải co giãn 4 chiều, mềm mịn như bơ nhưng vẫn giữ phom gọn gàng, giúp ôm sát cơ thể mà không hề siết. Cạp cao vừa vặn, áo bra nâng đỡ nhẹ nhàng và đường may tối giản – tất cả đều được hoàn thiện thủ công tại nhà máy FITME, nơi mỗi sản phẩm đều mang theo sự tỉ mỉ và chỉn chu.<br/><br/>Dù bạn tập nhẹ hay tập nặng, chỉ cần mặc vào – là thấy “fit”.<br/><br/></p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_jnzBrc",
+        "richtext_PLA6pm"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "collectiontitle_fj7G6Q": {
+      "type": "collectiontitle",
+      "blocks": {
+        "item_MCUM9C": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC00499-shopee_564e33c6-4c85-41cb-a672-df026cf32d6f.jpg",
+            "title": "Áo bra",
+            "description": "",
+            "link": "shopify://collections/ao-bra-the-thao-nu"
+          }
+        },
+        "item_PjM7bH": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/quan-legging-lung-tap-yoga-cap-ngang-xam-xanh_2.jpg",
+            "title": "Quần legging",
+            "description": "",
+            "link": "shopify://collections/quan-legging-nu"
+          }
+        },
+        "item_GBWrme": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC03782-g_c.jpg",
+            "title": "Áo khoác",
+            "description": "",
+            "link": "shopify://collections/ao-khoac-the-thao-nu"
+          }
+        },
+        "item_qUVXyP": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/ao-thun-the-thao-nu-vat-bau-xanh-reu_4.jpg",
+            "title": "Áo thun",
+            "description": "",
+            "link": "shopify://collections/ao-tay-ngan-tap-gym-nu"
+          }
+        }
+      },
+      "block_order": [
+        "item_MCUM9C",
+        "item_PjM7bH",
+        "item_GBWrme",
+        "item_qUVXyP"
+      ],
+      "settings": {
+        "title": "Đồ Tập Gym & Yoga Nữ",
+        "breadcrumbs": "",
+        "items_per_row_desktop": "4",
+        "items_per_row_mobile": "2",
+        "show_breadcrumbs": true,
+        "padding_top": 0,
+        "padding_bottom": 8,
+        "background_color": "#ffffff",
+        "heading_color": "#000000",
+        "title_color": "#000000",
+        "description_color": "#666666",
+        "heading_size": 24,
+        "item_title_size": 16,
+        "item_description_size": 14,
+        "scrolling_style": "smooth"
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 24,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "seo_content": {
+      "type": "collection-seo-content",
+      "settings": {}
+    }
+  },
+  "order": [
+    "banner",
+    "3c50a8e3-a5c1-4778-8da6-991bf13194dd",
+    "collectiontitle_fj7G6Q",
+    "main",
+    "seo_content"
+  ]
+}

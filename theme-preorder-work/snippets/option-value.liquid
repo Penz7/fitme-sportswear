@@ -1,0 +1,184 @@
+{%- comment -%}
+----------------------------------------------------------------------------------------------------------------------
+OPTION VALUE
+----------------------------------------------------------------------------------------------------------------------
+
+This component renders a single option value. It is a generic component that is used both on product and collection
+pages (for metaobject filtering). It ca be used to render a swatch, a block or a thumbnail.
+
+********************************************
+Supported variables
+********************************************
+
+* type: control the presentational type of the option value. Can be "swatch", "block", "thumbnail" or "image_filter". [REQUIRED]
+* form: the form ID to which the option value belongs. [REQUIRED FOR PRODUCT OPTION]
+* option_value: in the case of a product option, the option_value object. [REQUIRED FOR PRODUCT OPTION]
+* filter_value: in the case of a collection filter option, the filter_value object. [REQUIRED FOR COLLECTION FILTER]
+* param_name: the param_name attribute when field is submitted to the server [REQUIRED FOR PRODUCT OPTION, NOT NEEDED FOR COLLECTION FILTER]
+* option_position: the position of the option in the list of options [REQUIRED FOR PRODUCT OPTION]
+* output_variant_media: if set to true, the variant media will be outputted as a data attribute of the associated form control. This is
+                        done on card swatches to allow for a quick preview of the variant media.
+* url: if defined, option value will be used as a plain link tag instead of an input. If passing an option_value object, the product_url
+       will be used as the link target automatically. [OPTIONAL]
+* reload_page_for_combined_products: if set to true, when a given option value is connected to a combined product, the option will be generated
+                                     as a link instead, and will reload the whole page. This is needed for main page product, as other sections
+                                     might be different based on the other sections.
+* hide_if_disabled: if true, the option value will not be rendered if the option value is disabled. [OPTIONAL]
+
+Thumbnail specific parameters:
+
+* image: the image to use
+* size: can be 'sm' to make it smaller
+* bordered: if set to true, a border is added when the image is not selected
+
+Block swatch specific parameters
+
+* show_swatch: if set to true, show the color as a small tile.
+* color: a single color drop (used for product color swatches)
+* colors: an optional list of color drop (if not set, the theme will use the config based approach as a fallback). When more
+          than one color is given, a conic gradient is generated. It supports up to 4 colors.
+* image: an optional image used as the background (if not set, the theme will use the config based approach as a fallback)
+
+Color swatch specific parameters:
+
+* show_tooltip: if set to true, display a tooltip on hover
+* swatch: a swatch drop that can contain either an image or a color
+{%- endcomment -%}
+
+{%- liquid
+  if option_value
+    assign label = label | default: option_value.name
+    assign value = option_value.id
+    assign disabled = false
+    assign selected = option_value.selected
+    assign allow_multiple = false
+    assign variant = option_value.variant
+    assign swatch = option_value.swatch
+
+    if option_value.product_url != blank and reload_page_for_combined_products
+      assign url = option_value.product_url
+    endif
+
+    if option_value.available == false
+      assign disabled = true
+    endif
+  elsif filter_value
+    assign label = label | default: filter_value.label
+    assign value = filter_value.value
+    assign param_name = filter_value.param_name
+    assign disabled = false
+    assign selected = filter_value.active
+    assign allow_multiple = true
+    assign variant = filter_value.variant
+    assign swatch = filter_value.swatch
+  endif
+
+  assign downcase_label = label | downcase | strip
+-%}
+
+{%- capture id -%}option-value-{{ id_prefix }}-{{ section.id }}-{{ param_name }}-{{ value | handle }}{%- endcapture -%}
+
+{%- liquid
+  if type == 'swatch' or type == 'block' and show_swatch
+    if swatch.image != blank
+      assign swatch_image = swatch.image | image_url: width: 72
+      assign swatch_style = '--swatch-background: url(' | append: swatch_image | append: ')'
+    elsif swatch.color != blank
+      assign swatch_style = '--swatch-background: linear-gradient(to right, ' | append: swatch.color | append: ', ' | append: swatch.color | append: ')'
+    else
+      # When color or image is not explicitly passed, we parse the config
+      assign swatch_config = settings.color_swatch_config | newline_to_br | split: '<br />'
+
+      assign swatch_style = '--swatch-background: linear-gradient(to right, ' | append: downcase_label | append: ', ' | append: downcase_label | append: ')'
+
+      for swatch_item in swatch_config
+        assign swatch_parts = swatch_item | split: ':'
+        assign swatch_name = swatch_parts.first | downcase | strip
+
+        if downcase_label == swatch_name
+          assign swatch_value = swatch_parts.last | strip
+
+          if swatch_value contains 'gradient('
+            assign swatch_style = '--swatch-background: ' | append: swatch_value
+          elsif swatch_value contains '#'
+            assign swatch_style = '--swatch-background: linear-gradient(to right, ' | append: swatch_value | append: ', ' | append: swatch_value | append: ')'
+          elsif images[swatch_value] != blank
+            assign swatch_image = images[swatch_value] | image_url: width: 72
+            assign swatch_style = '--swatch-background: url(' | append: swatch_image | append: ')'
+          endif
+
+          break
+        endif
+      endfor
+    endif
+  endif
+-%}
+
+{%- capture attributes -%}
+  {%- if url == blank -%}
+    {%- assign option_value_tag = 'label' -%}
+    for="{{ id | escape }}"
+  {%- else -%}
+    {%- assign option_value_tag = 'a' -%}
+    href="{{ option_value.variant.url | default: url }}" {% if hide_if_disabled and disabled and selected == false %}hidden{% endif %}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if url == blank -%}
+  {%- capture variant_attributes -%}
+    {%- if output_variant_media and option_value != blank and variant != blank -%}
+      {% if variant.featured_media %}
+        {%- assign secondary_variant_media = variant.product.media[variant.featured_media.position] | default: variant.product.media[1] -%}
+      {% endif %}
+
+      data-variant-id="{{ variant.id }}" {% if variant.featured_media %}data-variant-media="{{ variant.featured_media | json | escape }}" {% if secondary_variant_media %}data-variant-secondary-media="{{ secondary_variant_media | json | escape }}"{% endif %}{% endif %}
+    {%- endif -%}
+  {%- endcapture -%}
+
+  <input class="sr-only" type="{% if allow_multiple %}checkbox{% else %}radio{% endif %}" name="{{ param_name }}" id="{{ id | escape }}" value="{{ value | escape }}" {% if form %}form="{{ form }}"{% endif %} {% if selected %}checked="checked"{% endif %} {% if hide_if_disabled and disabled and selected == false %}disabled{% endif %} {% if option_value and option_value.product_url %}data-product-url="{{ option_value.product_url | escape }}"{% endif %} {% if option_position %}data-option-position="{{ option_position }}"{% endif %} {{ variant_attributes }}>
+{%- elsif option_value and option_value.selected -%}
+  <input class="sr-only" type="radio" name="{{ param_name }}" id="{{ id | escape }}" value="{{ value | escape }}" data-option-position="{{ option_position }}" {% if form %}form="{{ form }}"{% endif %} checked="checked">
+{%- endif -%}
+
+{%- case type -%}
+  {%- when 'thumbnail' -%}
+    {%- assign image = image | default: variant.featured_media | default: variant.product.featured_media -%}
+
+    {%- if image != blank -%}
+      <{{ option_value_tag }} class="thumbnail-swatch {% if size == 'sm' %}thumbnail-swatch--sm{% endif %} {% if disabled %}is-disabled{% endif %} {% if selected and option_value_tag == 'a' %}is-selected{% endif %} {% if bordered %}border{% endif %}" {{ attributes }}>
+        <span class="sr-only">{{ label | default: value }}</span>
+        {{- image | image_url: width: image.width | image_tag: sizes: '60px', widths: '60,120', class: 'object-cover' -}}
+      </{{ option_value_tag }}>
+    {%- else -%}
+      <{{ option_value_tag }} class="block-swatch {% if disabled %}is-disabled{% endif %} {% if selected and option_value_tag == 'a' %}is-selected{% endif %}" for="{{ id | escape }}" {{ attributes }}>
+        {{ label | default: value }}
+      </{{ option_value_tag }}>
+    {%- endif -%}
+
+  {%- when 'block' -%}
+    {%- assign white_label_list = 'general.label.white' | t | replace: ', ', ',' | downcase | split: ',' -%}
+
+    <{{ option_value_tag }} class="block-swatch {% if disabled %}is-disabled{% endif %} {% if selected and option_value_tag == 'a' %}is-selected{% endif %}" {{ attributes }}>
+      {%- if show_swatch -%}
+        <span class="block-swatch__color {% if white_label_list contains downcase_label %}ring-inset{% endif %}" style="{{ swatch_style }}"></span>
+      {%- endif -%}
+
+      <span>{{ label | default: value }}</span>
+    </{{ option_value_tag }}>
+    
+  {%- when 'swatch' -%}
+    {%- assign white_label_list = 'general.label.white' | t | replace: ', ', ',' | downcase | split: ',' -%}
+
+    <{{ option_value_tag }} class="color-swatch {% if settings.color_swatch_style == 'rectangle' %}color-swatch--rectangle{% endif %} {% if size == 'sm' %}color-swatch--sm{% endif %} {% if disabled %}is-disabled{% endif %} {% if selected and option_value_tag == 'a' %}is-selected{% endif %} {% if white_label_list contains downcase_label %}ring-inset{% endif %} {% if settings.color_swatch_style == 'round' %}rounded-full{% endif %}" {% if show_tooltip %}data-tooltip="{{ label | default: value | escape }}"{% endif %} style="{{ swatch_style }}" {{ attributes }}>
+      <span class="sr-only">{{ label | default: value }}</span>
+    </{{ option_value_tag }}>
+
+  {%- when 'image_filter' -%}
+    <{{ option_value_tag }} class="image-filter {% if disabled %}is-disabled{% endif %} {% if selected and option_value_tag == 'a' %}is-selected{% endif %}" {{ attributes }}>
+      {%- if filter_value.image -%}
+        {{- filter_value.image | image_url: width: filter_value.image.width | image_tag: loading: 'lazy', sizes: '32px', widths: '32,64,96', class: 'image-filter__image' -}}
+      {%- endif -%}
+
+      <span class="image-filter__label">{{ filter_value.label }} {% if section.settings.show_filter_values_count %}({{ filter_value.count }}){% endif %}</span>
+    </{{ option_value_tag }}>
+{%- endcase -%}

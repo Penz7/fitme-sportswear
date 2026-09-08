@@ -1,0 +1,31 @@
+{%- doc -%}
+  ----------------------------------------------------------------------------------------------------------------------
+  CART DISCOUNT
+  ----------------------------------------------------------------------------------------------------------------------
+
+  Renders the cart discount component on the cart page and in the cart drawer, providing an input for applying discount codes.
+
+  @param {object} section - The optional section to use
+{%- enddoc -%}
+
+<div class="cart-discount w-full v-stack gap-2">
+  <cart-discount-field class="cart-discount-field relative">
+    {%- liquid
+      assign label = 'cart.discount.label' | t
+      assign id = section.id | append: '-cart-discount-field'
+
+      # The hidden input acts as an accumulator
+      assign applied_codes = cart.discount_applications | where: 'type', 'discount_code' | map: 'title' | join: ','
+      render 'input', type: 'hidden', name: 'discount', value: applied_codes
+      render 'input', label: label, id: id
+    -%}
+
+    <div class="cart-discount-field__loader">
+      {%- render 'icon' with 'loader' -%}
+    </div>
+  </cart-discount-field>
+
+  <cart-discount-banner hidden>
+    <p class="text-error text-sm">{{ 'cart.discount.error' | t }}</p>
+  </cart-discount-banner>
+</div>

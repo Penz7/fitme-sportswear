@@ -1,0 +1,679 @@
+{% schema %}
+{
+  "name": "Custom 3 Block Layout",
+  "class": "custom-3-block-layout",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Thiết lập chung"
+    },
+    {
+      "type": "range",
+      "id": "section_width",
+      "label": "Độ rộng section (%)",
+      "min": 50,
+      "max": 100,
+      "step": 1,
+      "default": 100
+    },
+    {
+      "type": "color",
+      "id": "section_bg",
+      "label": "Màu nền section",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "label": "Khoảng cách đệm section (px)",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Khoảng cách giữa các block (px)",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "block_alignment",
+      "label": "Căn chỉnh nội dung block",
+      "options": [
+        { "value": "left", "label": "Trái" },
+        { "value": "center", "label": "Giữa" },
+        { "value": "right", "label": "Phải" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "block_radius",
+      "label": "Bo góc block (px)",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "block_padding",
+      "label": "Khoảng cách đệm bên trong block (px)",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "default": 25
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "Số cột trên desktop",
+      "options": [
+        { "value": "1", "label": "1 cột" },
+        { "value": "2", "label": "2 cột" },
+        { "value": "3", "label": "3 cột" },
+        { "value": "4", "label": "4 cột" }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "columns_tablet",
+      "label": "Số cột trên tablet",
+      "options": [
+        { "value": "1", "label": "1 cột" },
+        { "value": "2", "label": "2 cột" }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Số cột trên mobile",
+      "options": [
+        { "value": "1", "label": "1 cột" },
+        { "value": "2", "label": "2 cột" }
+      ],
+      "default": "1"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "b1",
+      "name": "Block Chính",
+      
+      "settings": [
+        {
+          "type": "header",
+          "content": "Nội dung"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Tiêu đề",
+          "default": "Bean to Bar Process"
+        },
+        {
+          "type": "textarea",
+          "id": "content",
+          "label": "Nội dung",
+          "default": "Marou does things differently at every stage of its bean-to-bar chocolate making process, creating unique products with a Vietnamese character that respects the origins of our ingredients."
+        },
+        {
+          "type": "header",
+          "content": "Kiểu dáng văn bản"
+        },
+        {
+          "type": "range",
+          "id": "title_size",
+          "label": "Kích thước tiêu đề (px)",
+          "min": 14,
+          "max": 60,
+          "step": 1,
+          "default": 28
+        },
+        {
+          "type": "range",
+          "id": "title_weight",
+          "label": "Độ đậm tiêu đề",
+          "min": 100,
+          "max": 900,
+          "step": 100,
+          "default": 700
+        },
+        {
+          "type": "color",
+          "id": "title_color",
+          "label": "Màu tiêu đề",
+          "default": "#000000"
+        },
+        {
+          "type": "range",
+          "id": "content_size",
+          "label": "Kích thước đoạn văn (px)",
+          "min": 14,
+          "max": 40,
+          "step": 1,
+          "default": 16
+        },
+        {
+          "type": "range",
+          "id": "content_weight",
+          "label": "Độ đậm đoạn văn",
+          "min": 100,
+          "max": 900,
+          "step": 100,
+          "default": 400
+        },
+        {
+          "type": "color",
+          "id": "content_color",
+          "label": "Màu đoạn văn",
+          "default": "#333333"
+        },
+        {
+          "type": "header",
+          "content": "Thiết kế block"
+        },
+        {
+          "type": "color",
+          "id": "block_bg",
+          "label": "Màu nền block",
+          "default": "#FFFFFF"
+        },
+        {
+          "type": "range",
+          "id": "block_padding",
+          "label": "Padding block (px)",
+          "min": 10,
+          "max": 60,
+          "step": 5,
+          "default": 30,
+          "info": "Ghi đè thiết lập chung nếu được đặt"
+        },
+        {
+          "type": "select",
+          "id": "block_width",
+          "label": "Độ rộng block",
+          "options": [
+            { "value": "normal", "label": "Bình thường" },
+            { "value": "full", "label": "Chiếm toàn bộ hàng" }
+          ],
+          "default": "normal"
+        }
+      ]
+    },
+    {
+      "type": "b2",
+      "name": "Block Bước (Có Số)",
+      "settings": [
+        {
+          "type": "header",
+          "content": "Thông tin bước"
+        },
+        {
+          "type": "text",
+          "id": "number_text",
+          "label": "Số thứ tự",
+          "default": "01"
+        },
+        {
+          "type": "range",
+          "id": "number_size",
+          "label": "Kích thước số (px)",
+          "min": 20,
+          "max": 80,
+          "step": 2,
+          "default": 42
+        },
+        {
+          "type": "color",
+          "id": "number_text_color",
+          "label": "Màu số thứ tự",
+          "default": "#B19D64"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon_image",
+          "label": "Icon"
+        },
+        {
+          "type": "range",
+          "id": "icon_size",
+          "label": "Kích thước icon (px)",
+          "min": 40,
+          "max": 200,
+          "step": 10,
+          "default": 100
+        },
+        {
+          "type": "header",
+          "content": "Nội dung"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Tiêu đề",
+          "default": "Harvesting"
+        },
+        {
+          "type": "range",
+          "id": "title_size",
+          "label": "Kích thước tiêu đề (px)",
+          "min": 14,
+          "max": 36,
+          "step": 1,
+          "default": 20
+        },
+        {
+          "type": "range",
+          "id": "title_weight",
+          "label": "Độ đậm tiêu đề",
+          "min": 100,
+          "max": 900,
+          "step": 100,
+          "default": 700
+        },
+        {
+          "type": "color",
+          "id": "title_color",
+          "label": "Màu tiêu đề",
+          "default": "#000000"
+        },
+        {
+          "type": "textarea",
+          "id": "content",
+          "label": "Nội dung",
+          "default": "Cacao pods grow from the flowers of the Theobroma cacao tree. After approximately six months on the branch, our farmers harvest the cacao pods and extract the fresh cocoa beans, which are covered in a sweet white pulp."
+        },
+        {
+          "type": "range",
+          "id": "content_size",
+          "label": "Kích thước nội dung (px)",
+          "min": 12,
+          "max": 24,
+          "step": 1,
+          "default": 15
+        },
+        {
+          "type": "range",
+          "id": "content_weight",
+          "label": "Độ đậm nội dung",
+          "min": 100,
+          "max": 900,
+          "step": 100,
+          "default": 400
+        },
+        {
+          "type": "color",
+          "id": "content_color",
+          "label": "Màu nội dung",
+          "default": "#333333"
+        },
+        {
+          "type": "header",
+          "content": "Thiết kế block"
+        },
+        {
+          "type": "color",
+          "id": "block_bg",
+          "label": "Màu nền block",
+          "default": "#F5F5F5"
+        },
+        {
+          "type": "select",
+          "id": "vertical_alignment",
+          "label": "Căn chỉnh dọc",
+          "options": [
+            { "value": "top", "label": "Trên" },
+            { "value": "center", "label": "Giữa" },
+            { "value": "bottom", "label": "Dưới" }
+          ],
+          "default": "top"
+        }
+      ]
+    },
+    {
+      "type": "b3",
+      "name": "Block Nội dung",
+      "settings": [
+        {
+          "type": "header",
+          "content": "Nội dung"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Tiêu đề",
+          "default": "Marou selects the cacao at the farm"
+        },
+        {
+          "type": "range",
+          "id": "title_size",
+          "label": "Kích thước tiêu đề (px)",
+          "min": 14,
+          "max": 36,
+          "step": 1,
+          "default": 20
+        },
+        {
+          "type": "range",
+          "id": "title_weight",
+          "label": "Độ đậm tiêu đề",
+          "min": 100,
+          "max": 900,
+          "step": 100,
+          "default": 700
+        },
+        {
+          "type": "color",
+          "id": "title_color",
+          "label": "Màu tiêu đề",
+          "default": "#000000"
+        },
+        {
+          "type": "textarea",
+          "id": "content",
+          "label": "Nội dung",
+          "default": "Marou selects cacao at the farm: we test each sack to ensure it meets our stringent quality standards before it is brought to the Marou chocolate factory."
+        },
+        {
+          "type": "range",
+          "id": "content_size",
+          "label": "Kích thước nội dung (px)",
+          "min": 12,
+          "max": 24,
+          "step": 1,
+          "default": 15
+        },
+        {
+          "type": "range",
+          "id": "content_weight",
+          "label": "Độ đậm nội dung",
+          "min": 100,
+          "max": 900,
+          "step": 100,
+          "default": 400
+        },
+        {
+          "type": "color",
+          "id": "content_color",
+          "label": "Màu nội dung",
+          "default": "#333333"
+        },
+        {
+          "type": "header",
+          "content": "Thiết kế block"
+        },
+        {
+          "type": "color",
+          "id": "block_bg",
+          "label": "Màu nền block",
+          "default": "#B19D64"
+        },
+        {
+          "type": "range",
+          "id": "block_padding",
+          "label": "Padding block (px)",
+          "min": 10,
+          "max": 60,
+          "step": 5,
+          "default": 30,
+          "info": "Ghi đè thiết lập chung nếu được đặt"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom 3 Block Layout",
+      "category": "Custom Sections",
+      "blocks": [
+        {
+          "type": "b1",
+          "settings": {}
+        },
+        {
+          "type": "b2",
+          "settings": {
+            "number_text": "01",
+            "title": "Harvesting"
+          }
+        },
+        {
+          "type": "b2",
+          "settings": {
+            "number_text": "02",
+            "title": "Fermentation"
+          }
+        },
+        {
+          "type": "b2",
+          "settings": {
+            "number_text": "03",
+            "title": "Sun Drying"
+          }
+        },
+        {
+          "type": "b3",
+          "settings": {
+            "title": "Marou selects the cacao at the farm"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<div class="custom-3-block-layout" 
+     style="max-width: {{ section.settings.section_width }}%; 
+            margin: 0 auto; 
+            background-color: {{ section.settings.section_bg }};
+            padding: {{ section.settings.section_padding }}px 0;">
+  
+  <div class="blocks-container"
+       style="gap: {{ section.settings.gap }}px;
+              --desktop-columns: {{ section.settings.columns_desktop }};
+              --tablet-columns: {{ section.settings.columns_tablet }};
+              --mobile-columns: {{ section.settings.columns_mobile }};">
+    
+    {% for block in section.blocks %}
+      {% assign block_padding = block.settings.block_padding | default: section.settings.block_padding %}
+      
+      {% case block.type %}
+        {% when 'b1' %}
+          <div class="block block-main {% if block.settings.block_width == 'full' %}block-full-width{% endif %}" 
+               style="background-color: {{ block.settings.block_bg }};
+                      border-radius: {{ section.settings.block_radius }}px;
+                      padding: {{ block_padding }}px;
+                      text-align: {{ section.settings.block_alignment }};"
+               {{ block.shopify_attributes }}>
+            
+            <h2 class="block-title" 
+                style="color: {{ block.settings.title_color }}; 
+                       font-size: {{ block.settings.title_size }}px; 
+                       font-weight: {{ block.settings.title_weight }};">
+              {{ block.settings.title }}
+            </h2>
+            
+            <div class="block-content" 
+                 style="color: {{ block.settings.content_color }}; 
+                        font-size: {{ block.settings.content_size }}px; 
+                        font-weight: {{ block.settings.content_weight }};">
+              {{ block.settings.content }}
+            </div>
+          </div>
+          
+        {% when 'b2' %}
+          <div class="block block-step" 
+               style="background-color: {{ block.settings.block_bg }};
+                      border-radius: {{ section.settings.block_radius }}px;
+                      padding: {{ block_padding }}px;
+                      text-align: {{ section.settings.block_alignment }};
+                      display: flex;
+                      flex-direction: column;
+                      --vertical-alignment: {{ block.settings.vertical_alignment }};"
+               {{ block.shopify_attributes }}>
+            
+            {% if block.settings.number_text != blank %}
+              <div class="block-number" 
+                   style="color: {{ block.settings.number_text_color }};
+                          font-size: {{ block.settings.number_size }}px;
+                          font-weight: 700;
+                          line-height: 1;">
+                {{ block.settings.number_text }}
+              </div>
+            {% endif %}
+            
+            {% if block.settings.icon_image %}
+              <div class="block-icon">
+                <img src="{{ block.settings.icon_image | img_url: 'master' }}" 
+                     alt="{{ block.settings.title | escape }}"
+                     style="max-width: {{ block.settings.icon_size }}px;
+                            width: 100%;
+                            height: auto;">
+              </div>
+            {% endif %}
+            
+            <h3 class="block-title" 
+                style="color: {{ block.settings.title_color }}; 
+                       font-size: {{ block.settings.title_size }}px; 
+                       font-weight: {{ block.settings.title_weight }};">
+              {{ block.settings.title }}
+            </h3>
+            
+            <div class="block-content" 
+                 style="color: {{ block.settings.content_color }}; 
+                        font-size: {{ block.settings.content_size }}px; 
+                        font-weight: {{ block.settings.content_weight }};">
+              {{ block.settings.content }}
+            </div>
+          </div>
+          
+        {% when 'b3' %}
+          <div class="block block-content-only" 
+               style="background-color: {{ block.settings.block_bg }};
+                      border-radius: {{ section.settings.block_radius }}px;
+                      padding: {{ block_padding }}px;
+                      text-align: {{ section.settings.block_alignment }};"
+               {{ block.shopify_attributes }}>
+            
+            <h3 class="block-title" 
+                style="color: {{ block.settings.title_color }}; 
+                       font-size: {{ block.settings.title_size }}px; 
+                       font-weight: {{ block.settings.title_weight }};">
+              {{ block.settings.title }}
+            </h3>
+            
+            <div class="block-content" 
+                 style="color: {{ block.settings.content_color }}; 
+                        font-size: {{ block.settings.content_size }}px; 
+                        font-weight: {{ block.settings.content_weight }};">
+              {{ block.settings.content }}
+            </div>
+          </div>
+          
+      {% endcase %}
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .custom-3-block-layout {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .blocks-container {
+    display: grid;
+    grid-template-columns: repeat(var(--desktop-columns), 1fr);
+    gap: inherit;
+    width: 100%;
+  }
+  
+  .block {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+  }
+  
+  .block:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  
+  .block-full-width {
+    grid-column: 1 / -1;
+  }
+  
+  .block-title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    line-height: 1.3;
+  }
+  
+  .block-content {
+    margin-bottom: 0;
+    line-height: 1.6;
+  }
+  
+  .block-step {
+    justify-content: var(--vertical-alignment, flex-start);
+  }
+  
+  .block-step[style*="--vertical-alignment: center"] {
+    justify-content: center;
+  }
+  
+  .block-step[style*="--vertical-alignment: bottom"] {
+    justify-content: flex-end;
+  }
+  
+  .block-number {
+    margin-bottom: 15px;
+  }
+  
+  .block-icon {
+    margin: 10px auto 20px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* Tablet Styles */
+  @media screen and (max-width: 1024px) {
+    .blocks-container {
+      grid-template-columns: repeat(var(--tablet-columns), 1fr);
+    }
+  }
+  
+  /* Mobile Styles */
+  @media screen and (max-width: 767px) {
+    .blocks-container {
+      grid-template-columns: repeat(var(--mobile-columns), 1fr);
+    }
+    
+    .block-title {
+      font-size: calc(var(--title-size, 20px) * 0.9) !important;
+    }
+    
+    .block-content {
+      font-size: calc(var(--content-size, 15px) * 0.95) !important;
+    }
+    
+    .block-number {
+      font-size: calc(var(--number-size, 42px) * 0.8) !important;
+    }
+    
+    .block-icon img {
+      max-width: calc(var(--icon-size, 100px) * 0.8) !important;
+    }
+  }
+</style>

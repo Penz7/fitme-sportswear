@@ -1,0 +1,13 @@
+{% if settings.popup_notify_cart %}
+  <modal-dialog id="popup-notify-cart" class="hidden fixed w-full h-full bg-black bg-opacity-20 top-0 left-0 z-20">
+    <div class="popup-notify-cart-wrapper p-4 lg:p-10 rounded-xl shadow-popup max-w-[calc(100vw_-_32px)] max-h-[calc(100vh_-_32px)] lg:overflow-auto bg-background absolute top-1/2 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
+      <div class="notify-cart-heading">{{ settings.popup_notify_cart_heading }}</div>
+      <span class="notify-cart-description">{{ settings.popup_notify_cart_description }}</span>
+      <span class="notify-cart-freeship">{{ settings.popup_notify_cart_freeship }}</span>
+      <a href="{{ routes.cart_url }}" class="notify-cart-button">Xem giỏ hàng</a>
+      <span class="text-grey-700 shadow-megamenu cursor-pointer bg-background w-10 h-10 flex items-center justify-center rounded-full absolute top-3 right-3 lg:top-2 lg:right-2 close">
+        {% render 'icon-close', class: 'w-6 h-6' %}
+      </span>
+    </div>
+  </modal-dialog>
+{% endif %}

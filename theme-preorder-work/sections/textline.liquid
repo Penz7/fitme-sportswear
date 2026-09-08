@@ -1,0 +1,201 @@
+{% schema %}
+{
+  "name": "Tiêu đề với đường kẻ",
+  "tag": "section",
+  "class": "section-title-with-lines",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Tiêu đề",
+      "default": "FORCE DRESS"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Nội dung văn bản",
+      "default": "<p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Kích thước tiêu đề",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Kích thước văn bản",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "container_width",
+      "min": 600,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Chiều rộng tối đa của nội dung",
+      "default": 1000
+    },
+    {
+      "type": "range",
+      "id": "line_width",
+      "min": 50,
+      "max": 300,
+      "step": 10,
+      "unit": "px",
+      "label": "Chiều dài đường kẻ",
+      "default": 150
+    },
+    {
+      "type": "range",
+      "id": "line_thickness",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "unit": "px",
+      "label": "Độ dày đường kẻ",
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Khoảng cách phía trên",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Khoảng cách phía dưới",
+      "default": 40
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Màu nền",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Màu chữ",
+      "default": "#1C1C1C"
+    },
+    {
+      "type": "color",
+      "id": "line_color",
+      "label": "Màu đường kẻ",
+      "default": "#1C1C1C"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Tiêu đề với đường kẻ",
+      "settings": {}
+    }
+  ]
+}
+{% endschema %}
+
+<style>
+  .section-title-with-lines {
+    padding-top: {{ section.settings.padding_top }}px;
+    padding-bottom: {{ section.settings.padding_bottom }}px;
+    background-color: {{ section.settings.background_color }};
+    color: {{ section.settings.text_color }};
+  }
+  
+  .title-line-container {
+    max-width: {{ section.settings.container_width }}px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  .title-with-lines {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .line {
+    height: {{ section.settings.line_thickness }}px;
+    width: {{ section.settings.line_width }}px;
+    background-color: {{ section.settings.line_color }};
+  }
+  
+  .title-text {
+    font-size: {{ section.settings.title_size }}px;
+    font-weight: 500;
+    margin: 0 30px;
+    color: {{ section.settings.text_color }};
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  
+  .content-text {
+    text-align: center;
+    font-size: {{ section.settings.text_size }}px;
+    line-height: 1.6;
+    margin: 0 auto;
+    max-width: 800px;
+  }
+  
+  @media screen and (max-width: 767px) {
+    .line {
+      width: {{ section.settings.line_width | divided_by: 2 }}px;
+    }
+    
+    .title-text {
+      font-size: calc({{ section.settings.title_size }}px * 0.8);
+      margin: 0 15px;
+    }
+    
+    .content-text {
+      font-size: calc({{ section.settings.text_size }}px * 0.9);
+    }
+  }
+  
+  @media screen and (max-width: 480px) {
+    .line {
+      width: {{ section.settings.line_width | divided_by: 3 }}px;
+    }
+    
+    .title-text {
+      font-size: calc({{ section.settings.title_size }}px * 0.7);
+      margin: 0 10px;
+    }
+  }
+</style>
+
+<section class="section-title-with-lines">
+  <div class="title-line-container">
+    <div class="title-with-lines">
+      <div class="line"></div>
+      <h2 class="title-text">{{ section.settings.title }}</h2>
+      <div class="line"></div>
+    </div>
+    
+    <div class="content-text">
+      {{ section.settings.text }}
+    </div>
+  </div>
+</section>

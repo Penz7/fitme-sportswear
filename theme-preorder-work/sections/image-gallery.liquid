@@ -1,0 +1,227 @@
+{% comment %}
+============================================================================
+  Section: Flexible Content (Version 3.3 - Final Stable Base)
+  - Fixed schema 'step' error.
+  - This version is a stable, non-slider base for future development.
+============================================================================
+{% endcomment %}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    padding-top: {{ section.settings.padding_top }}px;
+    padding-bottom: {{ section.settings.padding_bottom }}px;
+  }
+  .page-width-{{ section.id }} {
+    max-width: {{ section.settings.section_max_width }}%;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  
+  /* --- Text Block Styles --- */
+  .fcb__text-block {
+    text-align: {{ section.settings.text_align }};
+    margin-bottom: 25px;
+  }
+  .fcb__heading {
+    color: {{ section.settings.heading_color }};
+    font-size: {{ section.settings.heading_size }}px;
+    margin: 0 0 10px 0;
+    word-break: break-word;
+  }
+  .fcb__paragraph {
+    color: {{ section.settings.paragraph_color }};
+    font-size: {{ section.settings.paragraph_size }}px;
+    margin: 0;
+    word-break: break-word;
+  }
+
+  /* --- Gallery Grid Styles --- */
+  .fcb__gallery-grid {
+    display: grid;
+    grid-template-columns: repeat({{ section.settings.columns_desktop }}, 1fr);
+    gap: {{ section.settings.grid_row_gap }}px {{ section.settings.grid_column_gap }}px;
+  }
+  .fcb__gallery-item-link {
+    display: block;
+    text-decoration: none;
+    line-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .fcb__gallery-item-image {
+    width: 100%;
+    height: auto;
+    transition: transform 0.4s ease;
+  }
+  .fcb__gallery-item-link:hover .fcb__gallery-item-image {
+    transform: scale(1.05);
+  }
+
+  /* --- Responsive --- */
+  @media screen and (max-width: 768px) {
+    .fcb__heading { font-size: {{ section.settings.heading_size | times: 0.8 | round: 0 }}px; }
+    .fcb__paragraph { font-size: {{ section.settings.paragraph_size | times: 0.8 | round: 0 }}px; }
+    .fcb__gallery-grid {
+      grid-template-columns: repeat({{ section.settings.columns_mobile }}, 1fr);
+      gap: {{ section.settings.grid_column_gap | divided_by: 1.5 | round: 0 }}px;
+    }
+  }
+</style>
+
+<div class="shopify-section">
+  <div class="page-width-{{ section.id }}">
+    
+    {%- for block in section.blocks -%}
+      <div {{ block.shopify_attributes }}>
+        {%- case block.type -%}
+          
+          {%- when 'heading' -%}
+            <div class="fcb__text-block">
+              <h2 class="fcb__heading">{{ block.settings.text | escape }}</h2>
+            </div>
+
+          {%- when 'paragraph' -%}
+            <div class="fcb__text-block">
+              <div class="fcb__paragraph">{{ block.settings.text }}</div>
+            </div>
+
+          {%- when 'image_grid' -%}
+            <div class="fcb__gallery-grid">
+              {%- for i in (1..12) -%}
+                {%- liquid
+                  assign image_setting = 'image_' | append: i
+                  assign link_setting = 'link_' | append: i
+                  assign radius_setting = 'radius_' | append: i
+                  
+                  assign image = block.settings[image_setting]
+                  assign link = block.settings[link_setting]
+                  assign radius = block.settings[radius_setting]
+                -%}
+                {%- if image != blank -%}
+                  <div class="fcb__gallery-item">
+                    <a {% if link != blank %}href="{{ link }}"{% endif %} class="fcb__gallery-item-link" style="border-radius: {{ radius }}px;">
+                      <img class="fcb__gallery-item-image"
+                           src="{{ image | image_url: width: 500 }}"
+                           srcset="{{ image | image_url: width: 300 }} 300w,
+                                   {{ image | image_url: width: 500 }} 500w,
+                                   {{ image | image_url: width: 800 }} 800w"
+                           sizes="(max-width: 768px) calc(100vw / {{ section.settings.columns_mobile }}), calc(100vw / {{ section.settings.columns_desktop }})"
+                           loading="lazy"
+                           width="{{ image.width }}"
+                           height="{{ image.height }}"
+                           alt="{{ image.alt | escape }}">
+                    </a>
+                  </div>
+                {%- endif -%}
+              {%- endfor -%}
+            </div>
+
+        {%- endcase -%}
+      </div>
+    {%- endfor -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Nội Dung Linh Hoạt (Mới)",
+  "class": "flexible-content-section-stable",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Cài đặt chung"
+    },
+    { "type": "range", "id": "padding_top", "min": 0, "max": 100, "step": 4, "unit": "px", "label": "Khoảng cách trên", "default": 36 },
+    { "type": "range", "id": "padding_bottom", "min": 0, "max": 100, "step": 4, "unit": "px", "label": "Khoảng cách dưới", "default": 36 },
+    { "type": "range", "id": "section_max_width", "min": 50, "max": 100, "step": 5, "unit": "%", "label": "Độ rộng tối đa", "default": 100 },
+    {
+      "type": "header",
+      "content": "Cài đặt Khối Chữ"
+    },
+    { "type": "select", "id": "text_align", "label": "Căn lề chữ",
+      "options": [ { "value": "left", "label": "Trái" }, { "value": "center", "label": "Giữa" }, { "value": "right", "label": "Phải" } ],
+      "default": "center"
+    },
+    { "type": "color", "id": "heading_color", "label": "Màu Tiêu đề", "default": "#121212" },
+    { "type": "range", "id": "heading_size", "min": 16, "max": 60, "step": 1, "unit": "px", "label": "Cỡ chữ Tiêu đề", "default": 32 },
+    { "type": "color", "id": "paragraph_color", "label": "Màu Đoạn văn", "default": "#555555" },
+    { "type": "range", "id": "paragraph_size", "min": 12, "max": 24, "step": 1, "unit": "px", "label": "Cỡ chữ Đoạn văn", "default": 16 },
+    {
+      "type": "header",
+      "content": "Cài đặt Lưới Ảnh"
+    },
+    { "type": "range", "id": "columns_desktop", "min": 1, "max": 6, "step": 1, "label": "Số cột trên PC", "default": 4 },
+    { "type": "range", "id": "columns_mobile", "min": 1, "max": 3, "step": 1, "label": "Số cột trên Điện thoại", "default": 2 },
+    { "type": "range", "id": "grid_column_gap", "min": 0, "max": 40, "step": 2, "unit": "px", "label": "Khoảng cách ngang", "default": 16 },
+    { "type": "range", "id": "grid_row_gap", "min": 0, "max": 60, "step": 2, "unit": "px", "label": "Khoảng cách dọc", "default": 16 }
+  ],
+  "blocks": [
+    {
+      "type": "heading",
+      "name": "Tiêu đề",
+      "settings": [
+        { "type": "text", "id": "text", "label": "Nội dung tiêu đề", "default": "Tiêu đề" }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "name": "Đoạn văn",
+      "settings": [
+        { "type": "richtext", "id": "text", "label": "Nội dung", "default": "<p>Mô tả chi tiết ở đây.</p>" }
+      ]
+    },
+    {
+      "type": "image_grid",
+      "name": "Lưới ảnh",
+      "settings": [
+        { "type": "header", "content": "Thêm tối đa 12 ảnh" },
+        { "type": "image_picker", "id": "image_1", "label": "Ảnh 1" },
+        { "type": "url", "id": "link_1", "label": "Link cho ảnh 1" },
+        { "type": "range", "id": "radius_1", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 1", "default": 8 },
+        { "type": "image_picker", "id": "image_2", "label": "Ảnh 2" },
+        { "type": "url", "id": "link_2", "label": "Link cho ảnh 2" },
+        { "type": "range", "id": "radius_2", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 2", "default": 8 },
+        { "type": "image_picker", "id": "image_3", "label": "Ảnh 3" },
+        { "type": "url", "id": "link_3", "label": "Link cho ảnh 3" },
+        { "type": "range", "id": "radius_3", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 3", "default": 8 },
+        { "type": "image_picker", "id": "image_4", "label": "Ảnh 4" },
+        { "type": "url", "id": "link_4", "label": "Link cho ảnh 4" },
+        { "type": "range", "id": "radius_4", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 4", "default": 8 },
+        { "type": "image_picker", "id": "image_5", "label": "Ảnh 5" },
+        { "type": "url", "id": "link_5", "label": "Link cho ảnh 5" },
+        { "type": "range", "id": "radius_5", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 5", "default": 8 },
+        { "type": "image_picker", "id": "image_6", "label": "Ảnh 6" },
+        { "type": "url", "id": "link_6", "label": "Link cho ảnh 6" },
+        { "type": "range", "id": "radius_6", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 6", "default": 8 },
+        { "type": "image_picker", "id": "image_7", "label": "Ảnh 7" },
+        { "type": "url", "id": "link_7", "label": "Link cho ảnh 7" },
+        { "type": "range", "id": "radius_7", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 7", "default": 8 },
+        { "type": "image_picker", "id": "image_8", "label": "Ảnh 8" },
+        { "type": "url", "id": "link_8", "label": "Link cho ảnh 8" },
+        { "type": "range", "id": "radius_8", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 8", "default": 8 },
+        { "type": "image_picker", "id": "image_9", "label": "Ảnh 9" },
+        { "type": "url", "id": "link_9", "label": "Link cho ảnh 9" },
+        { "type": "range", "id": "radius_9", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 9", "default": 8 },
+        { "type": "image_picker", "id": "image_10", "label": "Ảnh 10" },
+        { "type": "url", "id": "link_10", "label": "Link cho ảnh 10" },
+        { "type": "range", "id": "radius_10", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 10", "default": 8 },
+        { "type": "image_picker", "id": "image_11", "label": "Ảnh 11" },
+        { "type": "url", "id": "link_11", "label": "Link cho ảnh 11" },
+        { "type": "range", "id": "radius_11", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 11", "default": 8 },
+        { "type": "image_picker", "id": "image_12", "label": "Ảnh 12" },
+        { "type": "url", "id": "link_12", "label": "Link cho ảnh 12" },
+        { "type": "range", "id": "radius_12", "min": 0, "max": 50, "step": 1, "unit": "px", "label": "Bo góc ảnh 12", "default": 8 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Nội Dung Linh Hoạt (Mới)",
+      "blocks": [
+        { "type": "heading" },
+        { "type": "image_grid" }
+      ]
+    }
+  ]
+}
+{% endschema %}

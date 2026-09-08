@@ -1,0 +1,122 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "collectiontitle_CDc3yQ": {
+      "type": "collectiontitle",
+      "blocks": {
+        "item_gPTVmc": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC00499-shopee_564e33c6-4c85-41cb-a672-df026cf32d6f.jpg",
+            "title": "Sportsbra",
+            "description": "",
+            "link": "shopify://collections/ao-bra-the-thao-nu"
+          }
+        },
+        "item_r8Kpxz": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC06503.jpg",
+            "title": "Quần legging",
+            "description": "",
+            "link": "shopify://collections/quan-legging-nu"
+          }
+        },
+        "item_YykXBh": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/vn-11134207-7r98o-lxhpvckjyrix5d.webp",
+            "title": "Áo tay ngắn",
+            "description": "",
+            "link": "shopify://collections/ao-tay-ngan-tap-gym-nu"
+          }
+        },
+        "item_gqmW8h": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC09006-shopee_1.jpg",
+            "title": "Váy & Chân váy",
+            "description": "",
+            "link": "shopify://collections/vay-the-thao-chan-vay-nu"
+          }
+        },
+        "item_jDL6ef": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC03865-g_c.jpg",
+            "title": "Áo khoác",
+            "description": "",
+            "link": "shopify://collections/ao-khoac-the-thao-nu"
+          }
+        }
+      },
+      "block_order": [
+        "item_gPTVmc",
+        "item_r8Kpxz",
+        "item_YykXBh",
+        "item_gqmW8h",
+        "item_jDL6ef"
+      ],
+      "settings": {
+        "title": "",
+        "breadcrumbs": "",
+        "items_per_row_desktop": "5",
+        "items_per_row_mobile": "2",
+        "show_breadcrumbs": true,
+        "padding_top": 36,
+        "padding_bottom": 36,
+        "background_color": "#ffffff",
+        "heading_color": "#000000",
+        "title_color": "#000000",
+        "description_color": "#666666",
+        "heading_size": 24,
+        "item_title_size": 16,
+        "item_description_size": 14,
+        "scrolling_style": "smooth"
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "collectiontitle_CDc3yQ",
+    "main"
+  ]
+}

@@ -1,0 +1,73 @@
+{%- comment -%}
+----------------------------------------------------------------------------------------------------------------------
+PRODUCT QUICK BUY
+----------------------------------------------------------------------------------------------------------------------
+
+This component is used to render the quick buy content. It is important to note that this snippet must always be
+included inside a product template (you can find an example in the "main-product.liquid" section). The reason is that
+we want to re-use the settings of the merchant on their product page (which info they want to make it visible). To do
+that, we need to re-use the whole product page, and extract the quick-buy part (rendered here).
+
+********************************************
+Supported variables
+********************************************
+
+* product: the product to render
+* section: the section is implicitly available. Here, the section is always a "product" template section, so you can
+           access all the information from the section
+{%- endcomment -%}
+
+<template id="quick-buy-content">
+  {%- capture product_form_id -%}quick-buy-form-{{ product.id }}-{{ section.id }}{%- endcapture -%}
+
+  <product-rerender id="quick-buy-modal-content" observe-form="{{ product_form_id }}">
+    <div class="quick-buy-drawer__variant text-start h-stack gap-6" slot="header">
+      {%- assign image = product.selected_or_first_available_variant.featured_media | default: product.featured_media -%}
+
+      {%- if image != blank -%}
+        <variant-media widths="80,160" form="{{ product_form_id }}">
+          {{- image | image_url: width: image.width | image_tag: loading: 'lazy', sizes: '80px', widths: '80,160', class: 'quick-buy-drawer__media rounded-xs' -}}
+        </variant-media>
+      {%- endif -%}
+
+      <div class="v-stack gap-0.5">
+        <a href="{{ product.url }}" class="bold justify-self-start">{{ product.title }}</a>
+        {%- render 'price-list', product: product, variant: product.selected_or_first_available_variant, form_id: product_form_id -%}
+      </div>
+    </div>
+
+    <div class="quick-buy-drawer__info">
+      {%- comment -%}We only show a limited set of information in the quick buy{%- endcomment -%}
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when '@app' -%}
+            {%- render block -%}
+
+          {%- when 'variant_picker' -%}
+            {%- render 'variant-picker', product: product, form_id: product_form_id, update_url: false, hide_sold_out_variants: block.settings.hide_sold_out_variants, hide_size_chart: true, force_dropdown_as_block: true, block: block -%}
+
+            {%- when 'line_item_property' -%}
+              {%- if block.settings.label != blank -%}
+                {%- capture name -%}properties[{{ block.settings.label | escape }}]{%- endcapture -%}
+    
+                <div class="product-info__property">
+                  {%- if block.settings.type == 'text' -%}
+                    {%- if block.settings.allow_long_text -%}
+                      {%- render 'input', label: block.settings.label, name: name, form: product_form_id, multiline: 4, required: block.settings.required, maxlength: block.settings.max_length -%}
+                    {%- else -%}
+                      {%- render 'input', type: 'text', label: block.settings.label, name: name, form: product_form_id, required: block.settings.required, maxlength: block.settings.max_length -%}
+                    {%- endif -%}
+                  {%- else -%}
+                    {%- render 'checkbox', label: block.settings.label, name: name, required: block.settings.required, form: product_form_id -%}
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            
+            {%- when 'buy_buttons' -%}
+              {%- render 'buy-buttons', product: product, form_id: product_form_id, show_payment_button: block.settings.show_payment_button, button_size: 'lg' -%}
+        {%- endcase -%}
+      {%- endfor -%}
+    </div>
+  </product-rerender>
+</template>

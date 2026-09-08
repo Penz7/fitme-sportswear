@@ -1,11 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
 import { PancakeClient } from '../pancake/pancake.client';
+import { PreorderService } from '../preorder/preorder.service';
 import { ShopifyClient } from '../shopify/shopify.client';
 import { isComboSku } from './combo-sku';
 import { ProductMappingCandidate } from './types/platform-product-snapshot';
@@ -47,6 +48,7 @@ export class InventorySyncService {
     private readonly shopifyClient: ShopifyClient,
     private readonly configService: ConfigService,
     private readonly notifier?: TelegramNotifierService,
+    @Optional() private readonly preorderService?: PreorderService,
   ) {}
 
   async syncMappings(
@@ -65,11 +67,23 @@ export class InventorySyncService {
     const blockedSkus = this.productSyncSkuBlocklist();
     const shopifyCreateAllowlist = this.createMissingShopifySkuAllowlist();
     const syncShopify = this.shopifyProductSyncEnabled();
+    // A disabled configuration still needs one-way enforcement so an old
+    // PreOrder SKU cannot remain sellable below zero in Shopify.
+    const preorderManagedSkus = syncShopify && this.preorderService
+      ? new Set(
+          (
+            await this.prisma.preorderSku.findMany({
+              select: { sku: true },
+            })
+          ).map((item) => item.sku),
+        )
+      : new Set<string>();
     const shopifyCandidateGroups = syncShopify
       ? this.shopifyCandidateGroups(
           mappings,
           blockedSkus,
           shopifyCreateAllowlist,
+          preorderManagedSkus,
         )
       : { ordered: [], hotCount: 0, backlogCount: 0 };
     const shopifyCandidates = shopifyCandidateGroups.ordered.length;
@@ -232,14 +246,42 @@ export class InventorySyncService {
         continue;
       }
 
-      if (mapping.shopify?.variantId && !this.unchangedShopifyInventory(mapping)) {
+      const physicalAvailable = this.integerQuantity(mapping.sapo.available);
+      const preorderInventory = this.preorderService
+        ? await this.preorderService.shopifyInventory(
+            mapping.sku,
+            physicalAvailable,
+          )
+        : {
+            managed: false,
+            enabled: false,
+            available: physicalAvailable,
+            inventoryPolicy: 'deny' as const,
+            mode: 'SOLD_OUT' as const,
+            expectedRestockDate: null,
+          };
+      if (
+        mapping.shopify?.variantId &&
+        (!this.unchangedShopifyInventory(mapping) || preorderInventory.managed)
+      ) {
         try {
-          const available = this.integerQuantity(mapping.sapo.available);
+          const available = preorderInventory.available;
           await this.shopifyClient.updateInventoryAndPrice({
             variantId: mapping.shopify.variantId,
             available,
             retailPrice: mapping.sapo.retailPrice,
+            ...(preorderInventory.managed
+              ? { inventoryPolicy: preorderInventory.inventoryPolicy }
+              : {}),
           });
+          if (preorderInventory.managed) {
+            await this.shopifyClient.setPreorderMetafields({
+              variantId: mapping.shopify.variantId,
+              enabled: preorderInventory.enabled,
+              status: preorderInventory.mode,
+              expectedRestockDate: preorderInventory.expectedRestockDate,
+            });
+          }
           await this.prisma.shopifyProduct.update({
             where: { sku: mapping.sku },
             data: {
@@ -372,6 +414,7 @@ export class InventorySyncService {
     mappings: ProductMappingCandidate[],
     blockedSkus: string[],
     shopifyCreateAllowlist: string[],
+    preorderManagedSkus: Set<string>,
   ): ShopifyCandidateGroups {
     const hot: ProductMappingCandidate[] = [];
     const backlog: ProductMappingCandidate[] = [];
@@ -379,7 +422,14 @@ export class InventorySyncService {
     let createCandidates = 0;
 
     for (const mapping of this.sortShopifyCandidates(mappings)) {
-      if (!this.isShopifyCandidate(mapping, blockedSkus, shopifyCreateAllowlist)) {
+      if (
+        !this.isShopifyCandidate(
+          mapping,
+          blockedSkus,
+          shopifyCreateAllowlist,
+          preorderManagedSkus,
+        )
+      ) {
         continue;
       }
 
@@ -418,6 +468,7 @@ export class InventorySyncService {
     mapping: ProductMappingCandidate,
     blockedSkus: string[],
     shopifyCreateAllowlist: string[],
+    preorderManagedSkus: Set<string>,
   ): boolean {
     if (
       this.blockedSku(mapping.sku, blockedSkus) ||
@@ -429,7 +480,10 @@ export class InventorySyncService {
     }
 
     if (mapping.shopify?.variantId) {
-      return !this.unchangedShopifyInventory(mapping);
+      return (
+        !this.unchangedShopifyInventory(mapping) ||
+        preorderManagedSkus.has(mapping.sku)
+      );
     }
 
     return (

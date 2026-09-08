@@ -1,0 +1,37 @@
+{%- if block.settings.title != blank and block.settings.content != blank or block.settings.page.content != blank -%}
+  {%- capture accordion_content -%}<div class="prose">{{ block.settings.page.content | default: block.settings.content }}</div>{%- endcapture -%}
+
+  {%- render 'accordion', title: block.settings.title, content: accordion_content, block: block -%}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Accordion",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Title"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "Content",
+      "default": "<p>Write content about your brand or products.</p>"
+    },
+    {
+      "type": "page",
+      "id": "page",
+      "label": "Page",
+      "info": "Replaces content if specified."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Accordion"
+    }
+  ]
+}
+{% endschema %}

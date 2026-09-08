@@ -873,4 +873,115 @@ describe('InventorySyncService missing product creation', () => {
       }),
     ]);
   });
+
+  it('syncs an enabled preorder SKU even when both Sapo and Shopify currently show zero', async () => {
+    const prisma = {
+      preorderSku: { findMany: jest.fn().mockResolvedValue([{ sku: 'SKU-PREORDER' }]) },
+      shopifyProduct: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const shopifyClient = {
+      updateInventoryAndPrice: jest.fn().mockResolvedValue(undefined),
+      setPreorderMetafields: jest.fn().mockResolvedValue(undefined),
+    };
+    const preorderService = {
+      shopifyInventory: jest.fn().mockResolvedValue({
+        managed: true,
+        enabled: true,
+        available: 30,
+        inventoryPolicy: 'deny',
+        mode: 'PREORDER',
+        expectedRestockDate: null,
+      }),
+    };
+    const service = new InventorySyncService(
+      prisma as any,
+      { updateInventory: jest.fn() } as any,
+      shopifyClient as any,
+      { get: jest.fn((key: string) => key === 'sync.products.shopifyEnabled' ? true : undefined) } as any,
+      undefined,
+      preorderService as any,
+    );
+
+    const result = await service.syncMappings([
+      {
+        sku: 'SKU-PREORDER',
+        normalizedSku: 'SKU-PREORDER',
+        sapo: sapoSnapshot('SKU-PREORDER', { available: 0, remain: 0 }),
+        pancake: targetSnapshot('pancake', 'SKU-PREORDER', { available: 0 }),
+        shopify: targetSnapshot('shopify', 'SKU-PREORDER', { available: 0 }),
+        status: 'matched',
+        conflictReason: null,
+        conflictDetail: null,
+      },
+    ]);
+
+    expect(shopifyClient.updateInventoryAndPrice).toHaveBeenCalledWith({
+      variantId: 'shopify-variant-1',
+      available: 30,
+      retailPrice: 150000,
+      inventoryPolicy: 'deny',
+    });
+    expect(shopifyClient.setPreorderMetafields).toHaveBeenCalledWith({
+      variantId: 'shopify-variant-1',
+      enabled: true,
+      status: 'PREORDER',
+      expectedRestockDate: null,
+    });
+    expect(result.updatedShopifySkus).toEqual(['SKU-PREORDER']);
+  });
+
+  it('turns off storefront preorder state and enforces deny when a configured SKU is disabled', async () => {
+    const prisma = {
+      preorderSku: { findMany: jest.fn().mockResolvedValue([{ sku: 'SKU-PREORDER' }]) },
+      shopifyProduct: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const shopifyClient = {
+      updateInventoryAndPrice: jest.fn().mockResolvedValue(undefined),
+      setPreorderMetafields: jest.fn().mockResolvedValue(undefined),
+    };
+    const preorderService = {
+      shopifyInventory: jest.fn().mockResolvedValue({
+        managed: true,
+        enabled: false,
+        available: 0,
+        inventoryPolicy: 'deny',
+        mode: 'SOLD_OUT',
+        expectedRestockDate: null,
+      }),
+    };
+    const service = new InventorySyncService(
+      prisma as any,
+      { updateInventory: jest.fn() } as any,
+      shopifyClient as any,
+      { get: jest.fn((key: string) => key === 'sync.products.shopifyEnabled' ? true : undefined) } as any,
+      undefined,
+      preorderService as any,
+    );
+
+    await service.syncMappings([
+      {
+        sku: 'SKU-PREORDER',
+        normalizedSku: 'SKU-PREORDER',
+        sapo: sapoSnapshot('SKU-PREORDER', { available: -1, remain: 0 }),
+        pancake: targetSnapshot('pancake', 'SKU-PREORDER', { available: 0 }),
+        shopify: targetSnapshot('shopify', 'SKU-PREORDER', { available: 0 }),
+        status: 'matched',
+        conflictReason: null,
+        conflictDetail: null,
+      },
+    ]);
+
+    expect(shopifyClient.updateInventoryAndPrice).toHaveBeenCalledWith({
+      variantId: 'shopify-variant-1',
+      available: 0,
+      retailPrice: 150000,
+      inventoryPolicy: 'deny',
+    });
+    expect(shopifyClient.setPreorderMetafields).toHaveBeenCalledWith({
+      variantId: 'shopify-variant-1',
+      enabled: false,
+      status: 'SOLD_OUT',
+      expectedRestockDate: null,
+    });
+  });
 });

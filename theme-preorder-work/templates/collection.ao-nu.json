@@ -1,0 +1,121 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "show_collection_title": false,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h4",
+        "image_size": "auto",
+        "image": "shopify://shop_images/DSC02014_11.webp",
+        "mobile_image": "shopify://shop_images/ao-nu-dt.webp",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#1a1a1a",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "collectiontitle_8XNzjH": {
+      "type": "collectiontitle",
+      "blocks": {
+        "item_NrTgjU": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/IMG_3363-shopee_adcd451b-6ab3-4bd8-951d-763b3ccf6372.jpg",
+            "title": "Áo tay ngắn",
+            "description": "",
+            "link": "shopify://collections/ao-tay-ngan-tap-gym-nu"
+          }
+        },
+        "item_wttQUy": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/0120_78.jpg",
+            "title": "Áo polo",
+            "description": "",
+            "link": "shopify://collections/ao-polo-the-thao-nu"
+          }
+        },
+        "item_cCaehG": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/ao-tanktop-the-thao-nu-cam-pastel_6.jpg",
+            "title": "Tanktop",
+            "description": "",
+            "link": "shopify://collections/ao-tanktop-the-thao-nu"
+          }
+        },
+        "item_aeBCpz": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/IMG_8867.jpg",
+            "title": "Áo tay dài",
+            "description": "",
+            "link": "shopify://products/ao-dai-tay-acdb01-trang-mac-di-tap"
+          }
+        },
+        "item_j836Uf": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/1_ebc7b98f-3a62-4b04-8143-9de3ed7de793.jpg",
+            "title": "Áo croptop & sát nách",
+            "description": "",
+            "link": "shopify://collections/ao-sat-nach-croptop-the-thao-nu"
+          }
+        }
+      },
+      "block_order": [
+        "item_NrTgjU",
+        "item_wttQUy",
+        "item_cCaehG",
+        "item_aeBCpz",
+        "item_j836Uf"
+      ],
+      "settings": {
+        "title": "Áo Thể Thao",
+        "breadcrumbs": "",
+        "items_per_row_desktop": "5",
+        "items_per_row_mobile": "2",
+        "show_breadcrumbs": true,
+        "padding_top": 36,
+        "padding_bottom": 36,
+        "background_color": "#FFFFFF",
+        "heading_color": "#000000",
+        "title_color": "#000000",
+        "description_color": "#666666",
+        "heading_size": 24,
+        "item_title_size": 16,
+        "item_description_size": 14,
+        "scrolling_style": "smooth"
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "collectiontitle_8XNzjH",
+    "main"
+  ]
+}

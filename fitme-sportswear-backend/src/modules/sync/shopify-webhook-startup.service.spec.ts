@@ -59,6 +59,11 @@ describe('ShopifyWebhookStartupService', () => {
       format: 'json',
     });
     expect(shopifyClient.ensureWebhook).toHaveBeenNthCalledWith(2, {
+      topic: 'orders/updated',
+      address: 'https://tunnel.example.com/webhooks/shopify/order',
+      format: 'json',
+    });
+    expect(shopifyClient.ensureWebhook).toHaveBeenNthCalledWith(3, {
       topic: 'orders/cancelled',
       address: 'https://tunnel.example.com/webhooks/shopify/order',
       format: 'json',

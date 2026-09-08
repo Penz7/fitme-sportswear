@@ -1,0 +1,235 @@
+{%- comment -%}
+  Hiển thị số lượng còn lại
+  - Hiển thị theo dạng "Còn X sản phẩm"
+  - Thanh hiển thị càng đầy khi số lượng còn lại càng ít
+{%- endcomment -%}
+
+{%- liquid
+  # Nhận tham số từ block settings
+  assign display_threshold = block.settings.display_threshold
+  assign total_inventory_limit = block.settings.total_inventory_limit
+  assign default_inventory = block.settings.default_inventory
+  assign section_padding = block.settings.section_padding
+  assign section_margin_bottom = block.settings.section_margin_bottom
+  assign section_border_radius = block.settings.section_border_radius
+  assign show_header = block.settings.show_header
+  assign show_icon = block.settings.show_icon
+  assign section_title = block.settings.section_title
+  assign show_message = block.settings.show_message
+  assign section_message = block.settings.section_message
+  assign remaining_text_prefix = block.settings.remaining_text_prefix
+  assign remaining_text_suffix = block.settings.remaining_text_suffix
+  assign text_position = block.settings.text_position
+  assign text_alignment = block.settings.text_alignment
+  
+  # Xử lý dữ liệu sản phẩm
+  assign current_inventory = product.selected_or_first_available_variant.inventory_quantity | default: 0
+  
+  if product.selected_or_first_available_variant.inventory_management != 'shopify'
+    assign current_inventory = default_inventory
+  endif
+  
+  if current_inventory > total_inventory_limit
+    assign current_inventory = total_inventory_limit
+  endif
+  
+  if current_inventory <= 0
+    assign current_inventory = 0
+  endif
+  
+  assign stock_percentage = current_inventory | times: 100.0 | divided_by: total_inventory_limit
+  assign remaining_percentage = 100 | minus: stock_percentage | round
+  
+  # Tính toán màu sắc của thanh dựa trên phần trăm còn lại
+  assign intensity = remaining_percentage | divided_by: 100.0
+  assign low_intensity = 0.3
+  assign high_intensity = 1.0
+  assign start_opacity = low_intensity | plus: intensity | times: 0.7
+  if start_opacity > 1
+    assign start_opacity = 1
+  endif
+-%}
+
+{% if current_inventory <= display_threshold and current_inventory > 0 %}
+  <div class="remaining-stock" id="remaining-stock-{{ block.id }}">
+    {% if show_header %}
+      <div class="remaining-stock__header">
+        {% if show_icon %}
+          <div class="remaining-stock__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+        {% endif %}
+        
+        <div class="remaining-stock__title">
+          {{ section_title }}
+        </div>
+      </div>
+    {% endif %}
+    
+    {% if show_message %}
+      <p class="remaining-stock__message">
+        {{ section_message }}
+      </p>
+    {% endif %}
+    
+    <div class="remaining-stock__meter-container">
+      {% if text_position == 'above' %}
+        <div class="remaining-stock__text">
+          {{ remaining_text_prefix }} {{ current_inventory }} {{ remaining_text_suffix }}
+        </div>
+      {% endif %}
+      
+      <div class="remaining-stock__meter">
+        <div class="remaining-stock__meter-fill" style="width: {{ remaining_percentage }}%;"></div>
+      </div>
+      
+      {% if text_position == 'side' %}
+        <div class="remaining-stock__text">
+          {{ remaining_text_prefix }} {{ current_inventory }} {{ remaining_text_suffix }}
+        </div>
+      {% endif %}
+    </div>
+    
+    {% if text_position == 'below' %}
+      <div class="remaining-stock__text">
+        {{ remaining_text_prefix }} {{ current_inventory }} {{ remaining_text_suffix }}
+      </div>
+    {% endif %}
+  </div>
+
+  <style>
+    .remaining-stock {
+      position: relative;
+      width: 100%;
+      padding: {{ section_padding }}px;
+      margin-bottom: {{ section_margin_bottom }}px;
+      border-radius: {{ section_border_radius }}px;
+      background-color: {{ block.settings.background_color | color_modify: 'alpha', 0.05 }};
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .remaining-stock__header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .remaining-stock__icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      color: {{ block.settings.accent_color }};
+      flex-shrink: 0;
+    }
+    
+    .remaining-stock__title {
+      font-weight: 600;
+      font-size: {{ block.settings.title_font_size }}px;
+      position: relative;
+      color: {{ block.settings.text_color }};
+      {% if block.settings.show_title_underline %}
+        padding-bottom: 6px;
+      {% endif %}
+    }
+    
+    {% if block.settings.show_title_underline %}
+      .remaining-stock__title:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: {{ block.settings.underline_color }};
+      }
+    {% endif %}
+    
+    .remaining-stock__message {
+      font-size: {{ block.settings.message_font_size }}px;
+      color: {{ block.settings.message_color }};
+      margin-bottom: 10px;
+      margin-top: 0;
+    }
+    
+    .remaining-stock__meter-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    
+    .remaining-stock__meter {
+      flex-grow: 1;
+      height: {{ block.settings.meter_height }}px;
+      background-color: {{ block.settings.meter_background }};
+      border-radius: {{ block.settings.meter_border_radius }}px;
+      overflow: hidden;
+    }
+    
+    .remaining-stock__meter-fill {
+      height: 100%;
+      border-radius: {{ block.settings.meter_border_radius }}px;
+      transition: width 0.3s ease;
+      background: linear-gradient(90deg, 
+        {{ block.settings.meter_fill_color | color_modify: 'alpha', start_opacity }} 0%, 
+        {{ block.settings.meter_fill_color }} 100%
+      );
+    }
+    
+    .remaining-stock__text {
+      font-size: {{ block.settings.count_font_size }}px;
+      font-weight: {{ block.settings.count_font_weight }};
+      white-space: nowrap;
+      color: {{ block.settings.count_color }};
+      {% if text_position == 'below' %}
+        margin-top: 8px;
+        width: 100%;
+        text-align: {{ text_alignment }};
+      {% endif %}
+    }
+    
+    @media screen and (max-width: 749px) {
+      .remaining-stock {
+        padding: {{ block.settings.section_padding_mobile }}px;
+      }
+      
+      .remaining-stock__title {
+        font-size: {{ block.settings.title_font_size_mobile }}px;
+      }
+      
+      .remaining-stock__message {
+        font-size: {{ block.settings.message_font_size_mobile }}px;
+      }
+      
+      .remaining-stock__meter {
+        height: {{ block.settings.meter_height_mobile }}px;
+      }
+      
+      .remaining-stock__text {
+        font-size: {{ block.settings.count_font_size_mobile }}px;
+      }
+      
+      {% if block.settings.text_position_mobile == 'below' %}
+        .remaining-stock__meter-container {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        .remaining-stock__meter {
+          width: 100%;
+        }
+        
+        .remaining-stock__text {
+          margin-top: 8px;
+          width: 100%;
+          text-align: {{ block.settings.text_alignment_mobile }};
+        }
+      {% endif %}
+    }
+  </style>
+{% endif %}

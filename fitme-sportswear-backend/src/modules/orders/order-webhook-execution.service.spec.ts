@@ -120,6 +120,19 @@ describe('OrderWebhookExecutionService', () => {
     const notifier = {
       sendMessage: jest.fn().mockResolvedValue(undefined),
     };
+    const preorderService = {
+      findShopifyPreorderLines: jest.fn().mockResolvedValue([]),
+      recordShopifyOrder: jest.fn().mockResolvedValue([]),
+      confirmShopifyPayment: jest.fn().mockResolvedValue({
+        accepted: true,
+        lines: [],
+        exceededSkus: [],
+      }),
+      isSapoOrderReadyForFulfillment: jest.fn().mockResolvedValue(true),
+      cancelShopifyOrder: jest.fn().mockResolvedValue(undefined),
+      markSapoOrderFulfilled: jest.fn().mockResolvedValue(undefined),
+      preorderNote: jest.fn().mockReturnValue(null),
+    };
 
     return {
       prisma,
@@ -128,6 +141,7 @@ describe('OrderWebhookExecutionService', () => {
       addressMappingService,
       configService,
       notifier,
+      preorderService,
       service: new OrderWebhookExecutionService(
         prisma as any,
         sapoClient as any,
@@ -135,6 +149,7 @@ describe('OrderWebhookExecutionService', () => {
         addressMappingService as any,
         configService as any,
         notifier as any,
+        preorderService as any,
       ),
     };
   }
@@ -307,6 +322,161 @@ describe('OrderWebhookExecutionService', () => {
         }),
       },
       { locationId: '572310' },
+    );
+  });
+
+  it('keeps an unpaid Shopify preorder out of Sapo and out of reserved preorder quantity', async () => {
+    const { service, sapoClient, preorderService, prisma } = createService();
+    preorderService.findShopifyPreorderLines.mockResolvedValue([
+      { sku: 'FM-ATSO02-XN-S', quantity: 1, preorderSkuId: 'preorder-sku-1' },
+    ]);
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'orders/create',
+        externalOrderId: 'shopify-preorder-pending-1',
+        statusCode: null,
+        nextActions: [
+          'create_sapo_order_if_missing',
+          'finalize_sapo_order',
+          'update_sapo_order',
+          'upsert_order_mapping',
+        ],
+      },
+      {
+        id: 'shopify-preorder-pending-1',
+        order_number: 3001,
+        financial_status: 'pending',
+        line_items: [{ sku: 'FM-ATSO02-XN-S', quantity: 1 }],
+      },
+    );
+
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+    expect(sapoClient.finalizeOrder).not.toHaveBeenCalled();
+    expect(preorderService.recordShopifyOrder).toHaveBeenCalledWith(
+      'shopify-preorder-pending-1',
+      null,
+      [{ sku: 'FM-ATSO02-XN-S', quantity: 1 }],
+      false,
+    );
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { shopifyOrderId: 'shopify-preorder-pending-1' },
+      create: {
+        shopifyOrderId: 'shopify-preorder-pending-1',
+        shopifyStatus: 'PREORDER_PENDING_PAYMENT',
+      },
+      update: { shopifyStatus: 'PREORDER_PENDING_PAYMENT' },
+    });
+  });
+
+  it('creates and records a Shopify preorder only after Shopify reports paid', async () => {
+    const { service, sapoClient, preorderService } = createService();
+    preorderService.findShopifyPreorderLines.mockResolvedValue([
+      { sku: 'FM-ATSO02-XN-S', quantity: 1, preorderSkuId: 'preorder-sku-1' },
+    ]);
+    sapoClient.fetchOrder.mockResolvedValue({
+      order: {
+        id: 'sapo-order-1',
+        payment_status: 'unpaid',
+        order_line_items: [],
+      },
+    });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'orders/updated',
+        externalOrderId: 'shopify-preorder-paid-1',
+        statusCode: null,
+        nextActions: [
+          'create_sapo_order_if_missing',
+          'finalize_sapo_order',
+          'update_sapo_order',
+          'upsert_order_mapping',
+        ],
+      },
+      {
+        id: 'shopify-preorder-paid-1',
+        order_number: 3002,
+        financial_status: 'paid',
+        total_price: '150000',
+        line_items: [{ sku: 'FM-ATSO02-XN-S', quantity: 1 }],
+      },
+    );
+
+    expect(sapoClient.createOrder).toHaveBeenCalledTimes(1);
+    expect(sapoClient.createOrder).toHaveBeenCalledWith(
+      {
+        order: expect.objectContaining({
+          code: 'PREORDER_SHOPIFY_3002_shopify-preorder-paid-1',
+        }),
+      },
+      { locationId: '572310' },
+    );
+    expect(sapoClient.prepayOrder).toHaveBeenCalledWith(
+      'sapo-order-1',
+      {
+        prepayment: expect.objectContaining({
+          amount: 150000,
+          paid_amount: 150000,
+        }),
+      },
+      { locationId: '572310' },
+    );
+    expect(preorderService.recordShopifyOrder).toHaveBeenCalledWith(
+      'shopify-preorder-paid-1',
+      'sapo-order-1',
+      [{ sku: 'FM-ATSO02-XN-S', quantity: 1 }],
+      true,
+    );
+    expect(preorderService.confirmShopifyPayment).toHaveBeenCalledWith(
+      'shopify-preorder-paid-1',
+      [{ sku: 'FM-ATSO02-XN-S', quantity: 1 }],
+    );
+  });
+
+  it('does not create a Sapo order when a paid preorder would exceed its quota', async () => {
+    const { service, sapoClient, preorderService, prisma, notifier } = createService();
+    preorderService.findShopifyPreorderLines.mockResolvedValue([
+      { sku: 'FM-ATSO02-XN-S', quantity: 1, preorderSkuId: 'preorder-sku-1' },
+    ]);
+    preorderService.confirmShopifyPayment.mockResolvedValue({
+      accepted: false,
+      lines: [],
+      exceededSkus: ['FM-ATSO02-XN-S'],
+    });
+
+    await service.executePlan(
+      {
+        ...basePlan,
+        platform: 'shopify',
+        eventType: 'orders/updated',
+        externalOrderId: 'shopify-preorder-over-quota-1',
+        statusCode: null,
+        nextActions: ['create_sapo_order_if_missing', 'finalize_sapo_order'],
+      },
+      {
+        id: 'shopify-preorder-over-quota-1',
+        financial_status: 'paid',
+        line_items: [{ sku: 'FM-ATSO02-XN-S', quantity: 1 }],
+      },
+    );
+
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith({
+      where: { shopifyOrderId: 'shopify-preorder-over-quota-1' },
+      create: {
+        shopifyOrderId: 'shopify-preorder-over-quota-1',
+        shopifyStatus: 'PREORDER_PAID_QUOTA_EXCEEDED',
+      },
+      update: { shopifyStatus: 'PREORDER_PAID_QUOTA_EXCEEDED' },
+    });
+    expect(notifier.sendMessage).toHaveBeenCalledWith(
+      'PreOrder paid beyond configured quota',
+      expect.stringContaining('shopifyOrderId=shopify-preorder-over-quota-1'),
     );
   });
 

@@ -1,0 +1,80 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_BAXMAt": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_DRzGHm": {
+          "type": "heading",
+          "settings": {
+            "text": "Bộ sưu tập Elegant Swing",
+            "heading_tag": "p",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_efPCLG": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p><strong>Elegant Swing</strong> là bộ sưu tập signature của Fitme, nơi <strong>vẻ đẹp cổ điển</strong> và <strong>sự thanh lịch đương đại</strong> gặp nhau trên sân đấu. Lấy cảm hứng từ các giải tennis lớn như Wimbledon và Roland-Garros, BST kết hợp <strong>form dáng nữ tính</strong> (váy tennis, áo polo), với <strong>chất liệu thể thao co giãn</strong>, thoáng mát và cực kỳ tôn dáng.</p><p>Đây là lựa chọn hoàn hảo cho những cô gái yêu phong cách <strong>\"Sporty & Classy\"</strong> – tự tin khi chơi thể thao, cuốn hút cả khi dạo phố. Nếu bạn yêu một style vừa năng động, vừa cổ điển, thì <strong>Elegant Swing là dành cho bạn.</strong></p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_DRzGHm",
+        "richtext_efPCLG"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_BAXMAt",
+    "main"
+  ]
+}

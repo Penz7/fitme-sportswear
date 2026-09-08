@@ -1,0 +1,155 @@
+{% schema %}
+{
+  "name": "Custom Image",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Background Image"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "label": "Overlay Opacity",
+      "default": 0.5
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Hình ảnh"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle Color",
+      "default": "#cccccc"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Sustainable Materials"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title Color",
+      "default": "#000000"
+    },
+    {
+      "type": "richtext",
+      "id": "text_box_1",
+      "label": "Text Box 1 Content",
+      "default": "<p>Vanvic integrates sustainable materials into our production process...</p>"
+    },
+    {
+      "type": "richtext",
+      "id": "text_box_2",
+      "label": "Text Box 2 Content",
+      "default": "<p>In 2023, we proudly launched a new collection...</p>"
+    },
+    {
+      "type": "color",
+      "id": "box_background_color",
+      "label": "Box Background Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "box_border_radius",
+      "label": "Box Border Radius (px)",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom Image Section"
+    }
+  ]
+}
+{% endschema %}
+
+<section class="sustainable-materials-section" style="background-image: url({{ section.settings.background_image | image_url }});">
+  <div class="overlay" style="background-color: rgba(0,0,0,{{ section.settings.overlay_opacity }});">
+    <div class="content-wrapper">
+      <p class="subtitle" style="color: {{ section.settings.subtitle_color }};">{{ section.settings.subtitle }}</p>
+      <h2 class="title" style="color: {{ section.settings.title_color }};">{{ section.settings.title }}</h2>
+      <div class="text-boxes">
+        <div class="text-box" style="background-color: {{ section.settings.box_background_color }}; color: {{ section.settings.text_color }}; border-radius: {{ section.settings.box_border_radius }}px;">
+          {{ section.settings.text_box_1 }}
+        </div>
+        <div class="text-box" style="background-color: {{ section.settings.box_background_color }}; color: {{ section.settings.text_color }}; border-radius: {{ section.settings.box_border_radius }}px;">
+          {{ section.settings.text_box_2 }}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.sustainable-materials-section {
+  background-size: cover;
+  background-position: center;
+  padding: 80px 20px;
+  position: relative;
+  overflow: hidden;
+  min-height: 600px; /* ✅ FIX: đảm bảo hình nền đủ chiều cao */
+}
+.sustainable-materials-section .overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+.subtitle {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 40px;
+}
+.text-boxes {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+@media (min-width: 768px) {
+  .text-boxes {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+.text-box {
+  padding: 24px;
+  flex: 1;
+  max-width: 500px;
+}
+</style>

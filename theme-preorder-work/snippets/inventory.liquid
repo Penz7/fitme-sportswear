@@ -1,0 +1,119 @@
+{%- comment -%}
+----------------------------------------------------------------------------------------------------------------------
+VARIANT INVENTORY COMPONENT (DYNAMIC REAL-TIME VARIANT SWITCH)
+----------------------------------------------------------------------------------------------------------------------
+{%- endcomment -%}
+
+{%- liquid
+  assign low_threshold_val = low_threshold
+  if low_threshold_val == nil or low_threshold_val <= 0
+    assign low_threshold_val = 10
+  endif
+-%}
+
+{%- if product != blank -%}
+  <variant-inventory class="fitme-inventory-wrapper" form="{{ form_id }}" data-threshold="{{ low_threshold_val }}">
+    <script type="application/json" class="fitme-inventory-data">
+      {
+        {%- for v in product.variants -%}
+          "{{ v.id }}": {{ v.inventory_quantity | default: 0 }}{% unless forloop.last %},{% endunless %}
+        {%- endfor -%}
+      }
+    </script>
+
+    {%- assign initial_variant = variant | default: product.selected_or_first_available_variant -%}
+    {%- assign qty = initial_variant.inventory_quantity -%}
+
+    <div class="fitme-inventory-badge-container">
+      {%- if initial_variant.available and qty != blank and qty > 0 and qty <= low_threshold_val -%}
+        <div class="fitme-inventory-badge fitme-inventory-badge--low">
+          <span class="fitme-inventory-icon">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="8" cy="8" r="7.2" fill="#D02045"/>
+              <path d="M8 4.2V8.4" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="8" cy="11.2" r="0.9" fill="white"/>
+            </svg>
+          </span>
+          <span class="fitme-inventory-text">Chỉ còn {{ qty }} sản phẩm</span>
+        </div>
+      {%- endif -%}
+    </div>
+  </variant-inventory>
+
+  <script>
+    (function() {
+      function setupInventoryTracker() {
+        const wrappers = document.querySelectorAll('variant-inventory.fitme-inventory-wrapper');
+        wrappers.forEach(wrapper => {
+          if (wrapper.dataset.initialized) return;
+          wrapper.dataset.initialized = 'true';
+
+          const dataEl = wrapper.querySelector('.fitme-inventory-data');
+          if (!dataEl) return;
+          let inventoryMap = {};
+          try { inventoryMap = JSON.parse(dataEl.textContent); } catch(e) {}
+
+          const container = wrapper.querySelector('.fitme-inventory-badge-container');
+          const threshold = parseInt(wrapper.dataset.threshold || '10', 10);
+          const formId = wrapper.getAttribute('form');
+          const form = formId ? document.getElementById(formId) : wrapper.closest('form');
+
+          function updateBadge(variantId) {
+            if (!container) return;
+            const qty = inventoryMap[variantId];
+            if (qty !== undefined && qty > 0 && qty <= threshold) {
+              container.innerHTML = `
+                <div class="fitme-inventory-badge fitme-inventory-badge--low">
+                  <span class="fitme-inventory-icon">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="8" cy="8" r="7.2" fill="#D02045"/>
+                      <path d="M8 4.2V8.4" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+                      <circle cx="8" cy="11.2" r="0.9" fill="white"/>
+                    </svg>
+                  </span>
+                  <span class="fitme-inventory-text">Chỉ còn ${qty} sản phẩm</span>
+                </div>
+              `;
+            } else {
+              container.innerHTML = '';
+            }
+          }
+
+          // Listen to variant:change event
+          document.addEventListener('variant:change', function(e) {
+            if (e.detail && e.detail.variant) {
+              updateBadge(e.detail.variant.id);
+            }
+          });
+
+          // Also monitor input hidden ID change inside product form
+          if (form) {
+            const idInput = form.querySelector('input[name="id"]');
+            if (idInput) {
+              const observer = new MutationObserver(() => updateBadge(idInput.value));
+              observer.observe(idInput, { attributes: true, attributeFilter: ['value'] });
+              
+              document.addEventListener('change', function(e) {
+                if (e.target && (e.target.name === 'id' || e.target.closest('variant-picker'))) {
+                  setTimeout(() => updateBadge(idInput.value), 20);
+                }
+              });
+              
+              document.addEventListener('click', function(e) {
+                if (e.target && e.target.closest('variant-picker')) {
+                  setTimeout(() => updateBadge(idInput.value), 50);
+                }
+              });
+            }
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupInventoryTracker);
+      } else {
+        setupInventoryTracker();
+      }
+    })();
+  </script>
+{%- endif -%}

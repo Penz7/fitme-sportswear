@@ -1,0 +1,398 @@
+{%- comment -%}
+  Custom Section: Gingham Collection (Evergreen Collections List)
+  File name: gingham-collection.liquid
+  Save to: sections/gingham-collection.liquid
+{%- endcomment -%}
+
+<section class="gingham-evergreen-{{ section.id }} gingham-evergreen-section" id="GinghamEvergreen-{{ section.id }}">
+  <div class="evergreen-container">
+    
+    {%- if section.settings.eyebrow != blank or section.settings.title != blank -%}
+      <header class="evergreen-header" style="text-align: {{ section.settings.heading_alignment }};">
+        {%- if section.settings.eyebrow != blank -%}
+          <span class="evergreen-eyebrow">{{ section.settings.eyebrow | escape }}</span>
+        {%- endif -%}
+        {%- if section.settings.title != blank -%}
+          <h2 class="evergreen-main-title">{{ section.settings.title }}</h2>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+    
+    <div class="evergreen-grid">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'collection_card' -%}
+          <div class="evergreen-card" {{ block.shopify_attributes }} {% if block.settings.link_url != blank %}onclick="window.location.href='{{ block.settings.link_url }}'"{% endif %}>
+            <div class="evergreen-card-inner">
+              
+              {%- assign overlay_opacity = block.settings.overlay_opacity | divided_by: 100.0 -%}
+              {%- if block.settings.image != blank -%}
+                <div class="evergreen-img-bg" style="background-image: linear-gradient(rgba(44, 40, 36, {{ overlay_opacity }}), rgba(44, 40, 36, {{ overlay_opacity }})), url('{{ block.settings.image | img_url: '800x' }}'); background-position: center {{ block.settings.image_position | default: 'center' }};"></div>
+              {%- else -%}
+                {%- comment -%} Placeholder background matching theme pastel warm check tone {%- endcomment -%}
+                <div class="evergreen-img-bg" style="background-image: linear-gradient(rgba(44, 40, 36, {{ overlay_opacity }}), rgba(44, 40, 36, {{ overlay_opacity }})); background-color: {% cycle '#e3deda', '#eae1cd', '#f7eed9' %};">
+                  {{ 'image' | placeholder_svg_tag: 'placeholder-svg absolute-fill' }}
+                </div>
+              {%- endif -%}
+              
+              <div class="evergreen-overlay"></div>
+              
+              <div class="evergreen-content">
+                {%- if block.settings.tag != blank -%}
+                  <span class="evergreen-tag-pill">{{ block.settings.tag | escape }}</span>
+                {%- endif -%}
+                
+                {%- if block.settings.title != blank -%}
+                  <h3 class="evergreen-title">{{ block.settings.title | escape }}</h3>
+                {%- endif -%}
+                
+                {%- if block.settings.description != blank -%}
+                  <p class="evergreen-desc">{{ block.settings.description | escape }}</p>
+                {%- endif -%}
+                
+                {%- if block.settings.link_text != blank -%}
+                  <span class="evergreen-link">{{ block.settings.link_text | escape }}</span>
+                {%- endif -%}
+              </div>
+              
+            </div>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+  .gingham-evergreen-{{ section.id }} {
+    background: {{ section.settings.background_color }};
+    padding: {{ section.settings.padding_top }}px 0 {{ section.settings.padding_bottom }}px;
+    border-top: 1px solid rgba(245, 230, 163, 0.25);
+  }
+
+  .evergreen-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    box-sizing: border-box;
+  }
+
+  /* Header styles */
+  .evergreen-header {
+    margin-bottom: 48px;
+  }
+
+  .evergreen-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #9a938d;
+    margin-bottom: 12px;
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .evergreen-main-title {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 400;
+    font-size: 38px;
+    color: #2c2824;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .evergreen-main-title em {
+    font-style: italic;
+  }
+
+  /* Grid styles */
+  .evergreen-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .evergreen-card {
+    background: rgba(245, 230, 163, 0.08);
+    border: 1px solid rgba(245, 230, 163, 0.25);
+    padding: 6px;
+    border-radius: 24px;
+    height: 340px;
+    display: flex;
+    box-sizing: border-box;
+    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    cursor: pointer;
+  }
+
+  .evergreen-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px -12px rgba(44, 40, 36, 0.12);
+  }
+
+  .evergreen-card-inner {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    box-sizing: border-box;
+  }
+
+  .evergreen-img-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    background-blend-mode: multiply;
+    border-radius: 18px;
+    z-index: 1;
+  }
+
+  .evergreen-card-inner:hover .evergreen-img-bg {
+    transform: scale(1.05);
+  }
+
+  .evergreen-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(44, 40, 36, 0.85) 0%, rgba(44, 40, 36, 0.3) 60%, transparent 100%);
+    z-index: 2;
+    border-radius: 18px;
+  }
+
+  .evergreen-content {
+    position: relative;
+    z-index: 3;
+    padding: 24px;
+    color: #ffffff;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  .evergreen-tag-pill {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: #ffffff;
+    color: #2c2824;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 10px;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .evergreen-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 26px;
+    font-weight: 400;
+    margin: 0 0 6px 0;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    min-height: 32px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .evergreen-desc {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0 0 16px 0;
+    font-family: 'Montserrat', sans-serif;
+    line-height: 1.5;
+    min-height: 56px;
+  }
+
+  .evergreen-link {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Montserrat', sans-serif;
+    color: #ffffff;
+  }
+
+  /* Placeholder Styling */
+  .placeholder-svg {
+    width: 100%;
+    height: 100%;
+    fill: rgba(245, 230, 163, 0.15);
+  }
+
+  /* Responsive styles */
+  @media (max-width: 900px) {
+    .evergreen-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .evergreen-card {
+      height: 280px;
+    }
+    .evergreen-main-title {
+      font-size: 30px;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Gingham Collection",
+  "settings": [
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Màu nền Section",
+      "default": "#FDFAF5"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding Top",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding Bottom",
+      "default": 64
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Nhãn phụ (Eyebrow)",
+      "default": "EVERGREEN LINES"
+    },
+    {
+      "type": "html",
+      "id": "title",
+      "label": "Tiêu đề chính (Heading)",
+      "default": "Những phom dáng <em>nguyên bản</em>"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Căn lề tiêu đề",
+      "options": [
+        { "value": "left", "label": "Trái (Left)" },
+        { "value": "center", "label": "Giữa (Center)" },
+        { "value": "right", "label": "Phải (Right)" }
+      ],
+      "default": "center"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection_card",
+      "name": "Collection Card",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Hình ảnh nền"
+        },
+        {
+          "type": "select",
+          "id": "image_position",
+          "label": "Căn lề dọc hình ảnh (Vertical Position)",
+          "options": [
+            { "value": "top", "label": "Căn trên (Show Face)" },
+            { "value": "center", "label": "Căn giữa" },
+            { "value": "bottom", "label": "Căn dưới" }
+          ],
+          "default": "center"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "min": 0,
+          "max": 100,
+          "step": 5,
+          "label": "Độ mờ phủ tối hình ảnh (Overlay)",
+          "default": 40
+        },
+        {
+          "type": "text",
+          "id": "tag",
+          "label": "Nhãn (Tag)",
+          "default": "Sporty & Social"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Tiêu đề thẻ",
+          "default": "Court Aesthetic"
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Mô tả ngắn",
+          "default": "Đồ tập Tennis & Pickleball mang phom dáng váy xếp ly cổ điển, mang tinh thần năng động giao thoa phong cách sống."
+        },
+        {
+          "type": "text",
+          "id": "link_text",
+          "label": "Chữ hiển thị của liên kết",
+          "default": "Khám phá ngay ↗"
+        },
+        {
+          "type": "url",
+          "id": "link_url",
+          "label": "Địa chỉ liên kết"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Gingham Collection",
+      "blocks": [
+        {
+          "type": "collection_card",
+          "settings": {
+            "tag": "Sporty & Social",
+            "title": "Court Aesthetic",
+            "description": "Đồ tập Tennis & Pickleball mang phom dáng váy xếp ly cổ điển, mang tinh thần năng động giao thoa phong cách sống.",
+            "link_text": "Khám phá ngay ↗"
+          }
+        },
+        {
+          "type": "collection_card",
+          "settings": {
+            "tag": "Yoga & Pilates",
+            "title": "Signature Ribbed",
+            "description": "Dòng vải tăm gân co giãn 4 chiều, thiết kế chuyên sâu cho các chuyển động Yoga & Pilates mềm dẻo.",
+            "link_text": "Xem chi tiết ↗"
+          }
+        },
+        {
+          "type": "collection_card",
+          "settings": {
+            "tag": "Everyday Training",
+            "title": "Core Essentials",
+            "description": "Những thiết kế Leggings và Bra trơn tối giản, tôn form hông đùi và bền bỉ theo năm tháng.",
+            "link_text": "Mua trọn set ↗"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

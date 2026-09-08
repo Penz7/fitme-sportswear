@@ -1,0 +1,106 @@
+{%- if block.settings.text != blank -%}
+  {%- assign html_tag = block.settings.html_tag -%}
+
+  <{{ html_tag }} class="{{ block.settings.size }}" {{ block.shopify_attributes }}>
+    {%- render 'styled-text', content: block.settings.text, text_color: block.settings.text_color, gradient: block.settings.gradient -%}
+  </{{ html_tag }}>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Heading",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Text",
+      "default": "Heading"
+    },
+    {
+      "type": "select",
+      "id": "size",
+      "label": "Size",
+      "options": [
+        {
+          "value": "h1",
+          "label": "X-Large"
+        },
+        {
+          "value": "h2",
+          "label": "Large"
+        },
+        {
+          "value": "h3",
+          "label": "Medium"
+        },
+        {
+          "value": "h4",
+          "label": "Small"
+        },
+        {
+          "value": "h5",
+          "label": "X-Small"
+        },
+        {
+          "value": "h6",
+          "label": "XX-Small"
+        }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "html_tag",
+      "label": "HTML tag",
+      "info": "Maintain a logical hierarchy with hX tags (e.g., don’t use h3 before h1). Use paragraph tag if unsure.",
+      "options": [
+        {
+          "value": "p",
+          "label": "Paragraph"
+        },
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        }
+      ],
+      "default": "p"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color"
+    },
+    {
+      "type": "color_background",
+      "id": "gradient",
+      "label": "Gradient"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Heading"
+    }
+  ]
+}
+{% endschema %}

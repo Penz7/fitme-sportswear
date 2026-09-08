@@ -1,0 +1,147 @@
+{% schema %}
+{
+  "name": "Custom Rich Text",
+  "class": "custom-rich-text",
+  "settings": [
+    {
+      "type": "text",
+      "id": "section_max_width",
+      "label": "Chiều rộng tối đa (ví dụ: 1200px hoặc 80%)",
+      "default": "100%"
+    },
+    {
+      "type": "checkbox",
+      "id": "use_container",
+      "label": "Bo tròn nội dung (container nhỏ hơn)",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "text_position",
+      "label": "Căn chỉnh văn bản",
+      "options": [
+        { "value": "left", "label": "Trái" },
+        { "value": "center", "label": "Giữa" },
+        { "value": "right", "label": "Phải" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "textarea",
+      "id": "subheading",
+      "label": "Subheading (Tiêu đề phụ - Hỗ trợ HTML)",
+      "default": "<p>Đây là <span style='color: red;'>Subheading</span></p>"
+    },
+    {
+      "type": "range",
+      "id": "subheading_size",
+      "label": "Kích thước subheading (px)",
+      "min": 12,
+      "max": 30,
+      "step": 1,
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "subheading_weight",
+      "label": "Độ đậm subheading",
+      "min": 100,
+      "max": 900,
+      "step": 100,
+      "default": 400
+    },
+    {
+      "type": "textarea",
+      "id": "heading",
+      "label": "Heading (Tiêu đề chính - Hỗ trợ HTML)",
+      "default": "<h2>Bigger, <span style='color: blue;'>bolder</span>, and <span style='color: green;'>clearer</span> for you.</h2>"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Kích thước heading (px)",
+      "min": 20,
+      "max": 80,
+      "step": 1,
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "heading_weight",
+      "label": "Độ đậm heading",
+      "min": 100,
+      "max": 900,
+      "step": 100,
+      "default": 700
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph",
+      "label": "Paragraph (Nội dung - Hỗ trợ HTML)",
+      "default": "<p>Tôi yêu <span style='color: gold;'>Việt Nam</span></p>"
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size",
+      "label": "Kích thước paragraph (px)",
+      "min": 14,
+      "max": 40,
+      "step": 1,
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "paragraph_weight",
+      "label": "Độ đậm paragraph",
+      "min": 100,
+      "max": 900,
+      "step": 100,
+      "default": 400
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom Rich Text",
+      "category": "Custom Sections"
+    }
+  ]
+}
+{% endschema %}
+
+<div class="custom-rich-text-wrapper" style="max-width: {{ section.settings.section_max_width }}; margin: 0 auto;">
+  <div class="custom-rich-text {% if section.settings.use_container %}container{% endif %}" style="text-align: {{ section.settings.text_position }};">
+    <div class="subheading" style="font-size: {{ section.settings.subheading_size }}px; font-weight: {{ section.settings.subheading_weight }};">
+      {{ section.settings.subheading }}
+    </div>
+    <div class="heading" style="font-size: {{ section.settings.heading_size }}px; font-weight: {{ section.settings.heading_weight }};">
+      {{ section.settings.heading }}
+    </div>
+    <div class="paragraph" style="font-size: {{ section.settings.paragraph_size }}px; font-weight: {{ section.settings.paragraph_weight }};">
+      {{ section.settings.paragraph }}
+    </div>
+  </div>
+</div>
+
+<style>
+.custom-rich-text-wrapper {
+  width: 100%;
+}
+.custom-rich-text {
+  line-height: 1.4;
+}
+.subheading {
+  margin-bottom: 5px;
+}
+.heading {
+  margin-bottom: 10px;
+}
+.paragraph {
+  margin-top: 5px;
+}
+.container {
+  padding-left: 16px;
+  padding-right: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+</style>

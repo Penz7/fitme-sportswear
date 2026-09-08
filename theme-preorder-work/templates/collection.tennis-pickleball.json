@@ -1,0 +1,135 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "image": "shopify://shop_images/16_result_3c9e2caf-38fc-44d1-97f6-88d8aeafa5b4.webp",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "image_with_text_overlay_GdGDPE": {
+      "type": "image-with-text-overlay",
+      "disabled": true,
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "image_size": "auto",
+        "image": "shopify://shop_images/16_result_3c9e2caf-38fc-44d1-97f6-88d8aeafa5b4.webp",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center sm:text-center",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "collectiontitle_qRdkHK": {
+      "type": "collectiontitle",
+      "blocks": {
+        "item_KhdKpW": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/FORCE_result_1627f85f-0c09-4078-b23b-54a8073d376a.webp",
+            "title": "Váy",
+            "description": "",
+            "link": "shopify://collections/vay-tennis-nu"
+          }
+        },
+        "item_YXCmJm": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/IMG_0696-goc.jpg",
+            "title": "Chân váy",
+            "description": "",
+            "link": "shopify://collections/chan-vay-tennis-nu"
+          }
+        },
+        "item_JC6yqq": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/0120_15.jpg",
+            "title": "Áo croptop",
+            "description": "",
+            "link": "shopify://collections/ao-sat-nach-croptop-the-thao-nu"
+          }
+        },
+        "item_NezGhU": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/1_bbc229c2-5834-4c45-9ac9-be490a40927b.jpg",
+            "title": "Áo polo",
+            "description": "",
+            "link": "shopify://collections/ao-polo-the-thao-nu"
+          }
+        }
+      },
+      "block_order": [
+        "item_KhdKpW",
+        "item_YXCmJm",
+        "item_JC6yqq",
+        "item_NezGhU"
+      ],
+      "settings": {
+        "title": "Đồ Tennis & Pickleball Nữ",
+        "breadcrumbs": "",
+        "items_per_row_desktop": "4",
+        "items_per_row_mobile": "2",
+        "show_breadcrumbs": true,
+        "padding_top": 12,
+        "padding_bottom": 0,
+        "background_color": "#ffffff",
+        "heading_color": "#000000",
+        "title_color": "#000000",
+        "description_color": "#666666",
+        "heading_size": 24,
+        "item_title_size": 16,
+        "item_description_size": 14,
+        "scrolling_style": "smooth"
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "seo_content": {
+      "type": "collection-seo-content",
+      "settings": {}
+    }
+  },
+  "order": [
+    "banner",
+    "image_with_text_overlay_GdGDPE",
+    "collectiontitle_qRdkHK",
+    "main",
+    "seo_content"
+  ]
+}

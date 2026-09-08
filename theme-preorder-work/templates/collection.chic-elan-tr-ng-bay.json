@@ -1,0 +1,669 @@
+{
+  "sections": {
+    "image_with_text_overlay_MgEDfa": {
+      "type": "image-with-text-overlay",
+      "blocks": {
+        "subheading_nTCYCa": {
+          "type": "subheading",
+          "settings": {
+            "text": ""
+          }
+        },
+        "heading_BjA7mJ": {
+          "type": "heading",
+          "settings": {
+            "text": "",
+            "heading_tag": "h1"
+          }
+        },
+        "richtext_9HNmcR": {
+          "type": "richtext",
+          "settings": {
+            "content": ""
+          }
+        }
+      },
+      "block_order": [
+        "subheading_nTCYCa",
+        "heading_BjA7mJ",
+        "richtext_9HNmcR"
+      ],
+      "disabled": true,
+      "name": "Image with text overlay",
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "image_size": "auto",
+        "image": "shopify://shop_images/20250715-143932.webp",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center sm:text-center",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_yRPgXL": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_97APwC": {
+          "type": "heading",
+          "settings": {
+            "text": "BST CHIC ÉLAN",
+            "heading_tag": "p",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_74PtfL": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Chic Élan mang hơi thở cổ điển qua các chi tiết viền cổ, tay áo, chân váy, kết hợp cách điệu cùng khoá kéo kim loại, được lấy cảm hứng từ trang phục học viện Mỹ.<br/><br/>Một món quà dành cho những cô nàng năng động yêu thể thao và theo đuổi phong cách thời trang thanh lịch, kín đáo.\"</p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_97APwC",
+        "richtext_74PtfL"
+      ],
+      "disabled": true,
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "shop_the_look_MArDVk": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_NxyF4P": {
+          "type": "product",
+          "settings": {
+            "product": "ao-thun-fitme-glide-ce-atct01-red-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_gqYcze": {
+          "type": "product",
+          "settings": {
+            "product": "ao-thun-fitme-glide-ce-atct01-navy-soc-do",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_EMHUjY": {
+          "type": "product",
+          "settings": {
+            "product": "ao-thun-fitme-glide-ce-atct01-trang-soc-do",
+            "horizontal_position": 95,
+            "vertical_position": 25
+          }
+        },
+        "product_mRhFfJ": {
+          "type": "product",
+          "settings": {
+            "product": "ao-thun-fitme-glide-ce-atct01-navy-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        }
+      },
+      "block_order": [
+        "product_NxyF4P",
+        "product_gqYcze",
+        "product_EMHUjY",
+        "product_mRhFfJ"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "image": "shopify://shop_images/Untitled-4gdl.jpg",
+        "title": "GLIDE POLO",
+        "content": "<p>Đại diện cho vẻ đẹp nhẹ nhàng, tự do di chuyển, thể hiện một người phụ nữ hiện đại không bị rào cản, luôn thoải mái và tự tin tiến về phía trước.<br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_gXdBCW": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_BxhbAP": {
+          "type": "product",
+          "settings": {
+            "product": "ao-khoac-fitme-fierce-ce-aktn01-navy-soc-do",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_mp7UgK": {
+          "type": "product",
+          "settings": {
+            "product": "ao-khoac-fitme-fierce-ce-aktn01-navy-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_KCnWHF": {
+          "type": "product",
+          "settings": {
+            "product": "ao-khoac-fitme-fierce-ce-aktn01-red-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        }
+      },
+      "block_order": [
+        "product_BxhbAP",
+        "product_mp7UgK",
+        "product_KCnWHF"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "image": "shopify://shop_images/Untitled-3gdl.jpg",
+        "title": "FIERCE JACKET",
+        "content": "<p>Đại diện cho vẻ đẹp quyền lực và sự mạnh mẽ, là hình ảnh của người phụ nữ tự tin, dũng cảm, sẵn sàng đối mặt với thử thác<br/><br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_H9CY6J": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_9wEa6r": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-fitme-ember-ce-aptn01-trang-soc-do",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_hc8m8A": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-fitme-ember-ce-aptn01-navy-soc-do",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_PNQm4E": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-tennis-pickleball-nu-fitme-ember-ce-thoang-khi-khang-khuan-aptn01-red-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_xq68Kt": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-fitme-ember-ce-aptn01-navy-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        }
+      },
+      "block_order": [
+        "product_9wEa6r",
+        "product_hc8m8A",
+        "product_PNQm4E",
+        "product_xq68Kt"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "image": "shopify://shop_images/Untitled-1gdl.jpg",
+        "title": "EMBER POLO",
+        "content": "<p>Đại diện cho vẻ đẹp bền bỉ, kiên cường, với tinh thần không bao giờ lùi bước, là hình ảnh của người phụ nữ luôn cháy bỏng đam mê và kiên định trên con đường của mình.<br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_iY8PVc": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_y8YJeG": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-fitme-ember-ce-aptn01-navy-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_jWRKit": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-fitme-ember-ce-aptn01-navy-soc-do",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_TMPmYY": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-tennis-pickleball-nu-fitme-ember-ce-thoang-khi-khang-khuan-aptn01-red-co-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_rV83KB": {
+          "type": "product",
+          "settings": {
+            "product": "",
+            "horizontal_position": 30,
+            "vertical_position": 30
+          }
+        }
+      },
+      "block_order": [
+        "product_y8YJeG",
+        "product_jWRKit",
+        "product_TMPmYY",
+        "product_rV83KB"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "title": "ROGUE SKIRT",
+        "content": "<p>Đại diện cho vẻ đẹp tự do, phóng khoáng, một người phụ nữ hiện đại đầy cá tính, không theo quy chuẩn và luôn sống thật với chính mình.<br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_mpFkqC": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_rC7yqX": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-fitme-ember-ce-aptn01-navy-co-be",
+            "horizontal_position": 52,
+            "vertical_position": 25
+          }
+        },
+        "product_zizLTH": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-fitme-ember-ce-aptn01-navy-soc-do",
+            "horizontal_position": 75,
+            "vertical_position": 53
+          }
+        },
+        "product_FMb8fw": {
+          "type": "product",
+          "settings": {
+            "product": "ao-polo-tennis-pickleball-nu-fitme-ember-ce-thoang-khi-khang-khuan-aptn01-red-co-be",
+            "horizontal_position": 33,
+            "vertical_position": 73
+          }
+        }
+      },
+      "block_order": [
+        "product_rC7yqX",
+        "product_zizLTH",
+        "product_FMb8fw"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "title": "PULSE SKIRT",
+        "content": "<p>Đại diện cho vẻ đẹp năng động, sôi nổi, thể hiện nhịp điệu không ngừng nghỉ của người phụ nữ hiện đại – luôn chuyển động, luôn tiến về phía trước.<br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_7hAMDU": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_kmRH4N": {
+          "type": "product",
+          "settings": {
+            "product": "",
+            "horizontal_position": 30,
+            "vertical_position": 30
+          }
+        },
+        "product_tPMMAY": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-zen-ce-dntn01-trang-soc-do",
+            "horizontal_position": 33,
+            "vertical_position": 73
+          }
+        },
+        "product_VNfU3E": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-zen-ce-dntn01-navy-co-be",
+            "horizontal_position": 52,
+            "vertical_position": 11
+          }
+        },
+        "product_WFx7jE": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-zen-ce-dntn01-red-co-be",
+            "horizontal_position": 75,
+            "vertical_position": 53
+          }
+        }
+      },
+      "block_order": [
+        "product_kmRH4N",
+        "product_tPMMAY",
+        "product_VNfU3E",
+        "product_WFx7jE"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "image": "shopify://shop_images/Untitled-5gdl.jpg",
+        "title": "ZEN DRESS",
+        "content": "<p>Đại diện cho vẻ đẹp nhẹn nhàng bình yên, là hình ảnh của người phụ nữ hiện đại luôn tìm kiếm sự cân bằng giữa công việc, gia đình và bản thân.<br/><br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_BAG3JD": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_GGHTjy": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-echo-ce-dxtn01-trang-soc-do",
+            "horizontal_position": 75,
+            "vertical_position": 53
+          }
+        },
+        "product_dYCFYN": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-echo-ce-dxtn01-navy-co-be",
+            "horizontal_position": 52,
+            "vertical_position": 11
+          }
+        }
+      },
+      "block_order": [
+        "product_GGHTjy",
+        "product_dYCFYN"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "image": "shopify://shop_images/Untitled-6gdl.png",
+        "title": "ECHO DRESS",
+        "content": "<p>Đại diện cho vẻ đẹp nhẹ nhàng, sâu sắc, phản chiếu nội lực mạnh mẽ từ bên trong của người phụ nữ hiện đại – tự tin, sáng tạo và không ngừng phát triển.<br/><br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_t6V7pk": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_PndxV7": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-echo-ce-dxtn01-navy-co-be",
+            "horizontal_position": 52,
+            "vertical_position": 11
+          }
+        },
+        "product_xP9Bkb": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-echo-ce-dxtn01-trang-soc-do",
+            "horizontal_position": 75,
+            "vertical_position": 53
+          }
+        },
+        "product_whVXbA": {
+          "type": "product",
+          "settings": {
+            "product": "vay-fitme-zen-ce-dntn01-trang-soc-do",
+            "horizontal_position": 33,
+            "vertical_position": 73
+          }
+        }
+      },
+      "block_order": [
+        "product_PndxV7",
+        "product_xP9Bkb",
+        "product_whVXbA"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "title": "ZENITH SKIRT",
+        "content": "<p>Đại diện cho vẻ đẹp vươn tới đỉnh cao, thể hiện sự tự do, thành công và sự hoàn hảo trong từng bước đi của người phụ nữ hiện đại.<br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "shop_the_look_KAEqFA": {
+      "type": "shop-the-look",
+      "blocks": {
+        "product_fk7xWM": {
+          "type": "product",
+          "settings": {
+            "product": "ao-khoac-cardigan-nu-fitme-evoke-ce-actd01-blazer-navy",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_qYcWee": {
+          "type": "product",
+          "settings": {
+            "product": "ao-khoac-cardigan-fitme-evoke-ce-actd01-be",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        },
+        "product_PjMYjh": {
+          "type": "product",
+          "settings": {
+            "product": "ao-khoac-cardigan-nu-fitme-evoke-ce-actd01-xam-tieu",
+            "horizontal_position": 95,
+            "vertical_position": 95
+          }
+        }
+      },
+      "block_order": [
+        "product_fk7xWM",
+        "product_qYcWee",
+        "product_PjMYjh"
+      ],
+      "disabled": true,
+      "name": "Shop the look",
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "image": "shopify://shop_images/Untitled-7gdl.jpg",
+        "title": "EVOKE CARDIGAN",
+        "content": "<p>Đại diện cho vẻ đẹp cuốn hút, mạnh mẽ, tạo ra sự kết nối sâu sắc và kích thích cảm xúc của người phụ nữ hiện đại – tự tin và đầy sức hút.<br/><br/></p>",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": "",
+        "product_card_mobile_background": "",
+        "product_card_mobile_text_color": "",
+        "background_dots": "#ffffff"
+      }
+    },
+    "rich_text_yXdXdY": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_tenw6N": {
+          "type": "heading",
+          "settings": {
+            "text": "Bộ sưu tập Chic Élan",
+            "heading_tag": "p",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_6hTymy": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Chic Élan mang hơi thở cổ điển qua các chi tiết viền cổ, tay áo, chân váy, kết hợp cách điệu cùng khoá kéo kim loại, được lấy cảm hứng từ trang phục học viện Mỹ.<br/><br/>Một món quà dành cho những cô nàng năng động yêu thể thao và theo đuổi phong cách thời trang thanh lịch, kín đáo.</p><p></p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_tenw6N",
+        "richtext_6hTymy"
+      ],
+      "name": "Rich text",
+      "settings": {
+        "full_width": true,
+        "content_width": "small",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 5,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "image_with_text_overlay_MgEDfa",
+    "banner",
+    "rich_text_yRPgXL",
+    "shop_the_look_MArDVk",
+    "shop_the_look_gXdBCW",
+    "shop_the_look_H9CY6J",
+    "shop_the_look_iY8PVc",
+    "shop_the_look_mpFkqC",
+    "shop_the_look_7hAMDU",
+    "shop_the_look_BAG3JD",
+    "shop_the_look_t6V7pk",
+    "shop_the_look_KAEqFA",
+    "rich_text_yXdXdY",
+    "main"
+  ]
+}

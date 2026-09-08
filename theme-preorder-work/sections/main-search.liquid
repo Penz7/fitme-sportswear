@@ -1,0 +1,346 @@
+{%- if section.settings.show_filters and search.filters.size > 0 -%}
+  {%- assign show_filters = true -%}
+{%- else -%}
+  {%- assign show_filters = false -%}
+{%- endif -%}
+
+{%- assign active_filters = search.filters | where: 'active_values' -%}
+
+{%- capture search_form -%}
+  <form class="main-search-form" action="{{ routes.search_url }}" method="get" role="search">
+    <div class="v-stack gap-6 sm:gap-12">
+      <div class="search-input">
+        <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="{{ 'search.general.search_placeholder' | t }}" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="{{ 'search.general.title' | t | escape }}">
+        <button type="submit">{%- render 'icon' with 'search' -%}</button>
+      </div>
+
+      {%- unless search.results_count > 0 -%}
+        <div class="justify-self-center">
+          {%- assign button_content = 'search.general.title' | t -%}
+          {%- render 'button', type: 'submit', content: button_content, size: 'xl' -%}
+        </div>
+      {%- endunless -%}
+    </div>
+  </form>
+{%- endcapture -%}
+
+<style>
+  {%- assign card_blends = false -%}
+
+  {%- unless settings.background != 'rgba(0,0,0,0)' and settings.product_card_background != 'rgba(0,0,0,0)' and settings.background != settings.product_card_background -%}
+  {%- assign card_blends = true -%}
+  {%- endunless -%}
+
+  #shopify-section-{{ section.id }} {
+    --product-list-gap: {% if section.settings.products_per_row_mobile == '2' %}{% if card_blends %}var(--product-list-row-gap){% endif %} var(--spacing-2){% else %}var(--product-list-row-gap) var(--product-list-column-gap){% endif %};
+    --product-list-items-per-row: {{ section.settings.products_per_row_mobile | times: 1 }};
+    --product-list-grid: auto-flow dense / repeat(var(--product-list-items-per-row), minmax(0, 1fr));
+
+    --content-over-media-gap: var(--spacing-8);
+  }
+
+  @media screen and (min-width: 700px) {
+    #shopify-section-{{ section.id }} {
+      --product-list-gap: var(--product-list-row-gap) var(--product-list-column-gap);
+      --product-list-items-per-row: 2;
+    }
+  }
+
+  @media screen and (min-width: 1000px) {
+    #shopify-section-{{ section.id }} {
+      --product-list-items-per-row: {% if section.settings.filter_layout == 'sidebar' %}2{% else %}{{ section.settings.products_per_row_desktop | at_most: 3 }}{% endif %};
+    }
+  }
+
+  @media screen and (min-width: 1200px) {
+    #shopify-section-{{ section.id }} {
+      --product-list-items-per-row: {% if section.settings.filter_layout == 'sidebar' %}{{ section.settings.products_per_row_desktop | at_most: 3 }}{% else %}{{ section.settings.products_per_row_desktop }}{% endif %};
+    }
+  }
+
+  @media screen and (min-width: 1400px) {
+    #shopify-section-{{ section.id }} {
+      --product-list-items-per-row: {{ section.settings.products_per_row_desktop }};
+    }
+  }
+</style>
+
+{%- if search.performed and search.results_count > 0 or active_filters.size > 0 -%}
+  <div class="search-banner v-stack gap-6 sm:gap-8 bg-secondary">
+    <h1 class="h2 text-center">{{- 'search.results_count' | t: count: search.results_count, terms: search.terms -}}</h1>
+    {{- search_form -}}
+
+    <x-tabs class="nav-categories h-stack justify-center" external-panels>
+      <template shadowroot="open">
+        <slot role="tablist" part="tab-list" name="title"></slot>
+      </template>
+
+      {%- for search_type in search.types reversed -%}
+        <button slot="title" class="link-reversed subheading" aria-selected="{{ forloop.first }}" controlled-panel="main-search-results-{{ search_type }}">
+          {%- assign translation_key = 'search.general.' | append: search_type | append: 's' -%}
+          {{- translation_key | t }} {% if search.types.size == 1 %}({{ search.results_count }}){% endif %}
+        </button>
+      {%- endfor -%}
+    </x-tabs>
+  </div>
+
+  <div class="container">
+    {%- comment -%}If there is only one type of resources and that those are products, then we can show the results directly{%- endcomment -%}
+
+    {%- if search.types.size == 1 -%}
+      <search-result-panel id="main-search-results-{{ search.types.first | escape }}">
+        {%- case search.types.first -%}
+          {%- when 'product' -%}
+            {%- paginate search.results by section.settings.products_per_page -%}
+              <div class="collection {% if show_filters %}collection--filters-{{ section.settings.filter_layout | escape }}{% endif %}">
+                {%- if show_filters or section.settings.show_sort_by -%}
+                  {%- comment -%}
+                    IMPLEMENTATION NOTE: we have to output the drawer no matter what, as it is used on mobile (all the time) or desktop (when in drawer mode)
+                  {%- endcomment -%}
+
+                  <facet-drawer header-bordered id="facets-drawer" class="facets-drawer drawer" open-from="left">
+                    <p class="h5" slot="title">{{ 'collection.faceting.filters' | t }}</p>
+                    {%- render 'facets-vertical', results: search, show_filters: show_filters, show_sort_by: section.settings.show_sort_by, update_on_change: false -%}
+                  </facet-drawer>
+
+                  {%- if section.settings.filter_layout == 'horizontal' -%}
+                    {%- render 'collection-top-bar', results: search, show_filters: show_filters, show_active_filters: show_filters, show_sort_by: section.settings.show_sort_by -%}
+                  {%- else -%}
+                    {%- render 'collection-top-bar', results: search, show_filters: false, show_active_filters: show_filters, show_sort_by: section.settings.show_sort_by -%}
+                  {%- endif -%}
+
+                  {%- comment -%}We also need to render the button, that is floating on mobile{%- endcomment -%}
+                  <facet-floating-filter class="facets__floating-filter md:hidden">
+                    {%- capture content_key -%}
+                      {%- if show_filters and section.settings.show_sort_by -%}
+                        collection.faceting.filter_and_sort
+                      {%- elsif show_filters and section.settings.show_sort_by == false -%}
+                        collection.faceting.filter_button
+                      {%- elsif show_filters == false and section.settings.show_sort_by -%}
+                        collection.faceting.sort_by
+                      {%- endif -%}
+                    {%- endcapture -%}
+
+                    {%- assign filter_label = content_key | t -%}
+                    {%- render 'button', size: 'xl', content: filter_label, icon: 'filter', style: 'fill', background: settings.text_color, text_color: settings.background, aria_controls: 'facets-drawer' -%}
+                  </facet-floating-filter>
+                {%- endif -%}
+
+                {%- if show_filters and section.settings.filter_layout == 'sidebar' -%}
+                  <div class="collection__facets">
+                    <safe-sticky class="collection__facets-scroller">
+                      {%- render 'facets-vertical', results: search, show_filters: show_filters, show_sort_by: false, update_on_change: true -%}
+                    </safe-sticky>
+                  </div>
+                {%- endif -%}
+
+                <div class="collection__results">
+                  {%- if search.results_count == 0 -%}
+                    <div class="empty-state">
+                      <div class="empty-state__icon-wrapper">
+                        {%- render 'icon' with 'picto-stop', width: 32, height: 32, stroke_width: 1 -%}
+                        <span class="count-bubble count-bubble--lg">0</span>
+                      </div>
+
+                      <div class="prose">
+                        <p class="h5">{{ 'collection.faceting.no_results' | t }}</p>
+
+                        {%- assign button_content = 'collection.faceting.clear_filters' | t -%}
+                        {%- assign url = routes.search_url | append: '?q=' | append:  search.terms | append: '&sort_by=' | append: search.sort_by | append: '&type=product' -%}
+                        {%- render 'button', href: url, is: 'facet-link', size: 'xl', content: button_content -%}
+                      </div>
+                    </div>
+                  {%- else -%}
+                    <div class="v-stack gap-6">
+                      <div class="v-stack gap-4 md:hidden">
+                        {%- comment -%}We have to duplicate some information on mobile and tablet here{%- endcomment -%}
+                        {%- render 'active-facets', results: search -%}
+                      </div>
+
+                      <reveal-items selector=".product-list > *">
+                        <product-list class="product-list" role="region" aria-live="polite">
+                          {%- assign product_results = search.results | where: 'object_type', 'product' -%}
+
+                          {%- for item in product_results -%}
+                            {%- if item.object_type == 'product' -%}
+                              {%- render 'product-card', product: item, stacked: true, position: forloop.index, show_badges: true -%}
+                            {%- endif -%}
+                          {%- endfor -%}
+                        </product-list>
+                      </reveal-items>
+                    </div>
+                  {%- endif -%}
+                </div>
+
+                {%- render 'pagination', paginate: paginate, facet: true, class: 'collection__pagination' -%}
+              </div>
+            {%- endpaginate -%}
+
+          {%- when 'article' -%}
+            {%- paginate search.results by 48 -%}
+              <div class="blog-posts__container">
+                <blog-post-list class="blog-posts">
+                  {%- for item in search.results -%}
+                    {%- if item.object_type == 'article' -%}
+                      {%- render 'blog-post-card',
+                          article: item,
+                          heading_size: 'h5',
+                          show_category: section.settings.show_category,
+                          show_date: section.settings.show_date,
+                          show_reading_time: false,
+                          show_excerpt: section.settings.show_excerpt,
+                          position: forloop.index
+                      -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                </blog-post-list>
+              </div>
+            {%- endpaginate -%}
+
+          {%- when 'page' -%}
+            {%- paginate search.results by 48 -%}
+              <div class="container container--narrow">
+                <ul class="unstyled-list v-stack gap-3 text-center">
+                  {%- for item in search.results -%}
+                    {%- if item.object_type == 'page' -%}
+                      <li>
+                        <a href="{{ item.url }}" class="bold">
+                          <span class="reversed-link hover:show">{{- item.title -}}</span>
+                          {%- render 'icon' with 'big-arrow-right', width: 10, direction_aware: true -%}
+                        </a>
+                      </li>
+                    {%- endif -%}
+                  {%- endfor -%}
+                </ul>
+              </div>
+            {%- endpaginate -%}
+
+        {%- endcase -%}
+      </search-result-panel>
+
+    {%- else -%}
+      {%- comment -%}Otherwise, we have to do different Ajax requests for each resource type{%- endcomment -%}
+      {%- for type in search.types reversed -%}
+        {%- assign search_url_for_type = routes.search_url | append: '?type=' | append: type | append: '&q=' | append: search.terms -%}
+
+        <search-result-panel role="tabpanel" aria-labelledby="main-search-results-{{ type | escape }}" id="main-search-results-{{ type | escape }}" load-from-url="{{ search_url_for_type | escape }}" hidden>
+        </search-result-panel>
+      {%- endfor -%}
+    {%- endif -%}
+  </div>
+
+{%- else -%}
+  <div class="container">
+    <div class="empty-state">
+      <h1 class="h2">
+        {%- if search.performed -%}
+          {{- 'search.general.no_results' | t -}}
+        {%- else -%}
+          {{- 'search.general.title' | t -}}
+        {%- endif -%}
+      </h1>
+
+      {{- search_form -}}
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Search",
+  "class": "shopify-section--main-search",
+  "tag": "section",
+  "settings": [
+      {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products per page",
+      "min": 8,
+      "max": 50,
+      "step": 1,
+      "default": 24
+    },
+    {
+      "type": "select",
+      "id": "products_per_row_mobile",
+      "label": "Products per row (mobile)",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "range",
+      "min": 2,
+      "max": 5,
+      "id": "products_per_row_desktop",
+      "label": "Products per row (desktop)",
+      "info": "For best results, limit to 4 when using sidebar filtering. On small screen size, products per row is limited to 2 (with sidebar) or 3 (without sidebar) to maximize readability",
+      "default": 3
+    },
+    {
+      "type": "header",
+      "content": "Filters & sort"
+    },
+    {
+      "type": "select",
+      "id": "filter_layout",
+      "label": "Desktop layout",
+      "options": [
+        {
+          "value": "sidebar",
+          "label": "Sidebar"
+        },
+        {
+          "value": "horizontal",
+          "label": "Horizontal"
+        },
+        {
+          "value": "drawer",
+          "label": "Drawer"
+        }
+      ],
+      "default": "sidebar"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sort_by",
+      "label": "Show sort by",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_filters",
+      "label": "Show filters",
+      "info": "[Customize filters](/admin/menus)",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_filter_group_name",
+      "label": "Show group name",
+      "info": "Group name will be shown inside selected filters.",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_filter_values_count",
+      "label": "Show filter values count",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "open_first_filter_group",
+      "label": "Open first group by default",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

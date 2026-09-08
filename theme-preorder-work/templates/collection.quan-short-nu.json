@@ -1,0 +1,81 @@
+{
+  "sections": {
+    "11db0e10-314e-4c71-acae-186bf866c33a": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_yRWf33": {
+          "type": "heading",
+          "settings": {
+            "text": "LEGGING ĐÙI",
+            "heading_tag": "p",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_68a889": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p><br/>Thoải mái, năng động và chuẩn dáng – quần legging đùi Fitme là lựa chọn hoàn hảo cho những buổi tập ngắn, dạo phố hay hoạt động ngoài trời. Chất vải buttery mềm mịn, co giãn linh hoạt, giúp ôm gọn cơ thể mà vẫn nhẹ tênh như không mặc. Thiết kế ngắn trẻ trung, dễ phối đồ, mang đến sự tự tin và cảm giác mát mẻ cả ngày dài.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_yRWf33",
+        "richtext_68a889"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h4",
+        "image_size": "auto",
+        "mobile_image": "shopify://shop_images/2.jpg",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    }
+  },
+  "order": [
+    "11db0e10-314e-4c71-acae-186bf866c33a",
+    "main",
+    "banner"
+  ]
+}

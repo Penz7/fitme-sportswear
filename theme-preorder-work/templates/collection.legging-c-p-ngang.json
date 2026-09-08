@@ -1,0 +1,85 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_3zyJLz": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_A7njVm": {
+          "type": "heading",
+          "settings": {
+            "text": "LEGGING CẠP NGANG",
+            "heading_tag": "p",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_4i8GU3": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Trải nghiệm cảm giác mềm mại như bơ với chất liệu buttery đặc trưng của Fitme. Thiết kế vừa vặn ôm trọn đường cong, tạo cảm giác thoải mái tối đa mà không gây bó sát khó chịu. Phù hợp hoàn hảo từ yoga nhẹ nhàng, buổi tập thể thao năng động, cho đến trang phục hàng ngày. Chất vải co giãn vượt trội cùng kiểu dáng hiện đại, giúp bạn luôn tự tin và thoải mái trong mọi hoạt động.<br/><br/></p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_A7njVm",
+        "richtext_4i8GU3"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "seo_content": {
+      "type": "collection-seo-content",
+      "settings": {}
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_3zyJLz",
+    "main",
+    "seo_content"
+  ]
+}

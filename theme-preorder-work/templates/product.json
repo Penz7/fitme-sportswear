@@ -1,0 +1,345 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "vendor": {
+          "type": "vendor",
+          "disabled": true,
+          "settings": {}
+        },
+        "title": {
+          "type": "title",
+          "settings": {
+            "heading_tag": "h1"
+          }
+        },
+        "badges": {
+          "type": "badges",
+          "settings": {}
+        },
+        "jm_badge": {
+          "type": "shopify://apps/judge-me-reviews/blocks/preview_badge/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8",
+          "settings": {}
+        },
+        "price": {
+          "type": "price",
+          "settings": {
+            "show_taxes_notice": false
+          }
+        },
+        "separator": {
+          "type": "separator",
+          "settings": {}
+        },
+        "variations": {
+          "type": "product_variations",
+          "settings": {
+            "option_name": "Màu sắc",
+            "option_value_metafield": "custom.variation_value",
+            "products": "{{ product.metafields.custom.variation_product.value }}",
+            "selector_style": "swatch"
+          }
+        },
+        "variant_picker": {
+          "type": "variant_picker",
+          "settings": {
+            "hide_sold_out_variants": false,
+            "stack_blocks": true,
+            "selector_style": "block",
+            "swatch_selector_style": "swatch",
+            "variant_image_options": "",
+            "size_chart_page": "{{ product.metafields.custom.size_chart.value }}"
+          }
+        },
+        "quantity_selector": {
+          "type": "quantity_selector",
+          "settings": {}
+        },
+        "fm_fitcard": {
+          "type": "liquid",
+          "settings": {
+            "liquid": "{%- if request.locale.iso_code == 'vi' or request.locale.iso_code == 'en' -%}\n<style>\n  .fitme-pdp{--fm-ink:#141414;--fm-mut:#8a8477;--fm-line:#e7e2d6;--fm-card:#f7f4ec;--fm-accent:#b8894a;font-family:inherit}\n  .fitme-fitcard{background:var(--fm-card);border-radius:16px;padding:18px 20px;margin:14px 0 4px}\n  .fitme-fitrow{display:flex;align-items:baseline;gap:16px;padding:5px 0}\n  .fitme-lbl{flex:0 0 116px;font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--fm-ink);text-transform:uppercase}\n  .fitme-val{font-size:14px;color:#3a3a3a}\n  .fitme-comp{display:inline-flex;align-items:center;gap:8px}\n  .fitme-dots{display:inline-flex;gap:5px}\n  .fitme-dot{width:22px;height:8px;border-radius:999px;background:#ded8ca}\n  .fitme-dot.on{background:var(--fm-ink)}\n  .fitme-hint{display:flex;align-items:center;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--fm-line);font-size:13px;font-style:italic;color:var(--fm-mut)}\n  .fitme-hint svg{flex:0 0 16px}\n  .fitme-sizebtn{margin-top:12px;padding-top:12px;border-top:1px solid var(--fm-line);display:inline-flex;align-items:center;gap:8px;background:none;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fm-ink);padding-left:0}\n  .fitme-sizebtn:hover{color:var(--fm-accent)}\n  .fitme-pills{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 4px}\n  .fitme-pill{display:inline-flex;align-items:center;gap:7px;background:var(--fm-card);border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;color:#2f2f2f}\n  .fitme-pill::before{content:\"\";width:6px;height:6px;border-radius:50%;background:var(--fm-accent)}\n  .fitme-modal{border:0;border-radius:18px;padding:0;max-width:560px;width:92vw;box-shadow:0 24px 70px rgba(0,0,0,.28)}\n  .fitme-modal::backdrop{background:rgba(20,20,20,.55)}\n  .fitme-modal__hd{display:flex;justify-content:space-between;align-items:center;padding:20px 22px;border-bottom:1px solid var(--fm-line)}\n  .fitme-modal__hd h3{margin:0;font-size:16px;letter-spacing:.04em;text-transform:uppercase}\n  .fitme-modal__x{background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:#666}\n  .fitme-modal__bd{padding:20px 22px}\n  .fitme-modal__bd p{margin:0 0 14px;font-size:13px;color:var(--fm-mut)}\n  .fitme-modal__link{display:inline-block;margin-top:6px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fm-ink)}\n  .fitme-sztbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}\n  .fitme-sztbl th,.fitme-sztbl td{border:1px solid var(--fm-line);padding:8px 10px;text-align:center}\n  .fitme-sztbl th{background:var(--fm-card);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fm-ink)}\n  .fitme-sztbl td{color:#3a3a3a}\n  .fm-sftabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--fm-line)}\n  .fm-sftab{background:none;border:0;border-bottom:2px solid transparent;padding:8px 0;margin-right:18px;font:inherit;font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--fm-mut);cursor:pointer;margin-bottom:-1px}\n  .fm-sftab.is-active{color:var(--fm-ink);border-bottom-color:var(--fm-ink)}\n  .fm-sf__lead{font-size:13px;color:var(--fm-mut);margin:0 0 14px}\n  .fm-sf__row{display:flex;gap:12px;margin:12px 0}\n  .fm-sf__row label{flex:1;font-size:13px;font-weight:600;color:var(--fm-ink);display:block}\n  .fm-sf__row label span{font-weight:400;color:var(--fm-mut)}\n  .fm-sf__row input{width:100%;box-sizing:border-box;margin-top:6px;border:1.5px solid #ddd;border-radius:10px;padding:12px;font:inherit;font-size:14px}\n  .fm-sf__btn{width:100%;background:#111;color:#fff;border:0;padding:14px;border-radius:10px;font-weight:700;letter-spacing:.04em;cursor:pointer;margin-top:6px}\n  .fm-sf__res{display:block;text-align:center;background:#fff;border:1px solid #ececec;border-radius:16px;padding:22px;box-shadow:0 6px 24px rgba(0,0,0,.05);margin-top:16px}\n  .fmsf-r__eyebrow{font-size:11px;font-weight:700;letter-spacing:1.5px;color:#9a9a9a;text-transform:uppercase}\n  .fmsf-r__size{font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1.05;margin:4px 0 8px;color:#111}\n  .fmsf-r__sub{font-size:13px;color:#555;line-height:1.55}\n  .fmsf-r__hr{height:1px;background:#f0f0f0;margin:14px 0 0}\n  .fmsf-r__note{font-size:12px;color:#9a9a9a;margin-top:12px;line-height:1.5}\n  .fm-sf__err{color:#c0392b;font-weight:600}\n</style>\n\n{%- liquid\n  assign fit = product.metafields.custom.fit\n  assign model = product.metafields.custom.model\n  assign comp = product.metafields.custom.compression\n  assign speclabel = product.metafields.custom.spec_label | default: 'Compression'\n  assign lvl = product.metafields.custom.compression_level | default: 0 | plus: 0\n  assign bens = product.metafields.custom.benefits.value\n  assign sizetable = product.metafields.custom.size_table.value\n\n  assign has_card = false\n  if fit != blank or model != blank or comp != blank\n    assign has_card = true\n  endif\n\n  assign body_label = 'Vòng mông (cm)'\n  assign body_placeholder = 'VD: 92'\n  assign sizetable_lower = sizetable | downcase\n  if sizetable_lower contains 'vòng 1' or sizetable_lower contains 'ngực' or sizetable_lower contains 'v1'\n    assign body_label = 'Vòng ngực (cm)'\n    assign body_placeholder = 'VD: 85'\n  elsif sizetable_lower contains 'vòng eo' or sizetable_lower contains 'v2' or sizetable_lower contains 'eo'\n    assign body_label = 'Vòng eo (cm)'\n    assign body_placeholder = 'VD: 66'\n  endif\n-%}\n<div class=\"fitme-pdp\">\n  {%- if has_card -%}\n  <div class=\"fitme-fitcard\">\n    {%- if fit != blank -%}\n    <div class=\"fitme-fitrow\"><span class=\"fitme-lbl\">Fit</span><span class=\"fitme-val\">{{ fit }}</span></div>\n    {%- endif -%}\n    {%- if model != blank -%}\n    <div class=\"fitme-fitrow\"><span class=\"fitme-lbl\">Model</span><span class=\"fitme-val\">{{ model }}</span></div>\n    {%- endif -%}\n    {%- if comp != blank -%}\n    <div class=\"fitme-fitrow\">\n      <span class=\"fitme-lbl\">{{ speclabel }}</span>\n      <span class=\"fitme-val fitme-comp\">{{ comp }}\n        {%- if lvl > 0 -%}\n        <span class=\"fitme-dots\">\n          {%- for i in (1..3) -%}<span class=\"fitme-dot{% if i <= lvl %} on{% endif %}\"></span>{%- endfor -%}\n        </span>\n        {%- endif -%}\n      </span>\n    </div>\n    {%- endif -%}\n    {%- if sizetable != blank -%}\n    <div class=\"fitme-hint\">\n      <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#b8894a\" stroke-width=\"1.6\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5M12 8h.01\" stroke-linecap=\"round\"/></svg>\n      Chọn size thường mặc của bạn\n    </div>\n    <button type=\"button\" class=\"fitme-sizebtn\" onclick=\"this.closest('.fitme-pdp').querySelector('.fitme-modal').showModal()\">Tìm size của bạn →</button>\n    {%- endif -%}\n  </div>\n  {%- endif -%}\n\n  {%- if bens -%}\n  <div class=\"fitme-pills\">\n    {%- for b in bens -%}<span class=\"fitme-pill\">{{ b }}</span>{%- endfor -%}\n  </div>\n  {%- endif -%}\n\n  {%- if sizetable != blank -%}\n  <dialog class=\"fitme-modal\">\n    <div class=\"fitme-modal__hd\">\n      <h3>Tìm size của bạn</h3>\n      <button type=\"button\" class=\"fitme-modal__x\" onclick=\"this.closest('.fitme-modal').close()\">&times;</button>\n    </div>\n    <div class=\"fitme-modal__bd\">\n      <div class=\"fm-sftabs\">\n        <button type=\"button\" class=\"fm-sftab is-active\" data-fmtab=\"finder\" onclick=\"fmSfTab(this,'finder')\">Tìm size của bạn</button>\n        <button type=\"button\" class=\"fm-sftab\" data-fmtab=\"table\" onclick=\"fmSfTab(this,'table')\">Bảng size</button>\n      </div>\n      <div class=\"fm-sfpane\" data-fmpane=\"finder\">\n        <div class=\"fm-sizefinder\">\n          <p class=\"fm-sf__lead\">Nhập <b>chiều cao</b> và <b>cân nặng</b> để nhận size gợi ý. Có {{ body_label | downcase }} thì càng chuẩn.</p>\n          <div class=\"fm-sf__row\">\n            <label>Chiều cao (cm)*<input id=\"fmsf-h\" type=\"number\" inputmode=\"numeric\" placeholder=\"VD: 158\"></label>\n            <label>Cân nặng (kg)*<input id=\"fmsf-w\" type=\"number\" inputmode=\"numeric\" placeholder=\"VD: 52\"></label>\n          </div>\n          <div class=\"fm-sf__row\">\n            <label>{{ body_label }} <span>tùy chọn</span><input id=\"fmsf-hip\" type=\"number\" inputmode=\"numeric\" placeholder=\"{{ body_placeholder }}\"></label>\n          </div>\n          <button type=\"button\" id=\"fmsf-go\" class=\"fm-sf__btn\">GỢI Ý SIZE CHO TÔI</button>\n          <div id=\"fmsf-res\" class=\"fm-sf__res\" hidden></div>\n        </div>\n      </div>\n      <div class=\"fm-sfpane\" data-fmpane=\"table\" hidden>\n      <p>Chọn theo size bạn thường mặc. Nếu ở giữa 2 size, ưu tiên tăng 1 size để thoải mái vận động. Cần tư vấn thêm, nhắn shop để được hỗ trợ chọn size chuẩn nhất.</p>\n      {%- assign fm_rows = sizetable | strip | newline_to_br | split: '<br />' -%}\n      <table id=\"fmsf-table\" class=\"fitme-sztbl\">\n        {%- for fm_row in fm_rows -%}\n          {%- assign fm_cells = fm_row | split: '|' -%}\n          <tr>\n            {%- for fm_cell in fm_cells -%}\n              {%- if forloop.parentloop.first -%}<th>{{ fm_cell | strip }}</th>{%- else -%}<td>{{ fm_cell | strip }}</td>{%- endif -%}\n            {%- endfor -%}\n          </tr>\n        {%- endfor -%}\n      </table>\n      </div>\n    </div>\n    <script>(function(){\n  function toRange(s){ s=(s||'').replace(/kg|cm|\\s/gi,''); var m=s.match(/(\\d+)\\D+(\\d+)/); return m?[+m[1],+m[2]]:null; }\n  function toCeil(s){ var m=(s||'').match(/(\\d+)/); return m?+m[1]:null; }\n  function toH(s){ s=(s||'').replace(/cm/gi,''); var m=s.match(/(\\d)m(\\d{2}).*?(\\d)m(\\d{2})/);\n    if(m) return [(+m[1])*100+(+m[2]), (+m[3])*100+(+m[4])];\n    var n=s.match(/(\\d+)\\D+(\\d+)/); return n?[+n[1],+n[2]]:null; }\n  function readTable(){\n    var tbl=document.querySelector('#fmsf-table') || document.querySelector('.fitme-sztbl');\n    if(!tbl) return null;\n    var head=[].map.call(tbl.querySelectorAll('thead th, tr:first-child th, tr:first-child td'),function(c){return c.textContent.trim().toLowerCase();});\n    var iW=head.findIndex(function(h){return h.indexOf('cân nặng')>-1||h.indexOf('nặng')>-1});\n    var iHip=head.findIndex(function(h){return h.indexOf('mông')>-1||h.indexOf('v1')>-1||h.indexOf('v2')>-1||h.indexOf('v3')>-1||h.indexOf('ngực')>-1||h.indexOf('eo')>-1});\n    var iH=head.findIndex(function(h){return h.indexOf('cao')>-1});\n    var iS=head.findIndex(function(h){return h.indexOf('size')>-1}); if(iS<0)iS=0;\n    var rows=[].filter.call(tbl.querySelectorAll('tbody tr'),function(r){return r.querySelectorAll('td').length});\n    if(!rows.length) rows=[].slice.call(tbl.querySelectorAll('tr')).slice(1);\n    return rows.map(function(r){var c=r.querySelectorAll('td,th');return {\n      size:(c[iS]||c[0]).textContent.trim(),\n      w:toRange((c[iW]||{}).textContent), hip:toCeil((c[iHip]||{}).textContent), h:toH((c[iH]||{}).textContent)\n    };}).filter(function(x){return x.size});\n  }\n  function recommend(rows,h,w,hip){\n    var idx=-1;\n    for(var i=0;i<rows.length;i++){var r=rows[i].w; if(r&&w>=r[0]&&w<=r[1]) idx=i;}\n    if(idx<0){ var f=rows[0].w,l=rows[rows.length-1].w;\n      if(f&&w<f[0])idx=0; else if(l&&w>l[1])idx=rows.length-1;\n      else{for(var j=0;j<rows.length;j++){if(rows[j].w&&rows[j].w[0]>w){idx=j;break;}} if(idx<0)idx=rows.length-1;} }\n    if(hip){ var base=idx; while(idx<rows.length-1 && idx<base+1 && rows[idx].hip && hip>=rows[idx].hip) idx++; }\n    var note=''; var hr=rows[idx].h;\n    if(h&&hr){ if(h>hr[1]&&idx<rows.length-1) note='Bạn cao hơn mức TB của size này — thích ống dài trọn thì cân nhắc '+rows[idx+1].size+'.';\n      else if(h<hr[0]&&idx>0) note='Bạn thấp hơn mức TB — thích ôm gọn thì cân nhắc '+rows[idx-1].size+'.'; }\n    return {size:rows[idx].size, note:note};\n  }\n  window.fmSfTab=function(btn,name){\n    var root=btn.closest('.fitme-modal__bd'); if(!root) return;\n    [].forEach.call(root.querySelectorAll('.fm-sftab'),function(b){b.classList.toggle('is-active',b.getAttribute('data-fmtab')===name);});\n    [].forEach.call(root.querySelectorAll('.fm-sfpane'),function(p){p.hidden=p.getAttribute('data-fmpane')!==name;});\n  };\n  window.fmSizeFinderInit=function(){\n    var go=document.getElementById('fmsf-go'); if(!go||go._bound) return; go._bound=true;\n    go.addEventListener('click',function(){\n      var rows=readTable(); if(!rows||!rows.length) return;\n      var h=parseFloat(document.getElementById('fmsf-h').value);\n      var w=parseFloat(document.getElementById('fmsf-w').value);\n      var hip=parseFloat(document.getElementById('fmsf-hip').value);\n      var res=document.getElementById('fmsf-res');\n      if(!w||!h){ res.hidden=false; res.innerHTML='<span class=\"fm-sf__err\">Vui lòng nhập chiều cao và cân nặng.</span>'; return; }\n      var r=recommend(rows,h,w,hip||0);\n      res.hidden=false;\n      res.innerHTML='<div class=\"fmsf-r__eyebrow\">Size gợi ý cho bạn</div>'\n        +'<div class=\"fmsf-r__size\">'+r.size+'</div>'\n        +'<div class=\"fmsf-r__sub\">'+(r.note?r.note:'Dựa trên số đo bạn vừa nhập.')+'</div>'\n        +'<div class=\"fmsf-r__hr\"></div>'\n        +'<div class=\"fmsf-r__note\">Bảng để mặc ôm như mẫu — muốn thoải mái hơn có thể tăng 1 size.</div>';\n    });\n  };\n  if(document.getElementById('fmsf-go')) window.fmSizeFinderInit();\n})();</script>\n  </dialog>\n  {%- endif -%}\n</div>\n{%- endif -%}"
+          }
+        },
+        "buy_buttons": {
+          "type": "buy_buttons",
+          "settings": {
+            "show_payment_button": false,
+            "show_gift_card_recipient": true,
+            "atc_button_background": "#141414",
+            "atc_button_text_color": "#ffffff",
+            "payment_button_background": "#141414",
+            "payment_button_text_color": "#ffffff"
+          }
+        },
+        "fm_trust": {
+          "type": "liquid",
+          "settings": {
+            "liquid": "{%- if request.locale.iso_code == 'vi' or request.locale.iso_code == 'en' -%}\n<style>\n  .fitme-trust{display:flex;flex-wrap:wrap;gap:18px 22px;margin:16px 0;padding:16px 0;border-top:1px solid #e7e2d6;border-bottom:1px solid #e7e2d6}\n  .fitme-trust__i{display:flex;align-items:center;gap:9px;font-size:13px;color:#2f2f2f}\n  .fitme-trust__i svg{flex:0 0 22px;stroke:#141414}\n  .fitme-suit{margin:16px 0 4px}\n  .fitme-suit__lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a8477;margin-bottom:10px}\n  .fitme-suit__tags{display:flex;flex-wrap:wrap;gap:10px}\n  .fitme-suit__tag{display:inline-flex;align-items:center;gap:7px;background:#f7f4ec;border-radius:999px;padding:9px 15px;font-size:13px;font-weight:600;color:#2f2f2f}\n</style>\n<div class=\"fitme-pdp\">\n  <div class=\"fitme-trust\">\n    <span class=\"fitme-trust__i\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.5\"><path d=\"M3 7h11v9H3zM14 10h4l3 3v3h-7z\"/><circle cx=\"7\" cy=\"18\" r=\"1.6\"/><circle cx=\"17.5\" cy=\"18\" r=\"1.6\"/></svg>Giao trong 24h</span>\n    <span class=\"fitme-trust__i\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.5\"><path d=\"M4 9a8 8 0 0113-3l2 2M20 15a8 8 0 01-13 3l-2-2\" stroke-linecap=\"round\"/><path d=\"M19 4v4h-4M5 20v-4h4\"/></svg>Đổi hàng dễ dàng</span>\n    <span class=\"fitme-trust__i\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.5\"><rect x=\"2.5\" y=\"6\" width=\"19\" height=\"12\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"2.4\"/></svg>Thanh toán khi nhận</span>\n  </div>\n\n  {%- assign suit = product.metafields.custom.suitable_for.value -%}\n  {%- if suit -%}\n  <div class=\"fitme-suit\">\n    <div class=\"fitme-suit__lbl\">Phù hợp cho</div>\n    <div class=\"fitme-suit__tags\">\n      {%- for s in suit -%}<span class=\"fitme-suit__tag\">{{ s }}</span>{%- endfor -%}\n    </div>\n  </div>\n  {%- endif -%}\n</div>\n\n{%- endif -%}"
+          }
+        },
+        "desc_text": {
+          "type": "text",
+          "settings": {
+            "text": "{{ product.metafields.custom.text | metafield_tag }}"
+          }
+        },
+        "acc_desc": {
+          "type": "collapsible_text",
+          "settings": {
+            "icon": "none",
+            "icon_width": 20,
+            "title": "Mô tả sản phẩm",
+            "content": "{{ product.metafields.custom.description | metafield_tag }}",
+            "page": ""
+          }
+        },
+        "acc_ship": {
+          "type": "collapsible_text",
+          "settings": {
+            "icon": "none",
+            "icon_width": 20,
+            "title": "Chính sách vận chuyển và đổi trả",
+            "content": "<ul><li>Miễn phí vận chuyển cho đơn hàng từ 300.000 VNĐ</li><li>Hỗ trợ đổi trả hàng trong vòng 14 ngày với điều kiện đồ chưa vứt tag hoặc đã sử dụng</li></ul>",
+            "page": ""
+          }
+        },
+        "acc_care": {
+          "type": "collapsible_text",
+          "settings": {
+            "icon": "none",
+            "icon_width": 20,
+            "title": "Hướng dẫn sử dụng và bảo quản",
+            "content": "<ul><li>Nên giặt sản phẩm trước khi sử dụng.</li><li>Chỉ giặt tay và không chà mạnh.</li><li>Không ủi ở nhiệt độ cao.</li><li>Không dùng chất tẩy.</li><li>Không ngâm chung đồ ra màu.</li><li>Tránh phơi nắng trực tiếp.</li></ul>",
+            "page": ""
+          }
+        },
+        "assoc": {
+          "type": "associated_products",
+          "settings": {
+            "title": "Có thể phối với",
+            "stack_products": true,
+            "products_count": 5,
+            "background": "",
+            "text_color": ""
+          }
+        },
+        "fm_promo": {
+          "type": "liquid",
+          "settings": {
+            "liquid": "{%- assign promos = shop.metafields.custom.promo_codes.value -%}\n{%- assign member = shop.metafields.custom.member_promo.value -%}\n{%- if request.locale.iso_code == 'vi' or request.locale.iso_code == 'en' and promos != blank and promos.size > 0 -%}\n<style>\n  .fmp{margin:14px 0 4px;font-family:inherit}\n  .fmp__hd{font-size:13px;font-weight:800;color:#141414;margin-bottom:9px}\n  .fmp__row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}\n  .fmp__chip{position:relative;border:1px dashed #e0955a;background:#fff4ec;color:#d9772f;border-radius:8px;padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}\n  .fmp__chip:hover{background:#ffe6d3}\n  .fmp__chip--vip{border-color:#c9a227;background:#fbf6e8;color:#a5811a}\n  .fmp__chip--vip:hover{background:#f5ebcf}\n  .fmp__login{display:inline-flex;align-items:center;gap:7px;background:#141414;color:#fff;border:0;border-radius:8px;padding:9px 15px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;transition:opacity .15s}\n  .fmp__login:hover{opacity:.85}\n  .fmp__tip{position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);width:240px;max-width:76vw;background:#141414;color:#fff;border-radius:10px;padding:11px 13px;font-size:12px;font-weight:400;line-height:1.45;text-align:left;opacity:0;visibility:hidden;transition:opacity .15s;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.28);white-space:normal}\n  .fmp__chip:hover .fmp__tip{opacity:1;visibility:visible}\n  .fmp__tip b{color:#fff;font-weight:800;letter-spacing:.04em}\n  .fmp__tip .fmp__rem{color:#ffb27a;font-weight:600}\n  .fmp__tip::after{content:\"\";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#141414}\n  .fmp__toast{position:fixed;right:18px;bottom:18px;max-width:330px;background:#fff;border:1px solid #e7e2d6;border-left:4px solid #2e7d32;border-radius:12px;padding:12px 15px;box-shadow:0 14px 38px rgba(0,0,0,.20);z-index:99999;transform:translateY(24px);opacity:0;visibility:hidden;transition:transform .25s,opacity .25s;font-family:inherit}\n  .fmp__toast.show{transform:translateY(0);opacity:1;visibility:visible}\n  .fmp__toast b{display:block;font-size:14px;font-weight:800;color:#141414;margin-bottom:3px}\n  .fmp__toast span{font-size:12.5px;color:#6b6b6b;line-height:1.4}\n</style>\n<div class=\"fmp\">\n  <div class=\"fmp__hd\">Mã giảm giá</div>\n  <div class=\"fmp__row\">\n    {%- for pm in promos -%}\n    {%- assign pcode = pm.code.value -%}\n    {%- if pcode != blank -%}\n    <span class=\"fmp__chip\" data-code=\"{{ pcode }}\" data-note=\"{{ pm.note.value | escape }}\" onclick=\"fmSavePromo(this)\">\n      {{ pm.label.value | default: pcode }}\n      <span class=\"fmp__tip\">Nhập <b>{{ pcode }}</b>{%- if pm.remaining.value != blank %} · <span class=\"fmp__rem\">{{ pm.remaining.value }}</span>{% endif -%}{%- if pm.note.value != blank %}<br>{{ pm.note.value }}{% endif -%}</span>\n    </span>\n    {%- endif -%}\n    {%- endfor -%}\n    {%- if member != blank -%}\n      {%- assign mcode = member.code.value -%}\n      {%- if customer -%}\n        {%- if customer.orders_count == 0 and mcode != blank -%}\n        <span class=\"fmp__chip fmp__chip--vip\" data-code=\"{{ mcode }}\" data-note=\"{{ member.note.value | escape }}\" onclick=\"fmSavePromo(this)\">\n          🎁 {{ member.label.value | default: mcode }}\n          <span class=\"fmp__tip\">Nhập <b>{{ mcode }}</b>{%- if member.remaining.value != blank %} · <span class=\"fmp__rem\">{{ member.remaining.value }}</span>{% endif -%}{%- if member.note.value != blank %}<br>{{ member.note.value }}{% endif -%}</span>\n        </span>\n        {%- endif -%}\n      {%- else -%}\n        <a class=\"fmp__login\" href=\"{{ routes.account_login_url }}\">🎁 Đăng nhập nhận mã 100K đơn đầu →</a>\n      {%- endif -%}\n    {%- endif -%}\n  </div>\n</div>\n<div class=\"fmp__toast\" id=\"fmToast\"><b id=\"fmToastCode\"></b><span id=\"fmToastMsg\"></span></div>\n<script>\nfunction fmSavePromo(el){\n  var code=el.getAttribute('data-code'), note=el.getAttribute('data-note')||'';\n  try{ if(navigator.clipboard){ navigator.clipboard.writeText(code); } }catch(e){}\n  var t=document.getElementById('fmToast');\n  document.getElementById('fmToastCode').textContent='Đã lưu mã '+code+' ✓';\n  document.getElementById('fmToastMsg').textContent=(note?note+' — ':'')+'Dán mã vào ô \"Mã giảm giá\" khi thanh toán.';\n  t.classList.add('show');\n  clearTimeout(window.__fmToastT); window.__fmToastT=setTimeout(function(){t.classList.remove('show');},4000);\n}\n</script>\n{%- endif -%}"
+          }
+        }
+      },
+      "block_order": [
+        "vendor",
+        "title",
+        "badges",
+        "jm_badge",
+        "price",
+        "separator",
+        "fm_promo",
+        "variations",
+        "variant_picker",
+        "quantity_selector",
+        "buy_buttons",
+        "fm_fitcard",
+        "fm_trust",
+        "desc_text",
+        "acc_desc",
+        "acc_ship",
+        "acc_care",
+        "assoc"
+      ],
+      "settings": {
+        "full_width": true,
+        "show_fixed_add_to_cart": true,
+        "desktop_media_width": 50,
+        "desktop_media_layout": "carousel_thumbnails_left",
+        "mobile_media_size": "contained",
+        "mobile_carousel_control": "floating_dots",
+        "enable_video_autoplay": true,
+        "enable_video_looping": true,
+        "enable_image_zoom": true,
+        "max_image_zoom_level": 3,
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "input_background": "rgba(0,0,0,0)",
+        "input_text_color": ""
+      }
+    },
+    "related-products": {
+      "type": "related-products",
+      "settings": {
+        "recommendations_count": 4,
+        "products": [],
+        "full_width": true,
+        "stack_products": true,
+        "show_progress_bar": false,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "subheading": "",
+        "title": "Có thể bạn sẽ thích",
+        "content": "",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "product_card_background": "",
+        "product_card_text_color": ""
+      }
+    },
+    "reviews": {
+      "type": "apps",
+      "blocks": {
+        "jm_widget": {
+          "type": "shopify://apps/judge-me-reviews/blocks/review_widget/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8",
+          "settings": {
+            "review_data": "sample_data",
+            "max_width": 1200,
+            "show_shop_reviews": false,
+            "empty_state": "empty_widget"
+          }
+        }
+      },
+      "block_order": [
+        "jm_widget"
+      ],
+      "settings": {
+        "full_width": true,
+        "remove_vertical_spacing": false,
+        "remove_horizontal_spacing": false,
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "fabrics_tech": {
+      "type": "fabrics",
+      "block_order": [
+        "buttery",
+        "essential",
+        "microfiber",
+        "cottonribbed"
+      ],
+      "blocks": {
+        "buttery": {
+          "type": "feature",
+          "settings": {
+            "image": "shopify://shop_images/buttery.jpg",
+            "custom_border_radius": false,
+            "image_border_radius": 8,
+            "title": "BUTTERY™",
+            "subtitle": "MỀM NHẸ NHƯ BƠ",
+            "composition": "Sợi micro polyester siêu mịn & Spandex",
+            "custom_benefits_title": false,
+            "benefits": "Siêu mềm mịn\nCo giãn 4 chiều\nThấm hút mồ hôi\nCông nghệ kháng khuẩn",
+            "custom_applications_title": true,
+            "applications_title": "Dành cho:",
+            "applications": "Yoga, Pilates, Gym & mặc thường ngày — cảm giác như làn da thứ hai.",
+            "button_link": "/collections/vai-buttery-do-tap-nu",
+            "button_text": "SẢN PHẨM BUTTERY™",
+            "button_color": "#FFFFFF",
+            "button_text_color": "#141414"
+          }
+        },
+        "essential": {
+          "type": "feature",
+          "settings": {
+            "image": "shopify://shop_images/essential.jpg",
+            "custom_border_radius": false,
+            "image_border_radius": 8,
+            "title": "ESSENTIAL™",
+            "subtitle": "BỀN BỈ HẰNG NGÀY",
+            "composition": "Polyester & Spandex",
+            "custom_benefits_title": false,
+            "benefits": "Siêu nhẹ, mướt\nCo giãn 4 chiều\nThấm hút mồ hôi\nCông nghệ kháng khuẩn",
+            "custom_applications_title": true,
+            "applications_title": "Dành cho:",
+            "applications": "Đa dụng từ studio ra phố, mặc thoải mái cả ngày dài.",
+            "button_link": "/collections/vai-essential-do-tap-nu",
+            "button_text": "SẢN PHẨM ESSENTIAL™",
+            "button_color": "#FFFFFF",
+            "button_text_color": "#141414"
+          }
+        },
+        "microfiber": {
+          "type": "feature",
+          "settings": {
+            "image": "shopify://shop_images/jogger.jpg",
+            "custom_border_radius": false,
+            "image_border_radius": 8,
+            "title": "MICROFIBER™",
+            "subtitle": "MỎNG NHẸ SIÊU BỀN",
+            "composition": "Sợi Microfiber cấu trúc nhẹ đặc",
+            "custom_benefits_title": false,
+            "benefits": "Siêu nhẹ\nThấm hút mồ hôi\nCông nghệ kháng khuẩn\nBền bỉ",
+            "custom_applications_title": true,
+            "applications_title": "Dành cho:",
+            "applications": "Chạy bộ, leo núi, trekking & thể thao cường độ cao.",
+            "button_link": "/collections/do-the-thao-nu-vai-microfiber",
+            "button_text": "SẢN PHẨM MICROFIBER™",
+            "button_color": "#FFFFFF",
+            "button_text_color": "#141414"
+          }
+        },
+        "cottonribbed": {
+          "type": "feature",
+          "settings": {
+            "image": "shopify://shop_images/raglan.jpg",
+            "custom_border_radius": false,
+            "image_border_radius": 8,
+            "title": "COTTON RIBBED™",
+            "subtitle": "CO GIÃN TỰ NHIÊN",
+            "composition": "Cotton & Spandex, dệt gân",
+            "custom_benefits_title": false,
+            "benefits": "Chống xù lông\nCo giãn gấp 6 lần\nSợi dài đặc biệt\nDệt gân ôm dáng",
+            "custom_applications_title": true,
+            "applications_title": "Dành cho:",
+            "applications": "Ôm dáng tôn eo, co giãn tự nhiên, mặc hằng ngày.",
+            "button_link": "/collections/do-the-thao-vai-cotton-ribbed",
+            "button_text": "SẢN PHẨM COTTON RIBBED™",
+            "button_color": "#FFFFFF",
+            "button_text_color": "#141414"
+          }
+        }
+      },
+      "settings": {
+        "title": "CÔNG NGHỆ VẢI NỔI BẬT",
+        "text_alignment": "left",
+        "benefits_title": "Đặc điểm:",
+        "applications_title": "Dành cho:",
+        "desktop_columns": "4",
+        "tablet_columns": "2",
+        "image_aspect_ratio": 1.0,
+        "image_border_radius": 10,
+        "background_color": "#FFFFFF",
+        "text_color": "#2f2f2f",
+        "title_color": "#141414",
+        "section_title_color": "#8a8477",
+        "divider_color": "#e7e2d6",
+        "padding_top": 24,
+        "padding_bottom": 24,
+        "grid_gap": 25
+      }
+    }
+  },
+  "order": [
+    "main",
+    "fabrics_tech",
+    "related-products",
+    "reviews"
+  ]
+}

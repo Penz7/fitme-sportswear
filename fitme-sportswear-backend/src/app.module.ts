@@ -3,6 +3,7 @@ import { AppConfigModule } from './modules/config/app-config.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { PancakeModule } from './modules/pancake/pancake.module';
+import { PreorderModule } from './modules/preorder/preorder.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { SapoModule } from './modules/sapo/sapo.module';
 import { ShopifyModule } from './modules/shopify/shopify.module';
@@ -17,6 +18,7 @@ import { WebhookModule } from './modules/webhook/webhook.module';
     QueueModule,
     SapoModule,
     PancakeModule,
+    PreorderModule,
     ShopifyModule,
     SyncModule,
     WebhookModule,

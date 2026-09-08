@@ -1,0 +1,110 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_zTXn6G": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_zKHCDb": {
+          "type": "heading",
+          "settings": {
+            "text": "VÁY TENNIS & PICKLEBALL",
+            "heading_tag": "p",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "subheading_L6zUE9": {
+          "type": "subheading",
+          "settings": {
+            "text": "PHONG CÁCH TRÊN SÂN, TỰ TIN MỌI CHUYỂN ĐỘNG"
+          }
+        },
+        "richtext_LgG8a4": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Nữ tính, năng động và chuẩn dáng thể thao – <strong>váy tennis & pickleball Fitme</strong> được thiết kế dành riêng cho những cô nàng yêu vận động nhưng vẫn muốn giữ trọn phong cách.</p><p>Form váy A-line trẻ trung, tôn eo nhẹ nhàng, kết hợp quần lót trong co giãn, giúp bạn <strong>thoải mái di chuyển mà không lo hớ hênh</strong>. </p><p>Dù là giao bóng trên sân tennis, rally cùng bạn bè trên sân pickleball hay chỉ đơn giản là outfit xuống phố ngày nắng, váy Fitme luôn là item “must-have” của cô nàng hiện đại.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_zKHCDb",
+        "subheading_L6zUE9",
+        "richtext_LgG8a4"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "blocks": {
+        "promotion_video_ffFwNg": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 4,
+            "column_span": "1",
+            "video": "shopify://files/videos/sdada.mov",
+            "external_video_url": "",
+            "title": "",
+            "content": "",
+            "link_url": "",
+            "link_text": "",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 0
+          }
+        }
+      },
+      "block_order": [
+        "promotion_video_ffFwNg"
+      ],
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_zTXn6G",
+    "main"
+  ]
+}

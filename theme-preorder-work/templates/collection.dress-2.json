@@ -1,0 +1,87 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_dGJUnB": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_tEPny6": {
+          "type": "heading",
+          "settings": {
+            "text": "ĐẦM TENNIS & PICKLEBALL",
+            "heading_tag": "p",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "subheading_X6hB7k": {
+          "type": "subheading",
+          "settings": {
+            "text": "Nhẹ như mây – Đẹp mê say"
+          }
+        },
+        "richtext_zY4DbT": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Vẻ ngoài thanh lịch, cảm giác linh hoạt – đầm tennis & pickleball Fitme được thiết kế dành riêng cho những pha di chuyển đầy năng lượng mà vẫn giữ trọn phong cách nữ tính.</p><p>Form váy ôm nhẹ phần eo, xòe nhẹ ở thân dưới giúp bạn di chuyển thoải mái, tôn dáng mà không gò bó. Chất liệu <strong>co giãn 4 chiều, thấm hút nhanh</strong>, cùng lớp <strong>quần lót trong tích hợp</strong>, đảm bảo sự tự tin ở mọi góc nhìn.</p><p>Từ cú giao bóng mạnh mẽ đến khoảnh khắc nghỉ ngơi ngoài sân, chiếc đầm Fitme là lựa chọn hoàn hảo cho cô nàng yêu thể thao và thời trang hiện đại.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_tEPny6",
+        "subheading_X6hB7k",
+        "richtext_zY4DbT"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_dGJUnB",
+    "main"
+  ]
+}

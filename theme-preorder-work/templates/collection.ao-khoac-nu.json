@@ -1,0 +1,70 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "show_collection_title": false,
+        "show_collection_description": false,
+        "show_collection_image": true,
+        "collection_title_size": "h4",
+        "image_size": "auto",
+        "image": "shopify://shop_images/ao-khoac-the-thao-nu-tap-gym-yoga-fitme-sportswear_1.jpg",
+        "mobile_image": "shopify://shop_images/ao-khoac-the-thao-nu-tap-gym-yoga-fitme-sportswear_2.jpg",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_9QzJcd": {
+      "type": "rich-text",
+      "blocks": {
+        "richtext_tVbmmF": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p>Nhẹ, thoáng và linh hoạt – áo khoác thể thao Fitme được thiết kế để đồng hành cùng bạn trước – trong – và sau buổi tập. Dù là buổi đánh tennis buổi sáng hay trận pickleball chiều muộn, chiếc áo khoác này luôn giữ ấm nhẹ nhàng, chắn gió nhưng vẫn thoáng khí nhờ chất liệu co giãn 4 chiều. Phom dáng gọn gàng, khoá kéo tiện lợi, phối đồ cực dễ – sẵn sàng từ phòng gym đến sân thể thao hay cả buổi cà phê sau giờ tập.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "richtext_tVbmmF"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [],
+      "settings": {
+        "products_per_page": 24,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_9QzJcd",
+    "main"
+  ]
+}

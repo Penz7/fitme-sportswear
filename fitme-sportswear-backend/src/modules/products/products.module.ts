@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PancakeModule } from '../pancake/pancake.module';
+import { PreorderModule } from '../preorder/preorder.module';
 import { SapoModule } from '../sapo/sapo.module';
 import { ShopifyModule } from '../shopify/shopify.module';
 import { InventorySyncService } from './inventory-sync.service';
@@ -12,7 +13,13 @@ import { ProductSyncBlocklistService } from './product-sync-blocklist.service';
 import { SapoToPancakeInventorySyncService } from './sapo-to-pancake-inventory-sync.service';
 
 @Module({
-  imports: [SapoModule, PancakeModule, ShopifyModule, NotificationsModule],
+  imports: [
+    SapoModule,
+    PancakeModule,
+    PreorderModule,
+    ShopifyModule,
+    NotificationsModule,
+  ],
   providers: [
     ProductSnapshotService,
     ProductMatchingService,

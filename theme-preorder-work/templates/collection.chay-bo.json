@@ -1,0 +1,86 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "image": "shopify://shop_images/16_result_3c9e2caf-38fc-44d1-97f6-88d8aeafa5b4.webp",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "rich_text_7CVemd": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_CMU6e9": {
+          "type": "heading",
+          "settings": {
+            "text": "Bứt Tốc Cùng FITME Run",
+            "heading_tag": "h2",
+            "text_color": "",
+            "gradient": ""
+          }
+        },
+        "richtext_UF67LV": {
+          "type": "richtext",
+          "settings": {
+            "content": "<p><br/>Khám phá dòng sản phẩm <strong>FITME Run</strong> – thiết kế chuyên biệt cho từng sải chân tự tin. Từ vải siêu nhẹ thoát ẩm nhanh đến cạp lưng ôm gọn không xê dịch, mỗi chi tiết đều được may thủ công tại nhà máy FITME để bạn chinh phục mọi cung đường, từ road‑run buổi sáng đến cự ly 10 km cuối tuần. Hãy chạy theo nhịp riêng của bạn – phần còn lại, chúng tôi lo.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "heading_CMU6e9",
+        "richtext_UF67LV"
+      ],
+      "settings": {
+        "full_width": true,
+        "content_width": "medium",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": ""
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "seo_content": {
+      "type": "collection-seo-content",
+      "settings": {}
+    }
+  },
+  "order": [
+    "banner",
+    "rich_text_7CVemd",
+    "main",
+    "seo_content"
+  ]
+}

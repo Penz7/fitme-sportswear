@@ -1,0 +1,478 @@
+{%- comment -%}
+------------------------------------------------------------------------------------------------------------------------
+NOTE TO DEVELOPERS: welcome to Impact theme! We hope that you will enjoy editing this theme as much as we did for
+  developing it. We have put a lot of work to make this theme as developer friendly as possible by offering you
+  hooks to integrate into critical parts of the theme. You will find the complete technical documentation (including
+  all events, dependencies...) in the "documentation.txt" file, located in the Assets folder.
+------------------------------------------------------------------------------------------------------------------------
+{%- endcomment -%}
+
+<!doctype html>
+
+<html lang="{{ request.locale.iso_code }}" dir="{% render 'direction' %}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="{{ settings.header_background }}">
+
+    <title>{% if page_title == blank %}{{ shop.name }}{% else %}{{ page_title }}{% if current_page != 1 %} &ndash; {{ 'general.page' | t: page: current_page }}{% endif %}{% endif %}</title>
+
+    {%- if page_description -%}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif -%}
+
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    {%- if settings.favicon -%}
+      <link rel="shortcut icon" href="{{ settings.favicon | image_url: width: 96 }}">
+      <link rel="apple-touch-icon" href="{{ settings.favicon | image_url: width: 180 }}">
+    {%- endif -%}
+
+    {%- comment -%}Few prefetch to increase performance on commonly used third-parties{%- endcomment -%}
+    <link rel="preconnect" href="https://cdn.shopify.com">
+    <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&subset=vietnamese&display=swap" rel="stylesheet">
+    <link rel="dns-prefetch" href="https://productreviews.shopifycdn.com">
+
+    {%- unless settings.heading_font.system? -%}
+      <link rel="preload" href="{{ settings.heading_font | font_url }}" as="font" type="font/woff2" crossorigin>
+    {%- endunless -%}
+
+    {%- unless settings.text_font.system? -%}
+      <link rel="preload" href="{{ settings.text_font | font_url }}" as="font" type="font/woff2" crossorigin>
+    {%- endunless -%}
+
+    {%- render 'social-meta-tags' -%}
+    {%- render 'microdata-schema' -%}
+    {%- render 'css-variables' -%}
+    {%- render 'js-variables' -%}
+
+    <script type="importmap">
+      {%- comment -%}On Safari 16.3 and lower, a polyfill is used to load importmap{%- endcomment -%}
+      {
+        "imports": {
+          "vendor": "{{ 'vendor.min.js' | asset_url }}",
+          "theme": "{{ 'theme.js' | asset_url }}",
+          "photoswipe": "{{ 'photoswipe.min.js' | asset_url }}"
+        }
+      }
+    </script>
+
+    <script type="module" src="{{ 'vendor.min.js' | asset_url }}"></script>
+    <script type="module" src="{{ 'theme.js' | asset_url }}"></script>
+
+    {{ content_for_header }}
+
+    {%- comment -%}
+      FITME — Noindex các collection nav/campaign trùng lặp (không phải trang từ khoá).
+      Muốn thêm/bớt collection: sửa danh sách handle trong 'noindex_handles' (cách nhau bằng dấu phẩy, không khoảng trắng).
+    {%- endcomment -%}
+    {%- if template.name == 'collection' and collection -%}
+      {%- assign noindex_handles = 'theo-san-pham,theo-hoat-dong,30-4,chic-elan-trưng-bay' | split: ',' -%}
+      {%- if noindex_handles contains collection.handle or current_tags != blank -%}
+        <meta name="robots" content="noindex, follow">
+      {%- endif -%}
+    {%- endif -%}
+
+    {{- 'theme.css' | asset_url | stylesheet_tag: preload: true -}}
+
+    <style>
+      /* FITME FM-RATING BADGE STYLING (PURE CSS PREVENT 10-STAR OVERFLOW) */
+      .fm-rating {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        font-family: 'DM Sans', sans-serif !important;
+        text-decoration: none !important;
+        margin: 3px 0 6px 0 !important;
+        line-height: 1 !important;
+        cursor: pointer !important;
+      }
+
+      /* Hide background 5 stars so 10 stars NEVER render */
+      .fm-rating .fm-stars__bg {
+        display: none !important;
+      }
+
+      /* Make foreground stars display a single GOLD star */
+      .fm-rating .fm-stars {
+        display: inline-block !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: hidden !important;
+        vertical-align: middle !important;
+      }
+
+      .fm-rating .fm-stars__fg {
+        display: inline-block !important;
+        width: auto !important;
+        font-size: 0 !important;
+        color: #FFB800 !important;
+      }
+
+      .fm-rating .fm-stars__fg::before,
+      .fm-star-gold {
+        content: '★' !important;
+        font-size: 14px !important;
+        color: #FFB800 !important;
+        line-height: 1 !important;
+        display: inline-block !important;
+      }
+
+      .fm-score-num {
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        color: #2C2824 !important;
+        font-family: 'DM Sans', sans-serif !important;
+        line-height: 1 !important;
+      }
+
+      /* FITME COLOR SWATCHES (Circular Swatches with Hover Image Swap) */
+      .fm-swatches {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin: 6px 0 8px 0 !important;
+        flex-wrap: wrap !important;
+      }
+
+      .fm-swatch {
+        display: inline-block !important;
+        width: 14px !important;
+        height: 14px !important;
+        border-radius: 50% !important;
+        border: 1.5px solid rgba(44, 40, 36, 0.22) !important;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4) !important;
+        transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+        cursor: pointer !important;
+        position: relative !important;
+        text-decoration: none !important;
+      }
+
+      .fm-swatch:hover,
+      .fm-swatch.is-active {
+        transform: scale(1.25) !important;
+        box-shadow: 0 0 0 2px #2C2824 !important;
+        border-color: transparent !important;
+      }
+
+      /* FITME LOW INVENTORY WARNING BADGE (Urgency/FOMO Red Box) */
+      .fitme-inventory-wrapper {
+        display: block !important;
+        margin: 10px 0 14px 0 !important;
+      }
+
+      .fitme-inventory-badge--low {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 8px 14px !important;
+        background-color: #FDF2F2 !important;
+        border: 1px solid #F8B4B4 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 1px 2px rgba(208, 32, 69, 0.06) !important;
+      }
+
+      .fitme-inventory-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+      }
+
+      .fitme-inventory-text {
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 13.5px !important;
+        font-weight: 600 !important;
+        color: #D02045 !important;
+        line-height: 1.2 !important;
+      }
+
+      /* Override Judge.me & Third-Party Review App Badges on Collection Cards */
+      .jdgm-prev-badge,
+      .rivo-reviews-star-rating,
+      .alireviews-review-star-rating {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin: 2px 0 6px 0 !important;
+        line-height: 1 !important;
+      }
+      .jdgm-prev-badge .jdgm-star,
+      .jdgm-star.jdgm--on,
+      .jdgm-star.jdgm--half {
+        color: #FFB800 !important;
+      }
+      .jdgm-prev-badge .jdgm-star.jdgm--off {
+        display: none !important;
+      }
+      .jdgm-prev-badge__text {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #2C2824 !important;
+        visibility: visible !important;
+        display: inline-block !important;
+        margin-left: 2px !important;
+      }
+
+      /* FITME CSB-STYLE DRAWER FILTERS & PILL BUTTONS (Pill Filters & Sort Pill) */
+      .collection-top-bar,
+      .facets-summary {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        padding-top: 10px !important;
+        padding-bottom: 15px !important;
+      }
+
+      /* Filter Trigger Button (Left Pill) */
+      .collection-top-bar [aria-controls="facets-drawer"],
+      .facets-summary [aria-controls="facets-drawer"],
+      .collection-top-bar button.text-with-icon,
+      .facets-summary button.text-with-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 7px 22px !important;
+        border: 1px solid #141414 !important;
+        border-radius: 9999px !important;
+        background: #ffffff !important;
+        color: #141414 !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        line-height: 1.4 !important;
+      }
+
+      .collection-top-bar [aria-controls="facets-drawer"]:hover,
+      .facets-summary [aria-controls="facets-drawer"]:hover {
+        background: #f5f5f5 !important;
+      }
+
+      .collection-top-bar [aria-controls="facets-drawer"] svg,
+      .facets-summary [aria-controls="facets-drawer"] svg {
+        display: none !important;
+      }
+
+      /* Sort By Button (Right Pill) */
+      .sort-by-facet {
+        display: inline-flex !important;
+        align-items: center !important;
+        margin-left: auto !important;
+      }
+
+      .sort-by-facet > span:first-child {
+        display: none !important;
+      }
+
+      .sort-by-facet button[aria-controls^="popover-sort-by"] {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        padding: 7px 22px !important;
+        border: 1px solid #141414 !important;
+        border-radius: 9999px !important;
+        background: #ffffff !important;
+        color: #141414 !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+      }
+
+      .sort-by-facet button[aria-controls^="popover-sort-by"]:hover {
+        background: #f5f5f5 !important;
+      }
+
+      /* Drawer styling */
+      .facets-drawer .drawer__content {
+        padding: 24px !important;
+      }
+
+      .facets-drawer .button--primary,
+      .facets-drawer [type="submit"],
+      .facets-drawer button[type="submit"] {
+        border-radius: 9999px !important;
+        background: #141414 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        padding: 14px 24px !important;
+        width: 100% !important;
+      }
+    </style>
+  </head>
+
+  <body class="{% if settings.zoom_image_on_hover %}zoom-image--enabled{% endif %}">
+    {%- render 'shadow-dom-templates' -%}
+
+    <a href="#main" class="skip-to-content sr-only">{{ 'general.accessibility.skip_to_content' | t }}</a>
+
+    {%- comment -%}
+    This placeholder will be filled to screen readers for any kind of announcements
+    {%- endcomment -%}
+    <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+      <span id="status-announcement"></span>
+    </div>
+
+    <div class="sr-only" role="alert" aria-live="assertive" aria-atomic="true">
+      <span id="error-announcement"></span>
+    </div>
+
+    {%- if request.page_type != 'password' -%}
+      {%- sections 'header-group' -%}
+      {%- sections 'overlay-group' -%}
+
+      {%- if settings.cart_type == 'popover' -%}
+        <cart-notification-drawer open-from="bottom" class="quick-buy-drawer drawer"></cart-notification-drawer>
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- if request.page_type == 'customers/account' or request.page_type == 'customers/order' or request.page_type == 'customers/addresses' -%}
+      {%- section 'account-banner' -%}
+    {%- endif -%}
+
+    <main role="main" id="main" class="anchor">
+      {%- unless request.page_type == 'index' or request.page_type == 'password' -%}
+        {%- if template contains 'collection' or template contains 'page' -%}
+          <div class="container fitme-global-breadcrumbs" style="padding-top: 1.25rem; padding-bottom: 0.25rem;">
+            {%- render 'breadcrumbs' -%}
+          </div>
+        {%- endif -%}
+      {%- endunless -%}
+
+      {{ content_for_layout }}
+
+      {%- comment -%}
+      IMPLEMENTATION NOTE: due to the very complex logic of margin/padding collapsing in Impact, the footer group is
+      added into the main element to ensure that dynamic sections added into the footer group are properly laid out.
+      {%- endcomment -%}
+      {%- if request.page_type != 'password' -%}
+        {%- sections 'footer-group' -%}
+      {%- endif -%}
+    </main>
+
+    <script>
+      (function() {
+        var imageCache = {};
+
+        function formatAllFmRatings() {
+          var ratings = document.querySelectorAll('.fm-rating');
+          for (var i = 0; i < ratings.length; i++) {
+            var el = ratings[i];
+            if (el.getAttribute('data-fm-formatted') === 'true') continue;
+            
+            var title = el.getAttribute('title') || '';
+            var matchScore = title.match(/^([\d\.]+)/);
+            var matchCount = title.match(/·\s*(\d+)/);
+            
+            var score = matchScore ? parseFloat(matchScore[1]).toFixed(1) : '4.9';
+            var count = matchCount ? matchCount[1] : '';
+            var countText = count ? ' <span class="fm-count-num" style="color:#7A7571;font-weight:400;font-size:12px;font-family:\'DM Sans\',sans-serif;">(' + count + ' đánh giá)</span>' : '';
+            
+            el.innerHTML = '<span class="fm-star-gold" style="color:#FFB800;font-size:13.5px;line-height:1;">★</span> <span class="fm-score-num" style="font-weight:600;font-size:13px;color:#2C2824;font-family:\'DM Sans\',sans-serif;">' + score + '</span>' + countText;
+            el.setAttribute('data-fm-formatted', 'true');
+          }
+        }
+
+        var prefetchingSet = {};
+
+        function prefetchVariantImage(handle) {
+          if (imageCache[handle] || prefetchingSet[handle]) return;
+          prefetchingSet[handle] = true;
+
+          var fetchImg = function() {
+            fetch('/products/' + handle + '.js')
+              .then(function(res) { return res.json(); })
+              .then(function(data) {
+                if (data && data.featured_image) {
+                  var imgUrl = data.featured_image;
+                  imageCache[handle] = imgUrl;
+                  var imgObj = new Image();
+                  imgObj.src = imgUrl;
+                }
+              })
+              .catch(function() {});
+          };
+
+          if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(fetchImg);
+          } else {
+            setTimeout(fetchImg, 40);
+          }
+        }
+
+        function setupSwatchHoverSwap() {
+          var swatches = document.querySelectorAll('.fm-swatch');
+          swatches.forEach(function(swatch) {
+            var href = swatch.getAttribute('href');
+            if (!href) return;
+
+            var match = href.match(/\/products\/([^\?#\/]+)/);
+            if (!match) return;
+            var handle = match[1];
+
+            // Preload image in background immediately
+            prefetchVariantImage(handle);
+
+            if (swatch.dataset.hoverBound) return;
+            swatch.dataset.hoverBound = 'true';
+
+            var handleHover = function(e) {
+              var card = swatch.closest('.product-card') || swatch.closest('.bento-card') || swatch.closest('[class*="product"]');
+              if (!card) return;
+              var mainImg = card.querySelector('img.product-card__image--primary') || card.querySelector('img.product-card__image') || card.querySelector('img');
+              if (!mainImg) return;
+
+              // Highlight active circle
+              var siblings = swatch.parentElement.querySelectorAll('.fm-swatch');
+              siblings.forEach(function(s) { s.classList.remove('is-active'); });
+              swatch.classList.add('is-active');
+
+              var applyImage = function(imgUrl) {
+                if (mainImg.src !== imgUrl) {
+                  mainImg.src = imgUrl;
+                  mainImg.srcset = imgUrl;
+                }
+              };
+
+              if (imageCache[handle]) {
+                applyImage(imageCache[handle]);
+              } else {
+                fetch('/products/' + handle + '.js')
+                  .then(function(res) { return res.json(); })
+                  .then(function(data) {
+                    if (data && data.featured_image) {
+                      var imgUrl = data.featured_image;
+                      imageCache[handle] = imgUrl;
+                      applyImage(imgUrl);
+                    }
+                  })
+                  .catch(function(err) {});
+              }
+            };
+
+            swatch.addEventListener('mouseenter', handleHover);
+            swatch.addEventListener('click', function(e) {
+              handleHover(e);
+            });
+          });
+        }
+
+        function initAll() {
+          formatAllFmRatings();
+          setupSwatchHoverSwap();
+        }
+
+        initAll();
+        document.addEventListener('DOMContentLoaded', initAll);
+        window.addEventListener('load', initAll);
+        setInterval(initAll, 300);
+      })();
+    </script>
+  </body>
+</html>

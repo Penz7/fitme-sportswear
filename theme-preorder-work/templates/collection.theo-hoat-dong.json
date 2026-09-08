@@ -1,0 +1,102 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "collectiontitle_CDc3yQ": {
+      "type": "collectiontitle",
+      "blocks": {
+        "item_YykXBh": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/IMG_0896_8e646ed1-208d-4b77-8503-b4806adfcc53.jpg",
+            "title": "Pickleball/Tennis",
+            "description": "",
+            "link": "shopify://collections/do-tennis-pickleball-nu-fitme"
+          }
+        },
+        "item_jDL6ef": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC00486-shopee_e0570a5d-6e4d-43b7-b76c-c844383ebf4a.jpg",
+            "title": "Gym/Yoga",
+            "description": "",
+            "link": "shopify://collections/gym-yoga"
+          }
+        },
+        "item_r8Kpxz": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/IMG_9685.jpg",
+            "title": "Chạy bộ",
+            "description": "",
+            "link": "shopify://collections/bo-suu-tap-chay-bo-nu-fitme"
+          }
+        }
+      },
+      "block_order": [
+        "item_YykXBh",
+        "item_jDL6ef",
+        "item_r8Kpxz"
+      ],
+      "settings": {
+        "title": "",
+        "breadcrumbs": "",
+        "items_per_row_desktop": "3",
+        "items_per_row_mobile": "1",
+        "show_breadcrumbs": true,
+        "padding_top": 20,
+        "padding_bottom": 0,
+        "background_color": "#ffffff",
+        "heading_color": "#000000",
+        "title_color": "#000000",
+        "description_color": "#666666",
+        "heading_size": 24,
+        "item_title_size": 16,
+        "item_description_size": 14,
+        "scrolling_style": "smooth"
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "banner",
+    "collectiontitle_CDc3yQ",
+    "main"
+  ]
+}

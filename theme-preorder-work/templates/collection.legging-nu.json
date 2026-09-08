@@ -1,0 +1,161 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "custom_css": [],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "show_collection_title": false,
+        "show_collection_description": false,
+        "show_collection_image": true,
+        "collection_title_size": "h4",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "collectiontitle_rxYmQp": {
+      "type": "collectiontitle",
+      "blocks": {
+        "item_ifLyt4": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/quan-legging-nu-co-tui-fitme-flow-nang-mong-pocket-qdpk-den_2.jpg",
+            "title": "Legging Cạp Cao",
+            "description": "Tự tin chuyển động, ôm gọn vòng eo",
+            "link": "shopify://collections/quan-legging-nu-cap-cao"
+          }
+        },
+        "item_t8B4nf": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/quan-legging-dai-tap-gym-cap-cheo-cover23-den_3.jpg",
+            "title": "Legging Cạp Chéo",
+            "description": "Tôn đường cong, dáng đẹp chuẩn chỉnh",
+            "link": "shopify://collections/cover23"
+          }
+        },
+        "item_mzjf4J": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/quan-legging-nu-ong-loe-fitme-flow-nang-mong-qdol-den_7.jpg",
+            "title": "Legging Ống Loe",
+            "description": "Sành điệu mọi lúc, thoải mái mọi nơi",
+            "link": "shopify://products/quan-legging-ong-loe-flare-qdol-den"
+          }
+        },
+        "item_TwmGJJ": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/quan-legging-dui-gym-yoga-nu-den_6.jpg",
+            "title": "Legging Đùi",
+            "description": "Linh hoạt tối đa, thoáng mát tự nhiên",
+            "link": "shopify://collections/quan-legging-dui-nu"
+          }
+        }
+      },
+      "block_order": [
+        "item_ifLyt4",
+        "item_t8B4nf",
+        "item_mzjf4J",
+        "item_TwmGJJ"
+      ],
+      "custom_css": [
+        ".collection-title__results-count {display: none;"
+      ],
+      "settings": {
+        "title": "Quần Legging Nữ",
+        "breadcrumbs": "",
+        "items_per_row_desktop": "4",
+        "items_per_row_mobile": "2",
+        "show_breadcrumbs": true,
+        "padding_top": 36,
+        "padding_bottom": 36,
+        "background_color": "#ffffff",
+        "heading_color": "#000000",
+        "title_color": "#000000",
+        "description_color": "#666666",
+        "heading_size": 28,
+        "item_title_size": 15,
+        "item_description_size": 14,
+        "scrolling_style": "smooth"
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "blocks": {
+        "promotion_video_UXCW3m": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 12,
+            "column_span": "1",
+            "video": "shopify://files/videos/flare legging 5mb.mov",
+            "external_video_url": "",
+            "title": "",
+            "content": "",
+            "link_url": "shopify://products/quan-legging-ong-loe-flare-qdol-den",
+            "link_text": "Nhấn để xem thêm",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 0
+          }
+        },
+        "promotion_video_ijKM8J": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 23,
+            "column_span": "1",
+            "video": "shopify://files/videos/atn1d_5f324a39-b406-4f9a-9d31-598ac37c5454.mp4",
+            "external_video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+            "title": "",
+            "content": "",
+            "link_url": "shopify://products/quan-legging-phoi-xeo-cover23-qdcv-sand",
+            "link_text": "Nhấn để xem thêm",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 0
+          }
+        }
+      },
+      "block_order": [
+        "promotion_video_UXCW3m",
+        "promotion_video_ijKM8J"
+      ],
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "seo_content": {
+      "type": "collection-seo-content",
+      "settings": {}
+    }
+  },
+  "order": [
+    "banner",
+    "collectiontitle_rxYmQp",
+    "main",
+    "seo_content"
+  ]
+}

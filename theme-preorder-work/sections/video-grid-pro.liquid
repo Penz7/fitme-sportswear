@@ -1,0 +1,1084 @@
+{% comment %}
+  Custom Video Grid Pro - V4
+  Features: Aspect ratio picker, "MUA NGAY" CTA button, separated PC/mobile heading sizes,
+  product-below-video modal layout, customizable button colors, dynamic multi-position font picker
+{% endcomment %}
+
+{%- assign opacity_decimal = section.settings.glass_opacity | divided_by: 100.0 -%}
+{%- assign glass_bg_color = section.settings.glass_color | color_modify: 'alpha', opacity_decimal -%}
+
+{%- comment -%} Render Shopify Font Picker Styles if selected {%- endcomment -%}
+{%- if section.settings.heading_font_type == 'shopify_font' and section.settings.heading_font_shopify != blank -%}
+  {{ section.settings.heading_font_shopify | font_face }}
+{%- endif -%}
+{%- if section.settings.cta_font_type == 'shopify_font' and section.settings.cta_font_shopify != blank -%}
+  {{ section.settings.cta_font_shopify | font_face }}
+{%- endif -%}
+{%- if section.settings.prod_title_font_type == 'shopify_font' and section.settings.prod_title_font_shopify != blank -%}
+  {{ section.settings.prod_title_font_shopify | font_face }}
+{%- endif -%}
+{%- if section.settings.prod_price_font_type == 'shopify_font' and section.settings.prod_price_font_shopify != blank -%}
+  {{ section.settings.prod_price_font_shopify | font_face }}
+{%- endif -%}
+{%- if section.settings.prod_buy_font_type == 'shopify_font' and section.settings.prod_buy_font_shopify != blank -%}
+  {{ section.settings.prod_buy_font_shopify | font_face }}
+{%- endif -%}
+
+<style>
+  /* Load Google Fonts */
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+
+  /* --- CSS VARIABLES --- */
+  #shopify-section-{{ section.id }} {
+    --section-bg: {{ section.settings.section_bg }};
+    --padding-top: {{ section.settings.margin_top }}px;
+    --padding-bottom: {{ section.settings.margin_bottom }}px;
+    --padding-side: {{ section.settings.padding_x }}px;
+    --gap: {{ section.settings.gap }}px;
+    --mobile-card-width: {{ section.settings.mobile_card_width }}vw;
+    --cta-bg: {{ section.settings.cta_bg_color }};
+    --cta-text: {{ section.settings.cta_text_color }};
+    --aspect: {{ section.settings.aspect_ratio }};
+  }
+
+  /* --- GENERAL LAYOUT --- */
+  #shopify-section-{{ section.id }} .cvg-section-wrapper {
+    background-color: var(--section-bg);
+    padding-top: var(--padding-top);
+    padding-bottom: var(--padding-bottom);
+    width: 100%;
+    overflow: hidden;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    padding-left: var(--padding-side);
+    padding-right: var(--padding-side);
+    position: relative;
+  }
+
+  /* Heading Font Apply */
+  #shopify-section-{{ section.id }} .cvg-heading {
+    text-align: {{ section.settings.heading_align }};
+    font-size: {{ section.settings.heading_size_mobile }}px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: {{ section.settings.heading_color }};
+    padding: 0 10px;
+    {%- if section.settings.heading_font_type == 'gingham_princess' -%}
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+    {%- elsif section.settings.heading_font_type == 'montserrat' -%}
+      font-family: 'Montserrat', sans-serif !important;
+      font-weight: 500 !important;
+    {%- elsif section.settings.heading_font_type == 'plus_jakarta' -%}
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+    {%- elsif section.settings.heading_font_type == 'dm_sans' -%}
+      font-family: 'DM Sans', sans-serif !important;
+    {%- elsif section.settings.heading_font_type == 'shopify_font' and section.settings.heading_font_shopify != blank -%}
+      font-family: {{ section.settings.heading_font_shopify.family }}, {{ section.settings.heading_font_shopify.fallback_families }} !important;
+      font-weight: {{ section.settings.heading_font_shopify.weight }} !important;
+      font-style: {{ section.settings.heading_font_shopify.style }} !important;
+    {%- endif -%}
+  }
+
+  @media screen and (min-width: 769px) {
+    #shopify-section-{{ section.id }} .cvg-heading {
+      font-size: {{ section.settings.heading_size_desktop }}px;
+    }
+  }
+
+  /* --- DESKTOP SLIDER --- */
+  #shopify-section-{{ section.id }} .cvg-viewport {
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-track {
+    display: flex;
+    gap: var(--gap);
+    transition: transform 0.5s ease-in-out;
+    width: 100%;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: var(--aspect);
+    background: #f4f4f4;
+    flex-shrink: 0;
+    width: calc((100% - ({{ section.settings.columns_desktop | minus: 1 }} * var(--gap))) / {{ section.settings.columns_desktop }});
+  }
+
+  #shopify-section-{{ section.id }} .cvg-item video,
+  #shopify-section-{{ section.id }} .cvg-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-item:hover video,
+  #shopify-section-{{ section.id }} .cvg-item:hover img {
+    transform: scale(1.05);
+  }
+
+  /* --- CTA BUTTON (replaces play icon) --- */
+  #shopify-section-{{ section.id }} .cvg-cta-btn {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 24px;
+    border-radius: 999px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 5;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+
+    {%- if section.settings.enable_glass_cta -%}
+      background: rgba(255, 255, 255, 0.15) !important;
+      color: #ffffff !important;
+      backdrop-filter: blur(12px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.24) !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    {%- else -%}
+      background: var(--cta-bg) !important;
+      color: var(--cta-text) !important;
+      border: none !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+    {%- endif -%}
+    {%- if section.settings.cta_font_type == 'gingham_princess' -%}
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      font-weight: 400 !important;
+    {%- elsif section.settings.cta_font_type == 'montserrat' -%}
+      font-family: 'Montserrat', sans-serif !important;
+      font-weight: 500 !important;
+    {%- elsif section.settings.cta_font_type == 'plus_jakarta' -%}
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.cta_font_type == 'dm_sans' -%}
+      font-family: 'DM Sans', sans-serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.cta_font_type == 'shopify_font' and section.settings.cta_font_shopify != blank -%}
+      font-family: {{ section.settings.cta_font_shopify.family }}, {{ section.settings.cta_font_shopify.fallback_families }} !important;
+      font-weight: {{ section.settings.cta_font_shopify.weight }} !important;
+      font-style: {{ section.settings.cta_font_shopify.style }} !important;
+    {%- endif -%}
+  }
+
+  #shopify-section-{{ section.id }} .cvg-cta-btn:hover {
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  #shopify-section-{{ section.id }} .cvg-cta-btn:active {
+    transform: translateX(-50%) scale(0.95);
+  }
+
+  /* --- ARROWS --- */
+  #shopify-section-{{ section.id }} .cvg-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s;
+    opacity: 0;
+    border: none;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-container:hover .cvg-arrow { opacity: 1; }
+  #shopify-section-{{ section.id }} .cvg-arrow:hover { background: #000; color: #fff; }
+  #shopify-section-{{ section.id }} .cvg-arrow.prev { left: 10px; }
+  #shopify-section-{{ section.id }} .cvg-arrow.next { right: 10px; }
+  #shopify-section-{{ section.id }} .cvg-arrow.disabled { opacity: 0.3; pointer-events: none; }
+
+  /* --- MOBILE --- */
+  @media (max-width: 768px) {
+    #shopify-section-{{ section.id }} .cvg-arrow { display: none !important; }
+    #shopify-section-{{ section.id }} .cvg-viewport { overflow: visible; position: relative; }
+
+    #shopify-section-{{ section.id }} .cvg-mobile-arrow {
+      display: flex;
+      position: absolute;
+      right: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      z-index: 15;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: opacity 0.3s;
+    }
+    #shopify-section-{{ section.id }} .cvg-mobile-arrow.hidden { opacity: 0; pointer-events: none; }
+    #shopify-section-{{ section.id }} .cvg-track {
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding-bottom: 10px;
+      -webkit-overflow-scrolling: touch;
+      width: auto;
+    }
+    #shopify-section-{{ section.id }} .cvg-item {
+      width: var(--mobile-card-width) !important;
+      flex: 0 0 var(--mobile-card-width);
+      scroll-snap-align: start;
+    }
+    {% if section.settings.show_scrollbar %}
+    #shopify-section-{{ section.id }} .cvg-track::-webkit-scrollbar { height: 4px; }
+    #shopify-section-{{ section.id }} .cvg-track::-webkit-scrollbar-track { background: #e0e0e0; border-radius: 4px; margin: 0 10px; }
+    #shopify-section-{{ section.id }} .cvg-track::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    {% else %}
+    #shopify-section-{{ section.id }} .cvg-track { scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 0; }
+    #shopify-section-{{ section.id }} .cvg-track::-webkit-scrollbar { display: none; }
+    {% endif %}
+
+    #shopify-section-{{ section.id }} .cvg-cta-btn {
+      padding: 8px 20px;
+      font-size: 12px;
+      bottom: 12px;
+    }
+  }
+
+  /* ===== MODAL V4 - Video on top, products below ===== */
+  #shopify-section-{{ section.id }} .cvg-modal {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    overflow-y: auto;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  #shopify-section-{{ section.id }} .cvg-modal.show { opacity: 1; }
+
+  #shopify-section-{{ section.id }} .cvg-modal-inner {
+    width: 100%;
+    max-width: 420px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Video area */
+  #shopify-section-{{ section.id }} .cvg-modal-video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: var(--aspect);
+    background: #000;
+    flex-shrink: 0;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-modal-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.5);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: background 0.2s;
+  }
+  #shopify-section-{{ section.id }} .cvg-close:hover { background: rgba(0, 0, 0, 0.8); }
+
+  /* Product list area - BELOW video */
+  #shopify-section-{{ section.id }} .cvg-product-list {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fff;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-product-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 12px;
+    background: #f8f8f8;
+    transition: background 0.2s;
+  }
+  #shopify-section-{{ section.id }} .cvg-product-card:hover { background: #f0f0f0; }
+
+  #shopify-section-{{ section.id }} .cvg-p-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #e0e0e0;
+  }
+
+  #shopify-section-{{ section.id }} .cvg-p-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Product Title Font Apply */
+  #shopify-section-{{ section.id }} .cvg-p-title {
+    font-size: 14px;
+    color: #111;
+    margin-bottom: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+    {%- if section.settings.prod_title_font_type == 'gingham_princess' -%}
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      font-weight: 500 !important;
+    {%- elsif section.settings.prod_title_font_type == 'montserrat' -%}
+      font-family: 'Montserrat', sans-serif !important;
+      font-weight: 500 !important;
+    {%- elsif section.settings.prod_title_font_type == 'plus_jakarta' -%}
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.prod_title_font_type == 'dm_sans' -%}
+      font-family: 'DM Sans', sans-serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.prod_title_font_type == 'shopify_font' and section.settings.prod_title_font_shopify != blank -%}
+      font-family: {{ section.settings.prod_title_font_shopify.family }}, {{ section.settings.prod_title_font_shopify.fallback_families }} !important;
+      font-weight: {{ section.settings.prod_title_font_shopify.weight }} !important;
+      font-style: {{ section.settings.prod_title_font_shopify.style }} !important;
+    {%- endif -%}
+  }
+
+  /* Product Price Font Apply */
+  #shopify-section-{{ section.id }} .cvg-p-price {
+    font-size: 13px;
+    color: #111;
+    {%- if section.settings.prod_price_font_type == 'gingham_princess' -%}
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.prod_price_font_type == 'montserrat' -%}
+      font-family: 'Montserrat', sans-serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.prod_price_font_type == 'plus_jakarta' -%}
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-weight: 700 !important;
+    {%- elsif section.settings.prod_price_font_type == 'dm_sans' -%}
+      font-family: 'DM Sans', sans-serif !important;
+      font-weight: 700 !important;
+    {%- elsif section.settings.prod_price_font_type == 'shopify_font' and section.settings.prod_price_font_shopify != blank -%}
+      font-family: {{ section.settings.prod_price_font_shopify.family }}, {{ section.settings.prod_price_font_shopify.fallback_families }} !important;
+      font-weight: {{ section.settings.prod_price_font_shopify.weight }} !important;
+      font-style: {{ section.settings.prod_price_font_shopify.style }} !important;
+    {%- endif -%}
+  }
+
+  #shopify-section-{{ section.id }} .cvg-p-price .cvg-compare-price {
+    text-decoration: line-through;
+    color: #999;
+    font-weight: 400;
+    margin-right: 6px;
+  }
+
+  /* Product Buy Button Font Apply */
+  #shopify-section-{{ section.id }} .cvg-p-buy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--cta-bg);
+    color: var(--cta-text);
+    padding: 8px 16px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    {%- if section.settings.prod_buy_font_type == 'gingham_princess' -%}
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      font-weight: 500 !important;
+    {%- elsif section.settings.prod_buy_font_type == 'montserrat' -%}
+      font-family: 'Montserrat', sans-serif !important;
+      font-weight: 500 !important;
+    {%- elsif section.settings.prod_buy_font_type == 'plus_jakarta' -%}
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.prod_buy_font_type == 'dm_sans' -%}
+      font-family: 'DM Sans', sans-serif !important;
+      font-weight: 600 !important;
+    {%- elsif section.settings.prod_buy_font_type == 'shopify_font' and section.settings.prod_buy_font_shopify != blank -%}
+      font-family: {{ section.settings.prod_buy_font_shopify.family }}, {{ section.settings.prod_buy_font_shopify.fallback_families }} !important;
+      font-weight: {{ section.settings.prod_buy_font_shopify.weight }} !important;
+      font-style: {{ section.settings.prod_buy_font_shopify.style }} !important;
+    {%- endif -%}
+  }
+  #shopify-section-{{ section.id }} .cvg-p-buy:hover {
+    opacity: 0.9;
+    transform: translateX(2px);
+  }
+  #shopify-section-{{ section.id }} .cvg-p-buy svg { flex-shrink: 0; }
+</style>
+
+<div class="cvg-section-wrapper">
+  <div class="cvg-container">
+    {% if section.settings.heading != blank %}
+      <h2 class="cvg-heading">{{ section.settings.heading }}</h2>
+    {% endif %}
+
+    <button class="cvg-arrow prev disabled" onclick="cvgSlide_{{ section.id | replace: '-', '_' }}(-1)" aria-label="Previous">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button class="cvg-arrow next" onclick="cvgSlide_{{ section.id | replace: '-', '_' }}(1)" aria-label="Next">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+
+    <div class="cvg-viewport">
+      <div class="cvg-track" id="cvg-track-{{ section.id }}">
+        {% for block in section.blocks %}
+          {%- assign video_src = "" -%}
+          {%- if block.settings.video_url != blank -%}
+            {%- assign video_src = block.settings.video_url.sources[1].url | default: block.settings.video_url.sources[0].url -%}
+          {%- endif -%}
+          <div class="cvg-item"
+               data-video="{{ video_src }}"
+               {% if block.settings.product_1 != blank %}
+                 data-p1-title="{{ block.settings.product_1.title | escape }}"
+                 data-p1-price="{{ block.settings.product_1.price | money }}"
+                 data-p1-compare="{{ block.settings.product_1.compare_at_price | money }}"
+                 data-p1-compare-raw="{{ block.settings.product_1.compare_at_price }}"
+                 data-p1-url="{{ block.settings.product_1.url }}"
+                 data-p1-img="{{ block.settings.product_1.featured_image | image_url: width: 120 }}"
+               {% endif %}
+               {% if block.settings.product_2 != blank %}
+                 data-p2-title="{{ block.settings.product_2.title | escape }}"
+                 data-p2-price="{{ block.settings.product_2.price | money }}"
+                 data-p2-compare="{{ block.settings.product_2.compare_at_price | money }}"
+                 data-p2-compare-raw="{{ block.settings.product_2.compare_at_price }}"
+                 data-p2-url="{{ block.settings.product_2.url }}"
+                 data-p2-img="{{ block.settings.product_2.featured_image | image_url: width: 120 }}"
+               {% endif %}
+               {% if block.settings.product_3 != blank %}
+                 data-p3-title="{{ block.settings.product_3.title | escape }}"
+                 data-p3-price="{{ block.settings.product_3.price | money }}"
+                 data-p3-compare="{{ block.settings.product_3.compare_at_price | money }}"
+                 data-p3-compare-raw="{{ block.settings.product_3.compare_at_price }}"
+                 data-p3-url="{{ block.settings.product_3.url }}"
+                 data-p3-img="{{ block.settings.product_3.featured_image | image_url: width: 120 }}"
+               {% endif %}
+               {{ block.shopify_attributes }}
+               >
+
+            {% if block.settings.video_url != blank %}
+              {{ block.settings.video_url | video_tag: image_size: '300x', loop: true, autoplay: false, muted: true, controls: false, playsinline: true, preload: 'none' }}
+            {% else %}
+              {{ 'product-1' | placeholder_svg_tag }}
+            {% endif %}
+
+            <button class="cvg-cta-btn" onclick="cvgOpen_{{ section.id | replace: '-', '_' }}(this.closest('.cvg-item')); event.stopPropagation();">
+              {{ section.settings.cta_label }}
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Mobile next arrow (inside viewport for correct vertical centering) -->
+      <div class="cvg-mobile-arrow" id="cvg-mob-arrow-{{ section.id }}" style="display:none;" onclick="cvgMobScroll_{{ section.id | replace: '-', '_' }}()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL V4: Video on top + Products below -->
+<div id="cvg-modal-{{ section.id }}" class="cvg-modal" onclick="cvgClose_{{ section.id | replace: '-', '_' }}(event)">
+  <div class="cvg-modal-inner" onclick="event.stopPropagation()">
+    <div class="cvg-modal-video-wrap">
+      <button class="cvg-close" onclick="cvgClose_{{ section.id | replace: '-', '_' }}(event, true)" aria-label="Close">&times;</button>
+      <video id="cvg-video-{{ section.id }}" class="cvg-modal-video" controls playsinline></video>
+    </div>
+    <div id="cvg-products-{{ section.id }}" class="cvg-product-list"></div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var sid = '{{ section.id }}';
+    var sidKey = '{{ section.id | replace: '-', '_' }}';
+    var currentIndex = 0;
+    var track = document.getElementById('cvg-track-' + sid);
+    if (!track) return;
+    var items = track.querySelectorAll('.cvg-item');
+    var totalItems = items.length;
+    var itemsToShow = {{ section.settings.columns_desktop }};
+    var gap = {{ section.settings.gap }};
+
+    var container = track.closest('.cvg-container');
+    var prevBtn = container.querySelector('.cvg-arrow.prev');
+    var nextBtn = container.querySelector('.cvg-arrow.next');
+
+    if (totalItems <= itemsToShow) {
+      if (prevBtn) prevBtn.style.display = 'none';
+      if (nextBtn) nextBtn.style.display = 'none';
+    }
+
+    window['cvgSlide_' + sidKey] = function(dir) {
+      var maxIdx = totalItems - itemsToShow;
+      currentIndex += dir;
+      if (currentIndex < 0) currentIndex = 0;
+      if (currentIndex > maxIdx) currentIndex = maxIdx;
+      if (prevBtn) prevBtn.classList.toggle('disabled', currentIndex === 0);
+      if (nextBtn) nextBtn.classList.toggle('disabled', currentIndex === maxIdx);
+      var w = items[0].offsetWidth;
+      track.style.transform = 'translateX(-' + ((w + gap) * currentIndex) + 'px)';
+    };
+
+    var modal = document.getElementById('cvg-modal-' + sid);
+    var modalVideo = document.getElementById('cvg-video-' + sid);
+    var productList = document.getElementById('cvg-products-' + sid);
+    var ctaLabel = "{{ section.settings.cta_label | escape }}";
+    var startMuted = {{ section.settings.video_muted | default: false }};
+
+    window['cvgOpen_' + sidKey] = function(el) {
+      var src = el.getAttribute('data-video');
+      if (!src) return;
+
+      modalVideo.src = src;
+      modalVideo.muted = startMuted;
+      modal.style.display = 'flex';
+      setTimeout(function() { modal.classList.add('show'); }, 10);
+
+      var pp = modalVideo.play();
+      if (pp !== undefined) pp.catch(function() {});
+
+      // Build product cards
+      productList.innerHTML = '';
+      for (var i = 1; i <= 3; i++) {
+        var title = el.getAttribute('data-p' + i + '-title');
+        var price = el.getAttribute('data-p' + i + '-price');
+        var compare = el.getAttribute('data-p' + i + '-compare');
+        var compareRaw = el.getAttribute('data-p' + i + '-compare-raw');
+        var url = el.getAttribute('data-p' + i + '-url');
+        var img = el.getAttribute('data-p' + i + '-img');
+
+        if (title && url) {
+          var priceHTML = '';
+          if (compareRaw && parseInt(compareRaw) > 0) {
+            priceHTML = '<span class="cvg-compare-price">' + compare + '</span>' + price;
+          } else {
+            priceHTML = price;
+          }
+
+          var card = '<div class="cvg-product-card">' +
+            (img ? '<img class="cvg-p-thumb" src="' + img + '" alt="' + title + '" loading="lazy">' : '') +
+            '<div class="cvg-p-info">' +
+              '<div class="cvg-p-title">' + title + '</div>' +
+              '<div class="cvg-p-price">' + priceHTML + '</div>' +
+            '</div>' +
+            '<a href="' + url + '" class="cvg-p-buy">' + ctaLabel +
+              ' <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>' +
+            '</a>' +
+          '</div>';
+          productList.innerHTML += card;
+        }
+      }
+    };
+
+    window['cvgClose_' + sidKey] = function(e, force) {
+      if (e.target === modal || force) {
+        modal.classList.remove('show');
+        setTimeout(function() {
+          modal.style.display = 'none';
+          modalVideo.pause();
+          modalVideo.src = '';
+        }, 300);
+      }
+    };
+
+    window.addEventListener('resize', function() {
+      window['cvgSlide_' + sidKey](0);
+    });
+
+    // Mobile arrow scroll
+    var mobArrow = document.getElementById('cvg-mob-arrow-' + sid);
+    function checkMobArrow() {
+      if (window.innerWidth <= 768 && totalItems > 1) {
+        mobArrow.style.display = 'flex';
+        var scrollLeft = track.scrollLeft;
+        var maxScroll = track.scrollWidth - track.clientWidth;
+        mobArrow.classList.toggle('hidden', scrollLeft >= maxScroll - 5);
+      } else {
+        mobArrow.style.display = 'none';
+      }
+    }
+    checkMobArrow();
+    window.addEventListener('resize', checkMobArrow);
+    track.addEventListener('scroll', checkMobArrow);
+
+    window['cvgMobScroll_' + sidKey] = function() {
+      var cardWidth = items[0] ? items[0].offsetWidth + gap : 200;
+      track.scrollBy({ left: cardWidth, behavior: 'smooth' });
+    };
+
+    // Force remove autoplay attribute (Shopify video_tag always adds it)
+    items.forEach(function(item) {
+      var video = item.querySelector('video');
+      if (video) {
+        video.removeAttribute('autoplay');
+        video.pause();
+      }
+    });
+
+    // IntersectionObserver: only play videos in viewport
+    if ('IntersectionObserver' in window) {
+      var videoObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          var video = entry.target.querySelector('video');
+          if (!video) return;
+          if (entry.isIntersecting) {
+            var pp = video.play();
+            if (pp !== undefined) pp.catch(function() {});
+          } else {
+            video.pause();
+          }
+        });
+      }, { threshold: 0.3 });
+
+      items.forEach(function(item) {
+        videoObserver.observe(item);
+      });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "⭐ Video Grid Pro",
+  "settings": [
+    {
+      "type": "header",
+      "content": "📝 Heading"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Fitme girl. Let's play together!"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_desktop",
+      "min": 16,
+      "max": 60,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading Size (Desktop)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 14,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading Size (Mobile)",
+      "default": 22
+    },
+    {
+      "type": "select",
+      "id": "heading_align",
+      "label": "Heading Alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "🔤 Cấu hình Font chữ (Typography)"
+    },
+    {
+      "type": "select",
+      "id": "heading_font_type",
+      "label": "Loại Font cho Tiêu đề chính",
+      "options": [
+        { "value": "gingham_princess", "label": "Gingham Princess (Cormorant Garamond)" },
+        { "value": "montserrat", "label": "Montserrat" },
+        { "value": "plus_jakarta", "label": "Plus Jakarta Sans" },
+        { "value": "dm_sans", "label": "DM Sans" },
+        { "value": "theme_default", "label": "Mặc định của Theme" },
+        { "value": "shopify_font", "label": "Tùy chọn Font từ Shopify (Chọn bên dưới)" }
+      ],
+      "default": "theme_default"
+    },
+    {
+      "type": "font_picker",
+      "id": "heading_font_shopify",
+      "label": "Font từ Shopify (Tiêu đề)",
+      "default": "work_sans_n6"
+    },
+    {
+      "type": "select",
+      "id": "cta_font_type",
+      "label": "Loại Font cho Nút trên clip (CTA)",
+      "options": [
+        { "value": "gingham_princess", "label": "Gingham Princess (Cormorant Garamond)" },
+        { "value": "montserrat", "label": "Montserrat" },
+        { "value": "plus_jakarta", "label": "Plus Jakarta Sans" },
+        { "value": "dm_sans", "label": "DM Sans" },
+        { "value": "theme_default", "label": "Mặc định của Theme" },
+        { "value": "shopify_font", "label": "Tùy chọn Font từ Shopify (Chọn bên dưới)" }
+      ],
+      "default": "montserrat"
+    },
+    {
+      "type": "font_picker",
+      "id": "cta_font_shopify",
+      "label": "Font từ Shopify (Nút trên clip)",
+      "default": "work_sans_n6"
+    },
+    {
+      "type": "select",
+      "id": "prod_title_font_type",
+      "label": "Loại Font cho Tên sản phẩm trong Modal",
+      "options": [
+        { "value": "gingham_princess", "label": "Gingham Princess (Cormorant Garamond)" },
+        { "value": "montserrat", "label": "Montserrat" },
+        { "value": "plus_jakarta", "label": "Plus Jakarta Sans" },
+        { "value": "dm_sans", "label": "DM Sans" },
+        { "value": "theme_default", "label": "Mặc định của Theme" },
+        { "value": "shopify_font", "label": "Tùy chọn Font từ Shopify (Chọn bên dưới)" }
+      ],
+      "default": "theme_default"
+    },
+    {
+      "type": "font_picker",
+      "id": "prod_title_font_shopify",
+      "label": "Font từ Shopify (Tên sản phẩm Modal)",
+      "default": "work_sans_n6"
+    },
+    {
+      "type": "select",
+      "id": "prod_price_font_type",
+      "label": "Loại Font cho Giá sản phẩm trong Modal",
+      "options": [
+        { "value": "gingham_princess", "label": "Gingham Princess (Cormorant Garamond)" },
+        { "value": "montserrat", "label": "Montserrat" },
+        { "value": "plus_jakarta", "label": "Plus Jakarta Sans" },
+        { "value": "dm_sans", "label": "DM Sans" },
+        { "value": "theme_default", "label": "Mặc định của Theme" },
+        { "value": "shopify_font", "label": "Tùy chọn Font từ Shopify (Chọn bên dưới)" }
+      ],
+      "default": "theme_default"
+    },
+    {
+      "type": "font_picker",
+      "id": "prod_price_font_shopify",
+      "label": "Font từ Shopify (Giá sản phẩm Modal)",
+      "default": "work_sans_n6"
+    },
+    {
+      "type": "select",
+      "id": "prod_buy_font_type",
+      "label": "Loại Font cho Nút mua trong Modal",
+      "options": [
+        { "value": "gingham_princess", "label": "Gingham Princess (Cormorant Garamond)" },
+        { "value": "montserrat", "label": "Montserrat" },
+        { "value": "plus_jakarta", "label": "Plus Jakarta Sans" },
+        { "value": "dm_sans", "label": "DM Sans" },
+        { "value": "theme_default", "label": "Mặc định của Theme" },
+        { "value": "shopify_font", "label": "Tùy chọn Font từ Shopify (Chọn bên dưới)" }
+      ],
+      "default": "montserrat"
+    },
+    {
+      "type": "font_picker",
+      "id": "prod_buy_font_shopify",
+      "label": "Font từ Shopify (Nút mua Modal)",
+      "default": "work_sans_n6"
+    },
+    {
+      "type": "color",
+      "id": "section_bg",
+      "label": "Section Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "🎬 Video & Thumbnail"
+    },
+    {
+      "type": "select",
+      "id": "aspect_ratio",
+      "label": "Thumbnail aspect ratio",
+      "options": [
+        { "value": "9 / 16", "label": "9:16 (TikTok/Reels)" },
+        { "value": "2 / 3", "label": "2:3" },
+        { "value": "3 / 4", "label": "3:4" },
+        { "value": "1 / 1", "label": "1:1 (Square)" }
+      ],
+      "default": "9 / 16"
+    },
+    {
+      "type": "checkbox",
+      "id": "video_muted",
+      "label": "Mute video by default?",
+      "default": false,
+      "info": "Nếu chọn, video popup sẽ tự tắt tiếng khi mở."
+    },
+    {
+      "type": "header",
+      "content": "🛒 CTA Button (trên mỗi clip)"
+    },
+    {
+      "type": "text",
+      "id": "cta_label",
+      "label": "Button text",
+      "default": "MUA NGAY"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_glass_cta",
+      "label": "Bật hiệu ứng kính mờ (Glassmorphism)",
+      "default": true,
+      "info": "Nếu bật, nút trên clip sẽ có hiệu ứng kính mờ giống Apple. Nếu tắt, sẽ dùng màu nền và màu chữ tùy chỉnh bên dưới."
+    },
+    {
+      "type": "color",
+      "id": "cta_bg_color",
+      "label": "Button background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "Button text color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "🖥️ Desktop Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "label": "Videos per row (Desktop)",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "label": "Gap between videos",
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "📱 Mobile Layout"
+    },
+    {
+      "type": "range",
+      "id": "mobile_card_width",
+      "min": 25,
+      "max": 80,
+      "step": 5,
+      "unit": "vw",
+      "label": "Video width on mobile",
+      "info": "25vw ≈ 3.5 clips | 30vw ≈ 3 | 40vw ≈ 2.5 | 45vw ≈ 2 | 60vw ≈ 1.5 | 75vw ≈ 1",
+      "default": 40
+    },
+    {
+      "type": "checkbox",
+      "id": "show_scrollbar",
+      "label": "Show scrollbar on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "📐 Spacing"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin Top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin Bottom",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_x",
+      "min": 0,
+      "max": 200,
+      "step": 5,
+      "unit": "px",
+      "label": "Side Padding (Left/Right)",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "🎨 Glass Card (legacy)"
+    },
+    {
+      "type": "color",
+      "id": "glass_color",
+      "label": "Glass Base Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "glass_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Glass Opacity",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "glass_blur",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "label": "Glass Blur",
+      "default": 20
+    },
+    {
+      "type": "color",
+      "id": "product_text_color",
+      "label": "Product Text Color (legacy)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "product_title_size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Product Title Size (legacy)",
+      "default": 14
+    }
+  ],
+  "blocks": [
+    {
+      "type": "video_block",
+      "name": "Video Clip",
+      "settings": [
+        {
+          "type": "video",
+          "id": "video_url",
+          "label": "Upload Video (MP4)"
+        },
+        {
+          "type": "header",
+          "content": "Linked Products (Max 3)"
+        },
+        {
+          "type": "product",
+          "id": "product_1",
+          "label": "Product 1"
+        },
+        {
+          "type": "product",
+          "id": "product_2",
+          "label": "Product 2"
+        },
+        {
+          "type": "product",
+          "id": "product_3",
+          "label": "Product 3"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "⭐ Video Grid Pro",
+      "blocks": [
+        { "type": "video_block" },
+        { "type": "video_block" },
+        { "type": "video_block" },
+        { "type": "video_block" }
+      ]
+    }
+  ]
+}
+{% endschema %}

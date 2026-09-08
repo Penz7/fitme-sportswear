@@ -1,0 +1,522 @@
+{%- render 'section-spacing-collapsing' -%}
+
+{%- comment -%}
+  Collections Tabs Section v3 - Bulletproof multi-instance support
+  - All CSS/JS scoped by section.id
+  - Supports Shopify Theme Editor re-rendering
+  - Handles shopify:section:load events
+  - No cross-section interference
+{%- endcomment -%}
+
+<style>
+  {%- assign section_background = section.settings.background | default: settings.background -%}
+  {%- assign card_background = section.settings.product_card_background | default: settings.product_card_background -%}
+  {%- assign card_blends = false -%}
+
+  {%- unless section_background != 'rgba(0,0,0,0)' and card_background != 'rgba(0,0,0,0)' and section_background != card_background -%}
+    {%- assign card_blends = true -%}
+  {%- endunless -%}
+
+  #shopify-section-{{ section.id }} .product-list {
+    --product-list-gap: {% if section.settings.stack_products and section.settings.products_per_row_mobile == '2' %}{% if card_blends %}var(--product-list-row-gap){% endif %} var(--spacing-2){% else %}var(--product-list-row-gap) var(--product-list-column-gap){% endif %};
+    --product-list-items-per-row: {{ section.settings.products_per_row_mobile | times: 1 }};
+    --product-list-carousel-item-width: 74vw;
+    --product-list-grid: {% if section.settings.stack_products %}auto / repeat(var(--product-list-items-per-row), minmax(0, 1fr)){% else %}auto / auto-flow var(--product-list-carousel-item-width){% endif %};
+  }
+
+  @media screen and (min-width: 700px) {
+    #shopify-section-{{ section.id }} .product-list {
+      --product-list-gap: var(--product-list-row-gap) var(--product-list-column-gap);
+      --product-list-items-per-row: 2;
+      --product-list-carousel-item-width: 36vw;
+    }
+  }
+
+  @media screen and (min-width: 1000px) {
+    #shopify-section-{{ section.id }} .product-list {
+      --product-list-items-per-row: {{ section.settings.products_per_row_desktop }};
+      --product-list-carousel-item-width: calc(var(--container-inner-width) / {{ section.settings.products_per_row_desktop }} - (var(--product-list-column-gap) / {{ section.settings.products_per_row_desktop }} * {{ section.settings.products_per_row_desktop | minus: 1 }}));
+    }
+  }
+
+  /* All CSS scoped to THIS section only */
+  #shopify-section-{{ section.id }} .collection-tabs--{{ section.id }} {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+  }
+
+  #shopify-section-{{ section.id }} .collection-tabs--{{ section.id }}::-webkit-scrollbar {
+    display: none;
+  }
+
+  #shopify-section-{{ section.id }} .collection-tab--{{ section.id }} {
+    margin-right: 10px;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    border: 1px solid #e0e0e0;
+    background: white;
+    color: #333;
+    scroll-snap-align: start;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #shopify-section-{{ section.id }} .collection-tab--{{ section.id }}[aria-selected="true"] {
+    background: #000;
+    color: white;
+    border-color: #000;
+  }
+
+  /* Hide/show content - uses unique class per section to guarantee isolation */
+  #shopify-section-{{ section.id }} .collection-content--{{ section.id }} {
+    display: none;
+  }
+
+  #shopify-section-{{ section.id }} .collection-content--{{ section.id }}[data-active="true"] {
+    display: block;
+  }
+
+  #shopify-section-{{ section.id }} .view-more-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  #shopify-section-{{ section.id }} .view-more-button {
+    display: inline-block;
+    padding: 10px 25px;
+    border-radius: 25px;
+    background: white;
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+    border: 1px solid #e0e0e0;
+    transition: background-color 0.2s ease;
+  }
+
+  #shopify-section-{{ section.id }} .view-more-button:hover {
+    background: #f5f5f5;
+  }
+</style>
+
+<div {% render 'section-properties' %}>
+  <div class="section-stack">
+    {%- render 'section-header', subheading: section.settings.subheading, heading: section.settings.title, heading_tag: section.settings.title_tag, heading_color: section.settings.heading_color, heading_gradient: section.settings.heading_gradient, content: section.settings.content -%}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="collection-tabs--{{ section.id }}" id="collection-tabs-{{ section.id }}" role="tablist">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'collection_tab' -%}
+            <button
+              class="collection-tab--{{ section.id }}"
+              data-tab-id="{{ block.id }}"
+              data-section-id="{{ section.id }}"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+              role="tab"
+              type="button"
+              id="tab-{{ section.id }}-{{ block.id }}"
+              aria-controls="content-{{ section.id }}-{{ block.id }}"
+            >
+              {{ block.settings.tab_title }}
+            </button>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'collection_tab' -%}
+          <div
+            class="collection-content--{{ section.id }}"
+            data-content-id="{{ block.id }}"
+            data-section-id="{{ section.id }}"
+            data-active="{% if forloop.first %}true{% else %}false{% endif %}"
+            id="content-{{ section.id }}-{{ block.id }}"
+            role="tabpanel"
+            aria-labelledby="tab-{{ section.id }}-{{ block.id }}"
+          >
+            <div class="{% if section.settings.show_progress_bar %}scrollable-with-controls{% else %}floating-controls-container{% endif %}">
+              {%- assign scroll_area_id = 'scroll-area-' | append: section.id | append: '-' | append: block.id -%}
+
+              <scroll-carousel selector="product-card" id="{{ scroll_area_id }}" class="scroll-area bleed {% if block.settings.products_count > section.settings.products_per_row_desktop %}is-scrollable{% endif %}">
+                <reveal-items selector=".product-list > *">
+                  <product-list class="product-list">
+                    {%- assign products = block.settings.collection.products -%}
+
+                    {%- for product in products limit: block.settings.products_count -%}
+                      {%- render 'product-card', product: product, stacked: section.settings.stack_products, background: section.settings.product_card_background, text_color: section.settings.product_card_text_color, show_badges: true -%}
+                    {%- else -%}
+                      {%- for i in (1..block.settings.products_count) -%}
+                        {%- capture placeholder_image -%}product-{% cycle '1', '2', '3', '4', '5', '6' %}{%- endcapture -%}
+                        {%- render 'product-card-placeholder', stacked: section.settings.stack_products, placeholder_image: placeholder_image, background: section.settings.product_card_background, text_color: section.settings.product_card_text_color, text_alignment: settings.product_info_alignment -%}
+                      {%- endfor -%}
+                    {%- endfor -%}
+                  </product-list>
+                </reveal-items>
+              </scroll-carousel>
+
+              {%- if section.settings.stack_products == false -%}
+                {%- if section.settings.show_progress_bar -%}
+                  {%- assign default_progress = section.settings.products_per_row_desktop | times: 1.0 | divided_by: block.settings.products_count -%}
+                  {%- render 'scrollbar', observes: scroll_area_id, default_progress: default_progress, show_buttons: true -%}
+                {%- else -%}
+                  <button is="prev-button" class="circle-button circle-button--lg circle-button--fill border group" aria-controls="{{ scroll_area_id }}" disabled>
+                    <span class="sr-only">{{ 'general.accessibility.previous' | t }}</span>
+                    <span class="animated-arrow animated-arrow--reverse"></span>
+                  </button>
+
+                  <button is="next-button" class="circle-button circle-button--lg circle-button--fill border group" aria-controls="{{ scroll_area_id }}">
+                    <span class="sr-only">{{ 'general.accessibility.next' | t }}</span>
+                    <span class="animated-arrow"></span>
+                  </button>
+                {%- endif -%}
+              {%- endif -%}
+            </div>
+
+            {%- if block.settings.view_more_enabled -%}
+              <div class="view-more-container">
+                <a href="{{ block.settings.collection.url }}" class="view-more-button">
+                  {{ block.settings.view_more_text | default: 'Xem thêm' }}
+                </a>
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+  </div>
+</div>
+
+<script>
+  (function() {
+    // Unique section ID from Liquid - guarantees isolation
+    var SECTION_ID = '{{ section.id }}';
+    var initialized = false;
+
+    function initTabs(sectionEl) {
+      // Find section wrapper - either passed in or find by ID
+      var wrapper = sectionEl || document.getElementById('shopify-section-' + SECTION_ID);
+      if (!wrapper) return;
+
+      // Prevent double-binding event listeners
+      if (wrapper.getAttribute('data-tabs-initialized') === 'true') return;
+      wrapper.setAttribute('data-tabs-initialized', 'true');
+
+      var tabsContainer = wrapper.querySelector('#collection-tabs-' + SECTION_ID);
+      if (!tabsContainer) return;
+
+      // Query ONLY elements with this section's unique class
+      var tabs = tabsContainer.querySelectorAll('.collection-tab--' + SECTION_ID);
+      var contents = wrapper.querySelectorAll('.collection-content--' + SECTION_ID);
+
+      if (tabs.length === 0 || contents.length === 0) return;
+
+      // Ensure at least one content panel is visible
+      var hasActive = false;
+      for (var i = 0; i < contents.length; i++) {
+        if (contents[i].getAttribute('data-active') === 'true') {
+          hasActive = true;
+          break;
+        }
+      }
+
+      if (!hasActive && contents.length > 0) {
+        contents[0].setAttribute('data-active', 'true');
+        if (tabs.length > 0) tabs[0].setAttribute('aria-selected', 'true');
+      }
+
+      // Tab click handler - uses event delegation on the tab container
+      tabsContainer.addEventListener('click', function(e) {
+        var clickedTab = e.target.closest('.collection-tab--' + SECTION_ID);
+        if (!clickedTab) return;
+        if (clickedTab.getAttribute('aria-selected') === 'true') return;
+
+        var targetId = clickedTab.getAttribute('data-tab-id');
+
+        // Deactivate all tabs and contents within THIS section ONLY
+        for (var i = 0; i < tabs.length; i++) {
+          tabs[i].setAttribute('aria-selected', 'false');
+        }
+        for (var i = 0; i < contents.length; i++) {
+          contents[i].setAttribute('data-active', 'false');
+        }
+
+        // Activate clicked tab
+        clickedTab.setAttribute('aria-selected', 'true');
+
+        // Activate matching content - search ONLY within this wrapper
+        var targetContent = wrapper.querySelector('.collection-content--' + SECTION_ID + '[data-content-id="' + targetId + '"]');
+        if (targetContent) {
+          targetContent.setAttribute('data-active', 'true');
+        }
+      });
+
+      initialized = true;
+    }
+
+    // === Initialization Strategy ===
+
+    // 1. Try to initialize immediately (for already-loaded pages)
+    if (document.readyState !== 'loading') {
+      initTabs();
+    }
+
+    // 2. Initialize on DOMContentLoaded (for initial page load)
+    document.addEventListener('DOMContentLoaded', function() {
+      initTabs();
+    });
+
+    // 3. Handle Shopify Theme Editor: section load/select events
+    // These fire when a section is added, re-rendered, or selected in the editor
+    document.addEventListener('shopify:section:load', function(e) {
+      if (e.detail && e.detail.sectionId === SECTION_ID) {
+        // Reset initialization flag because section HTML was replaced
+        var wrapper = e.target;
+        if (wrapper) {
+          wrapper.removeAttribute('data-tabs-initialized');
+          initTabs(wrapper);
+        }
+      }
+    });
+
+    document.addEventListener('shopify:section:select', function(e) {
+      if (e.detail && e.detail.sectionId === SECTION_ID) {
+        initTabs(e.target);
+      }
+    });
+
+    // 4. Handle block-level events in Theme Editor
+    document.addEventListener('shopify:block:select', function(e) {
+      if (!e.detail) return;
+      var wrapper = document.getElementById('shopify-section-' + SECTION_ID);
+      if (!wrapper || !wrapper.contains(e.target)) return;
+
+      // When a block is selected in editor, show its content panel
+      var blockId = e.target.getAttribute('data-content-id') || e.target.getAttribute('data-tab-id');
+      if (!blockId) return;
+
+      var tabs = wrapper.querySelectorAll('.collection-tab--' + SECTION_ID);
+      var contents = wrapper.querySelectorAll('.collection-content--' + SECTION_ID);
+
+      for (var i = 0; i < tabs.length; i++) {
+        var isTarget = tabs[i].getAttribute('data-tab-id') === blockId;
+        tabs[i].setAttribute('aria-selected', isTarget ? 'true' : 'false');
+      }
+      for (var i = 0; i < contents.length; i++) {
+        var isTarget = contents[i].getAttribute('data-content-id') === blockId;
+        contents[i].setAttribute('data-active', isTarget ? 'true' : 'false');
+      }
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Collections Tabs",
+  "class": "shopify-section--featured-collection-tabs",
+  "tag": "section",
+  "disabled_on": {
+    "templates": ["password"],
+    "groups": ["header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Full width",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "stack_products",
+      "label": "Stack products",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress_bar",
+      "label": "Show carousel progress bar",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "products_per_row_mobile",
+      "label": "Products per row (mobile)",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "range",
+      "id": "products_per_row_desktop",
+      "min": 2,
+      "max": 5,
+      "label": "Products per row (desktop)",
+      "default": 4
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Heading",
+      "default": "Featured collections"
+    },
+    {
+      "type": "select",
+      "id": "title_tag",
+      "label": "Heading tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "Content"
+    },
+    {
+      "type": "header",
+      "content": "Colors",
+      "info": "Gradient replaces solid colors when set."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Background"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Background gradient"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color"
+    },
+    {
+      "type": "color_background",
+      "id": "heading_gradient",
+      "label": "Heading gradient"
+    },
+    {
+      "type": "color",
+      "id": "product_card_background",
+      "label": "Product card background"
+    },
+    {
+      "type": "color",
+      "id": "product_card_text_color",
+      "label": "Product card text"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection_tab",
+      "name": "Collection Tab",
+      "settings": [
+        {
+          "type": "text",
+          "id": "tab_title",
+          "label": "Tab title",
+          "default": "Sản phẩm mới"
+        },
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Collection"
+        },
+        {
+          "type": "range",
+          "id": "products_count",
+          "min": 2,
+          "max": 24,
+          "label": "Products to show",
+          "default": 8
+        },
+        {
+          "type": "checkbox",
+          "id": "view_more_enabled",
+          "label": "Show view more button",
+          "default": true
+        },
+        {
+          "type": "text",
+          "id": "view_more_text",
+          "label": "View more text",
+          "default": "Xem thêm"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collections Tabs",
+      "blocks": [
+        {
+          "type": "collection_tab",
+          "settings": {
+            "tab_title": "Sản phẩm mới"
+          }
+        },
+        {
+          "type": "collection_tab",
+          "settings": {
+            "tab_title": "Bán chạy nhất"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

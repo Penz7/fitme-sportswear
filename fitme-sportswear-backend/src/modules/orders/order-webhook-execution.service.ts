@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ProductMappingStatus } from '@prisma/client';
 import { AddressMappingService } from '../address/address-mapping.service';
 import { PrismaService } from '../database/prisma.service';
 import { TelegramNotifierService } from '../notifications/telegram-notifier.service';
 import { normalizeSku } from '../products/sku-normalizer';
+import { PreorderService } from '../preorder/preorder.service';
 import { SapoClient } from '../sapo/sapo.client';
 import { ShopifyClient } from '../shopify/shopify.client';
 import {
@@ -23,6 +24,7 @@ export class OrderWebhookExecutionService {
     private readonly addressMappingService: AddressMappingService,
     private readonly configService: ConfigService,
     private readonly notifier: TelegramNotifierService,
+    @Optional() private readonly preorderService?: PreorderService,
   ) {}
 
   async executePlan(
@@ -39,6 +41,55 @@ export class OrderWebhookExecutionService {
     let sapoOrder: Record<string, any> | null = null;
     let skipReceiveAfterCancellation = false;
 
+    const preorderLines =
+      plan.platform === 'shopify' && this.preorderService
+        ? await this.preorderService.findShopifyPreorderLines(
+            this.arrayPayload(orderPayload.line_items),
+          )
+        : [];
+    if (
+      preorderLines.length > 0 &&
+      !this.shopifyPaymentConfirmed(orderPayload) &&
+      !this.isCancelledShopifyPlan(plan, orderPayload)
+    ) {
+      // A manual/QR payment checkout creates a Shopify order before money is
+      // verified. Keep it in our own pending list only: no Sapo order, no
+      // reserved PreOrder quantity, and therefore nothing for the warehouse.
+      await this.preorderService?.recordShopifyOrder(
+        this.requiredString(plan.externalOrderId, 'Shopify order id'),
+        null,
+        this.arrayPayload(orderPayload.line_items),
+        false,
+      );
+      if (!sapoOrderId) {
+        await this.markPreorderPaymentPending(plan);
+      }
+      return;
+    }
+
+    if (
+      preorderLines.length > 0 &&
+      this.shopifyPaymentConfirmed(orderPayload) &&
+      plan.platform === 'shopify'
+    ) {
+      const reservation = await this.preorderService?.confirmShopifyPayment(
+        this.requiredString(plan.externalOrderId, 'Shopify order id'),
+        this.arrayPayload(orderPayload.line_items),
+      );
+      if (reservation && !reservation.accepted) {
+        await this.markPreorderQuotaExceeded(plan, reservation.exceededSkus);
+        await this.notifier.sendMessage(
+          'PreOrder paid beyond configured quota',
+          [
+            `shopifyOrderId=${plan.externalOrderId}`,
+            `skus=${reservation.exceededSkus.join(',')}`,
+            'No Sapo order was created. Review payment and resolve manually.',
+          ].join('\n'),
+        );
+        return;
+      }
+    }
+
     for (const action of plan.nextActions) {
       switch (action) {
         case 'create_sapo_order':
@@ -49,6 +100,7 @@ export class OrderWebhookExecutionService {
             sapoLocationId,
           );
           await this.updateShopifyMappingStatus(plan, sapoOrderId, 'NEW');
+          await this.recordPreorderLines(plan, orderPayload, sapoOrderId);
           break;
         case 'create_sapo_order_if_missing':
           if (!sapoOrderId) {
@@ -59,6 +111,7 @@ export class OrderWebhookExecutionService {
               sapoLocationId,
             );
             await this.updateShopifyMappingStatus(plan, sapoOrderId, 'NEW');
+            await this.recordPreorderLines(plan, orderPayload, sapoOrderId);
           }
           break;
         case 'finalize_sapo_order':
@@ -68,9 +121,11 @@ export class OrderWebhookExecutionService {
               tolerateIdempotent422: true,
             });
             await this.prepaySapoOrderIfNeeded(
+              plan,
               sapoOrderId,
               orderPayload,
               sapoLocationId,
+              preorderLines.length > 0,
             );
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
             await this.verifyPancakeSapoShippingAddress(
@@ -244,12 +299,18 @@ export class OrderWebhookExecutionService {
             });
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
           }
+          if (plan.platform === 'shopify') {
+            await this.preorderService?.cancelShopifyOrder(
+              this.requiredString(plan.externalOrderId, 'Shopify order id'),
+            );
+          }
           break;
         case 'create_shopify_fulfillment':
           if (sapoOrderId && plan.platform === 'shopify') {
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
             const created = await this.createShopifyFulfillment(plan, orderPayload, sapoOrder);
             if (created) {
+              await this.preorderService?.markSapoOrderFulfilled(sapoOrderId);
               await this.updateShopifyMappingStatus(plan, sapoOrderId, 'FULFILLMENT', sapoOrder);
             }
           }
@@ -260,6 +321,10 @@ export class OrderWebhookExecutionService {
         default:
           this.logUnsupportedAction(action);
       }
+    }
+
+    if (plan.platform === 'shopify' && sapoOrderId) {
+      await this.recordPreorderLines(plan, orderPayload, sapoOrderId);
     }
   }
 
@@ -336,11 +401,26 @@ export class OrderWebhookExecutionService {
   }
 
   private async prepaySapoOrderIfNeeded(
+    plan: OrderWebhookProcessingPlan,
     sapoOrderId: string,
     payload: Record<string, any>,
     sapoLocationId: string,
+    isPreorder: boolean,
   ): Promise<void> {
-    const prepaid = this.numberValue(payload.prepaid);
+    const paidByShopify =
+      isPreorder &&
+      plan.platform === 'shopify' &&
+      this.shopifyPaymentConfirmed(payload);
+    if (paidByShopify) {
+      const currentSapoOrder = await this.fetchSapoOrder(sapoOrderId);
+      if (this.isSapoPaymentPaid(currentSapoOrder)) {
+        return;
+      }
+    }
+
+    const prepaid = paidByShopify
+      ? this.numberValue(payload.total_price ?? payload.totalPrice)
+      : this.numberValue(payload.prepaid);
     if (!prepaid || prepaid <= 0) {
       return;
     }
@@ -349,7 +429,7 @@ export class OrderWebhookExecutionService {
       sapoOrderId,
       {
         prepayment: {
-          payment_method_id: this.configNumber('sapo.prepaymentMethodId', 2575663),
+          payment_method_id: this.configNumber('sapo.prepaymentMethodId', 2575664),
           payment_method_name: this.configString(
             'sapo.prepaymentMethodName',
             'Chuyen khoan',
@@ -371,6 +451,14 @@ export class OrderWebhookExecutionService {
     sapoLocationId = this.resolveSapoLocationId(plan, payload),
   ): Promise<Record<string, any>> {
     const isShopify = plan.platform === 'shopify';
+    const isPreorder =
+      isShopify && this.preorderService
+        ? (
+            await this.preorderService.findShopifyPreorderLines(
+              this.arrayPayload(payload.line_items),
+            )
+          ).length > 0
+        : false;
     const shopifyVoucherDiscount = isShopify
       ? this.shopifyVoucherDiscount(payload)
       : null;
@@ -382,7 +470,7 @@ export class OrderWebhookExecutionService {
       ? await this.shopifyAddress(payload)
       : this.pancakeAddress(payload);
     const note = isShopify
-      ? this.mergeSapoNote(existingOrder.note, this.shopifyOrderNote(payload))
+      ? await this.shopifySapoNote(existingOrder.note, payload)
       : payload.note ?? payload.name ?? existingOrder.note ?? null;
     const shopifyShippingFee = isShopify
       ? this.shopifyShippingFee(payload)
@@ -391,7 +479,13 @@ export class OrderWebhookExecutionService {
     return {
       ...existingOrder,
       code: isShopify
-        ? `AUTO_SHOPIFY_${payload.order_number ?? plan.externalOrderId}`
+        ? isPreorder
+          // Keep Shopify's human-facing order number visible for warehouse
+          // search while retaining the immutable Shopify id for uniqueness.
+          // This prevents a historical AUTO_SHOPIFY_<number> record from
+          // being mistaken for the PreOrder when a staff member searches Sapo.
+          ? `PREORDER_SHOPIFY_${payload.order_number ?? plan.externalOrderId}_${plan.externalOrderId}`
+          : `AUTO_SHOPIFY_${payload.order_number ?? plan.externalOrderId}`
         : `AUTO_PANCAKE_${plan.externalOrderId}`,
       total: this.numberValue(payload.total_price ?? payload.totalPrice),
       note,
@@ -1019,6 +1113,15 @@ export class OrderWebhookExecutionService {
     sapoOrderId: string,
     sapoOrder: Record<string, any>,
   ): Promise<Record<string, any> | null> {
+    if (
+      this.preorderService &&
+      !(await this.preorderService.isSapoOrderReadyForFulfillment(sapoOrderId))
+    ) {
+      this.logger.warn(
+        `Skipping Sapo fulfillment for preorder order ${sapoOrderId}: stock has not been allocated`,
+      );
+      return null;
+    }
     try {
       return await this.toSapoFulfillment(orderPayload, sapoOrder);
     } catch (error) {
@@ -1035,6 +1138,111 @@ export class OrderWebhookExecutionService {
       });
       return null;
     }
+  }
+
+  private async recordPreorderLines(
+    plan: OrderWebhookProcessingPlan,
+    payload: Record<string, any>,
+    sapoOrderId: string,
+  ): Promise<void> {
+    if (plan.platform !== 'shopify') {
+      return;
+    }
+    await this.preorderService?.recordShopifyOrder(
+      this.requiredString(plan.externalOrderId, 'Shopify order id'),
+      sapoOrderId,
+      this.arrayPayload(payload.line_items),
+      this.shopifyPaymentConfirmed(payload),
+    );
+  }
+
+  private async shopifySapoNote(
+    existingNote: unknown,
+    payload: Record<string, any>,
+  ): Promise<string | null> {
+    const shopifyNote = this.shopifyOrderNote(payload);
+    const preorderLines = this.preorderService
+      ? await this.preorderService.findShopifyPreorderLines(
+          this.arrayPayload(payload.line_items),
+        )
+      : [];
+    const preorderNote = this.preorderService?.preorderNote(preorderLines) ?? null;
+    const paymentNote =
+      preorderLines.length === 0
+        ? null
+        : this.shopifyPaymentConfirmed(payload)
+          ? '[PREORDER - ĐÃ THANH TOÁN]'
+          : '[PREORDER - CHƯA XÁC NHẬN THANH TOÁN] Không giao vận chuyển; COD không áp dụng.';
+    return this.mergeSapoNote(
+      this.mergeSapoNote(
+        this.mergeSapoNote(existingNote, shopifyNote),
+        preorderNote,
+      ),
+      paymentNote,
+    );
+  }
+
+  private shopifyPaymentConfirmed(payload: Record<string, any>): boolean {
+    const status = this.firstString(
+      payload.financial_status,
+      payload.financialStatus,
+    )?.toLowerCase();
+    return status === 'paid';
+  }
+
+  private isCancelledShopifyPlan(
+    plan: OrderWebhookProcessingPlan,
+    payload: Record<string, any>,
+  ): boolean {
+    return (
+      plan.statusDescription === 'SHOPIFY_CANCELLED' ||
+      plan.eventType === 'orders/cancelled' ||
+      Boolean(payload.cancelled_at ?? payload.cancelledAt)
+    );
+  }
+
+  private isSapoPaymentPaid(order: Record<string, any>): boolean {
+    const status = this.firstString(
+      order.payment_status,
+      order.paymentStatus,
+    )?.toLowerCase();
+    return status === 'paid';
+  }
+
+  private async markPreorderPaymentPending(
+    plan: OrderWebhookProcessingPlan,
+  ): Promise<void> {
+    if (plan.platform !== 'shopify' || !plan.externalOrderId) {
+      return;
+    }
+    await this.prisma.orderMapping.upsert({
+      where: { shopifyOrderId: plan.externalOrderId },
+      create: {
+        shopifyOrderId: plan.externalOrderId,
+        shopifyStatus: 'PREORDER_PENDING_PAYMENT',
+      },
+      update: { shopifyStatus: 'PREORDER_PENDING_PAYMENT' },
+    } as any);
+  }
+
+  private async markPreorderQuotaExceeded(
+    plan: OrderWebhookProcessingPlan,
+    exceededSkus: string[],
+  ): Promise<void> {
+    if (plan.platform !== 'shopify' || !plan.externalOrderId) {
+      return;
+    }
+    await this.prisma.orderMapping.upsert({
+      where: { shopifyOrderId: plan.externalOrderId },
+      create: {
+        shopifyOrderId: plan.externalOrderId,
+        shopifyStatus: 'PREORDER_PAID_QUOTA_EXCEEDED',
+      },
+      update: { shopifyStatus: 'PREORDER_PAID_QUOTA_EXCEEDED' },
+    } as any);
+    this.logger.error(
+      `Paid Shopify PreOrder ${plan.externalOrderId} exceeds quota for ${exceededSkus.join(', ')}`,
+    );
   }
 
   private isMissingSapoAddressMapping(error: unknown): boolean {

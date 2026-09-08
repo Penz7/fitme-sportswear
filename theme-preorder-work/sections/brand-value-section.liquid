@@ -1,0 +1,884 @@
+{%- comment -%}
+  brand-value-section.liquid
+  Layout: Left = brand logo + heading + bullets | Right = multi-image slider with dots
+  Compatible: Shopify Impact theme (works standalone in any theme)
+  Performance: srcset, lazy, decoding=async, single DOM, passive scroll
+{%- endcomment -%}
+
+{%- assign sid = section.id -%}
+{%- assign total_images = section.settings.images.count | default: 0 -%}
+
+{%- comment -%} Count images from blocks {%- endcomment -%}
+{%- assign img_blocks = section.blocks | where: 'type', 'slide_image' -%}
+{%- assign img_count = img_blocks.size -%}
+
+<section class="bvs bvs-{{ sid }}"
+         style="--bvs-bg: {{ section.settings.outer_bg_color }};
+                --bvs-inner-bg: {{ section.settings.inner_bg_color }};
+                --bvs-inner-radius: {{ section.settings.inner_border_radius }}px;
+                --bvs-inner-w-dt: {{ section.settings.inner_width_desktop }}%;
+                --bvs-inner-w-mb: {{ section.settings.inner_width_mobile }}%;
+                --bvs-text: {{ section.settings.text_color }};
+                --bvs-heading: {{ section.settings.heading_color }};
+                --bvs-accent: {{ section.settings.accent_color }};
+                --bvs-dot: {{ section.settings.dot_color }};
+                --bvs-dot-active: {{ section.settings.dot_active_color }};
+                --bvs-radius: {{ section.settings.border_radius }}px;
+                --bvs-img-ratio: {{ section.settings.image_ratio }};
+                --bvs-logo-size: {{ section.settings.logo_size }}px;"
+         aria-label="{{ section.settings.heading | escape }}">
+
+  <div class="bvs__inner">
+
+    {%- comment -%} ========== LEFT: TEXT COLUMN ========== {%- endcomment -%}
+    <div class="bvs__text">
+
+      {%- if section.settings.brand_logo != blank -%}
+        <div class="bvs__logo-wrap">
+          {%- assign logo = section.settings.brand_logo -%}
+          <img class="bvs__logo"
+               src="{{ logo | img_url: '300x' }}"
+               srcset="{{ logo | img_url: '150x' }} 150w,
+                       {{ logo | img_url: '300x' }} 300w"
+               sizes="{{ section.settings.logo_size }}px"
+               width="{{ section.settings.logo_size }}"
+               height="auto"
+               alt="{{ section.settings.brand_name | escape }}"
+               loading="lazy"
+               decoding="async">
+          {%- if section.settings.brand_name != blank -%}
+            <div class="bvs__brand-name">
+              {%- assign parts = section.settings.brand_name | split: "\n" -%}
+              {%- for part in parts -%}
+                <span>{{ part | strip }}</span>
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+        </div>
+        <hr class="bvs__divider">
+      {%- endif -%}
+
+      {%- if section.settings.heading != blank -%}
+        <{{ section.settings.heading_tag }} class="bvs__heading">
+          {{ section.settings.heading | escape }}
+        </{{ section.settings.heading_tag }}>
+      {%- endif -%}
+
+      {%- if section.settings.richtext != blank -%}
+        <div class="bvs__richtext">
+          {{ section.settings.richtext }}
+        </div>
+      {%- endif -%}
+
+      {%- if section.settings.button_label != blank and section.settings.button_link != blank -%}
+        <a class="bvs__cta" href="{{ section.settings.button_link }}">
+          {{ section.settings.button_label | escape }}
+        </a>
+      {%- endif -%}
+
+    </div>
+
+    {%- comment -%} ========== RIGHT: IMAGE SLIDER ========== {%- endcomment -%}
+    <div class="bvs__media-wrap">
+
+      {%- if img_count > 0 -%}
+        <div class="bvs__slider-container">
+
+          {%- comment -%} Arrow prev – hidden on first slide {%- endcomment -%}
+          <button class="bvs__arrow bvs__arrow--prev bvs__arrow--hidden"
+                  id="bvs-prev-{{ sid }}"
+                  aria-label="{{ 'general.accessibility.previous' | t | default: 'Previous' }}">
+            <svg width="10" height="18" viewBox="0 0 10 18" fill="none" aria-hidden="true">
+              <path d="M9 1L1 9L9 17" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          {%- comment -%} Arrow next {%- endcomment -%}
+          <button class="bvs__arrow bvs__arrow--next"
+                  id="bvs-next-{{ sid }}"
+                  aria-label="{{ 'general.accessibility.next' | t | default: 'Next' }}">
+            <svg width="10" height="18" viewBox="0 0 10 18" fill="none" aria-hidden="true">
+              <path d="M1 1L9 9L1 17" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          {%- comment -%} Track (single DOM – CSS drives grid vs scroll) {%- endcomment -%}
+          <div class="bvs__track"
+               id="bvs-track-{{ sid }}"
+               data-per-view="{{ section.settings.images_per_view }}"
+               data-per-view-mobile="{{ section.settings.images_per_view_mobile }}"
+               data-gap="{{ section.settings.images_gap }}"
+               role="list">
+
+            {%- for block in img_blocks -%}
+              {%- assign slide_img = block.settings.image -%}
+              {%- assign slide_link = block.settings.link -%}
+              <div class="bvs__slide"
+                   data-index="{{ forloop.index0 }}"
+                   role="listitem"
+                   {{ block.shopify_attributes }}>
+                {%- if slide_img != blank -%}
+
+                  {%- comment -%} Wrap with link if provided {%- endcomment -%}
+                  {%- if slide_link != blank -%}
+                    <a class="bvs__slide-link" href="{{ slide_link }}"
+                       {%- if block.settings.link_new_tab %} target="_blank" rel="noopener noreferrer"{%- endif -%}>
+                  {%- endif -%}
+
+                  <img class="bvs__img"
+                       src="{{ slide_img | img_url: '600x' }}"
+                       srcset="{{ slide_img | img_url: '300x' }} 300w,
+                               {{ slide_img | img_url: '600x' }} 600w,
+                               {{ slide_img | img_url: '900x' }} 900w,
+                               {{ slide_img | img_url: '1200x' }} 1200w"
+                       sizes="(max-width:767px) 80vw, 40vw"
+                       alt="{{ block.settings.alt | default: block.settings.caption | escape }}"
+                       width="{{ slide_img.width }}"
+                       height="{{ slide_img.height }}"
+                       {%- if forloop.first %}loading="eager" fetchpriority="high"
+                       {%- else %}loading="lazy"{%- endif %}
+                       decoding="async">
+
+                  {%- if block.settings.caption != blank -%}
+                    <p class="bvs__caption">{{ block.settings.caption | escape }}</p>
+                  {%- endif -%}
+
+                  {%- if slide_link != blank -%}</a>{%- endif -%}
+
+                {%- else -%}
+                  <div class="bvs__img-placeholder">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <rect x="3" y="3" width="18" height="18" rx="2" stroke="#ccc" stroke-width="1.5"/>
+                      <circle cx="8.5" cy="8.5" r="1.5" fill="#ccc"/>
+                      <path d="M21 15L16 10L5 21" stroke="#ccc" stroke-width="1.5"
+                            stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                {%- endif -%}
+              </div>
+            {%- endfor -%}
+          </div>
+
+          {%- comment -%} Dots {%- endcomment -%}
+          {%- if img_count > 1 -%}
+            <div class="bvs__dots" id="bvs-dots-{{ sid }}" aria-label="Slide navigation">
+              {%- for block in img_blocks -%}
+                <button class="bvs__dot {%- if forloop.first %} bvs__dot--active{%- endif %}"
+                        data-index="{{ forloop.index0 }}"
+                        aria-label="Slide {{ forloop.index }}">
+                </button>
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+
+        </div>
+      {%- else -%}
+        <div class="bvs__img-placeholder bvs__img-placeholder--large">
+          <span>Chưa có ảnh — thêm ảnh qua Theme Editor</span>
+        </div>
+      {%- endif -%}
+
+    </div>
+  </div>
+</section>
+
+{%- comment -%} ===================================================================
+    CSS
+=================================================================== {%- endcomment -%}
+<style>
+/* ---- Reset & base ---- */
+.bvs-{{ sid }} {
+  background-color: var(--bvs-bg, #f5f5f5);
+  color: var(--bvs-text, #222);
+  padding: {{ section.settings.section_padding_v }}px 0;
+  contain: layout style;           /* perf: don't affect outside layout */
+}
+
+.bvs-{{ sid }} .bvs__inner {
+  /* Width % của section → outer bg lộ ở 2 bên */
+  width: var(--bvs-inner-w-dt, 90%);
+  margin: 0 auto;
+  padding: {{ section.settings.section_padding_v_inner }}px {{ section.settings.section_padding_h }}px;
+  display: flex;
+  align-items: center;
+  gap: {{ section.settings.columns_gap }}px;
+  background-color: var(--bvs-inner-bg, #F0F0F0);
+  border-radius: var(--bvs-inner-radius, 16px);
+  box-sizing: border-box;
+}
+
+/* ============ TEXT COLUMN ============ */
+.bvs-{{ sid }} .bvs__text {
+  flex: 0 0 {{ section.settings.text_col_width }}%;
+  max-width: {{ section.settings.text_col_width }}%;
+}
+
+.bvs-{{ sid }} .bvs__logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.bvs-{{ sid }} .bvs__logo {
+  width: var(--bvs-logo-size, 80px);
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.bvs-{{ sid }} .bvs__brand-name {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  color: var(--bvs-heading, #111);
+}
+
+.bvs-{{ sid }} .bvs__divider {
+  border: none;
+  border-top: 1px solid {{ section.settings.divider_color }};
+  margin: 14px 0 20px;
+}
+
+.bvs-{{ sid }} .bvs__heading {
+  font-size: clamp(20px, 2.8vw, 34px);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--bvs-heading, #111);
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+}
+
+.bvs-{{ sid }} .bvs__richtext {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--bvs-text, #444);
+}
+
+.bvs-{{ sid }} .bvs__richtext ul {
+  list-style: disc;
+  padding-left: 18px;
+  margin: 8px 0 0;
+}
+
+.bvs-{{ sid }} .bvs__richtext li {
+  margin-bottom: 6px;
+}
+
+.bvs-{{ sid }} .bvs__cta {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 11px 26px;
+  background: var(--bvs-accent, #111);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.bvs-{{ sid }} .bvs__cta:hover { opacity: 0.82; }
+
+/* ============ MEDIA COLUMN ============ */
+.bvs-{{ sid }} .bvs__media-wrap {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.bvs-{{ sid }} .bvs__slider-container {
+  position: relative;
+}
+
+/* --- Track: always a horizontal scroll slider (1 image at a time) --- */
+.bvs-{{ sid }} .bvs__track {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 0;
+  border-radius: var(--bvs-radius, 8px);
+  /* Prevent parent page from scrolling sideways while swiping */
+  overscroll-behavior-x: contain;
+  /* Tell browser this is a scroll container → GPU compositing */
+  will-change: scroll-position;
+}
+
+.bvs-{{ sid }} .bvs__track::-webkit-scrollbar { display: none; }
+
+/* Link wrapper fills entire slide */
+.bvs-{{ sid }} .bvs__slide-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+
+.bvs-{{ sid }} .bvs__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;          /* Prevent skipping slides on iOS fast swipe */
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--bvs-radius, 8px);
+  box-sizing: border-box;
+  /* Restrict touch to horizontal → prevents vertical scroll jank */
+  touch-action: pan-x;
+  {%- if section.settings.image_ratio == 'auto' -%}
+  /* Auto: natural image proportions */
+  {%- else -%}
+  aspect-ratio: var(--bvs-img-ratio, 3/4);
+  {%- endif -%}
+}
+
+/* Image styles — auto ratio vs fixed ratio */
+{%- if section.settings.image_ratio == 'auto' -%}
+.bvs-{{ sid }} .bvs__img {
+  position: static;
+  width: 100%;
+  height: auto;
+  object-fit: initial;
+  display: block;
+  transition: transform 0.4s ease;
+  will-change: transform;
+}
+{%- else -%}
+.bvs-{{ sid }} .bvs__img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+  will-change: transform;
+}
+{%- endif -%}
+
+.bvs-{{ sid }} .bvs__slide:hover .bvs__img {
+  transform: scale(1.03);
+}
+
+.bvs-{{ sid }} .bvs__caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 10px;
+  background: rgba(0,0,0,.45);
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+  margin: 0;
+}
+
+.bvs-{{ sid }} .bvs__img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: var(--bvs-img-ratio, 3/4);
+  background: #e8e8e8;
+  border-radius: var(--bvs-radius, 8px);
+}
+
+.bvs-{{ sid }} .bvs__img-placeholder--large {
+  aspect-ratio: auto;
+  padding: 60px 20px;
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+  border-radius: var(--bvs-radius, 8px);
+}
+
+/* ============ ARROWS ============ */
+.bvs-{{ sid }} .bvs__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.92);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #222;
+  transition: opacity 0.2s ease, transform 0.15s ease, background 0.15s;
+  padding: 0;
+}
+
+.bvs-{{ sid }} .bvs__arrow:hover {
+  background: rgba(255,255,255,1);
+}
+
+.bvs-{{ sid }} .bvs__arrow:active {
+  transform: translateY(-50%) scale(0.9);
+}
+
+.bvs-{{ sid }} .bvs__arrow--prev { left: -16px; }
+.bvs-{{ sid }} .bvs__arrow--next { right: -16px; }
+
+.bvs-{{ sid }} .bvs__arrow--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ============ DOTS ============ */
+.bvs-{{ sid }} .bvs__dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.bvs-{{ sid }} .bvs__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  background: var(--bvs-dot, #ccc);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.bvs-{{ sid }} .bvs__dot--active {
+  background: var(--bvs-dot-active, #222);
+  transform: scale(1.4);
+}
+
+/* ============ MOBILE ============ */
+@media (max-width: 767px) {
+  .bvs-{{ sid }} .bvs__inner {
+    width: var(--bvs-inner-w-mb, 90%);
+    flex-direction: column;
+    align-items: stretch;
+    gap: {{ section.settings.mobile_stack_gap }}px;
+  }
+
+  .bvs-{{ sid }} .bvs__text {
+    flex: none;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .bvs-{{ sid }} .bvs__arrow--prev { left: 8px; }
+  .bvs-{{ sid }} .bvs__arrow--next { right: 8px; }
+
+  .bvs-{{ sid }} .bvs__arrow {
+    width: 34px;
+    height: 34px;
+  }
+}
+</style>
+
+{%- comment -%} ===================================================================
+    JS — IIFE, zero deps
+=================================================================== {%- endcomment -%}
+<script>
+(function () {
+  'use strict';
+
+  var SID = '{{ sid }}';
+
+  function init(sectionId) {
+    var track   = document.getElementById('bvs-track-'  + sectionId);
+    var dotsWrap= document.getElementById('bvs-dots-'   + sectionId);
+    var prevBtn = document.getElementById('bvs-prev-'   + sectionId);
+    var nextBtn = document.getElementById('bvs-next-'   + sectionId);
+
+    if (!track) return;
+
+    var slides  = Array.prototype.slice.call(track.querySelectorAll('.bvs__slide'));
+    var dots    = dotsWrap ? Array.prototype.slice.call(dotsWrap.querySelectorAll('.bvs__dot')) : [];
+    var total   = slides.length;
+    if (total === 0) return;
+
+    var gap     = parseInt(track.getAttribute('data-gap')) || 0;
+    var current = 0;
+    var cachedW = 0; /* Cached slide unit width — only recalc on resize */
+
+    /* ---- Apply widths + cache unit ---- */
+    function applyWidths() {
+      slides.forEach(function (s, i) {
+        s.style.flex = '0 0 100%';
+        s.style.marginRight = (i < total - 1) ? gap + 'px' : '0px';
+      });
+      /* Cache after next paint so offsetWidth is settled */
+      requestAnimationFrame(function () {
+        cachedW = slides[0] ? (slides[0].offsetWidth + gap) : 0;
+      });
+    }
+
+    /* ---- Dot + arrow state ---- */
+    function setActive(idx) {
+      current = Math.max(0, Math.min(total - 1, idx));
+      dots.forEach(function (d, i) {
+        d.classList.toggle('bvs__dot--active', i === current);
+      });
+      if (prevBtn) prevBtn.classList.toggle('bvs__arrow--hidden', current === 0);
+      if (nextBtn) nextBtn.classList.toggle('bvs__arrow--hidden', current >= total - 1);
+    }
+
+    /* ---- Scroll to slide (arrows / dots) ---- */
+    function goTo(idx) {
+      idx = Math.max(0, Math.min(total - 1, idx));
+      if (cachedW === 0) return;
+      track.scrollTo({ left: idx * cachedW, behavior: 'smooth' });
+      setActive(idx);
+    }
+
+    /* ---- Scroll listener: use cachedW — zero layout thrash ---- */
+    track.addEventListener('scroll', function () {
+      if (cachedW === 0) return;
+      var idx = Math.round(track.scrollLeft / cachedW);
+      idx = Math.max(0, Math.min(total - 1, idx));
+      if (idx !== current) setActive(idx);
+    }, { passive: true });
+
+    /* ---- Dot clicks ---- */
+    dots.forEach(function (dot, idx) {
+      dot.addEventListener('click', function () { goTo(idx); });
+    });
+
+    /* ---- Arrow clicks ---- */
+    if (prevBtn) prevBtn.addEventListener('click', function () { goTo(current - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { goTo(current + 1); });
+
+    /* NOTE: No custom touch handler — native scroll-snap handles swipe perfectly.
+       Adding touchend + scrollTo conflicts with iOS momentum scroll → causes jank. */
+
+    /* ---- Init ---- */
+    applyWidths();
+    setActive(0);
+
+    /* ---- Resize: recache width ---- */
+    var resizeT;
+    function onResize() {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(function () {
+        applyWidths();
+        /* Re-snap to current slide after width recalc */
+        requestAnimationFrame(function () {
+          if (cachedW > 0) track.scrollTo({ left: current * cachedW, behavior: 'instant' });
+        });
+      }, 150);
+    }
+    window.addEventListener('resize', onResize);
+
+    /* ---- Cleanup ---- */
+    document.addEventListener('shopify:section:unload', function _cleanup(e) {
+      if (e.detail && e.detail.sectionId === sectionId) {
+        window.removeEventListener('resize', onResize);
+        document.removeEventListener('shopify:section:unload', _cleanup);
+      }
+    });
+  }
+
+  /* Bootstrap */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { init(SID); });
+  } else {
+    init(SID);
+  }
+  document.addEventListener('shopify:section:load', function (e) {
+    if (e.detail && e.detail.sectionId === SID) init(SID);
+  });
+}());
+</script>
+
+{% schema %}
+{
+  "name": "Brand Value Section",
+  "class": "brand-value-section",
+  "tag": "div",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_max_width",
+      "label": "Max width (px)",
+      "min": 800, "max": 1600, "step": 20,
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "section_padding_v",
+      "label": "Padding trên dưới (px)",
+      "min": 0, "max": 120, "step": 4,
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_h",
+      "label": "Padding trái phải (px)",
+      "min": 0, "max": 80, "step": 4,
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "text_col_width",
+      "label": "Độ rộng cột text (%)",
+      "min": 25, "max": 55, "step": 1,
+      "default": 40,
+      "info": "Cột ảnh sẽ chiếm phần còn lại"
+    },
+    {
+      "type": "range",
+      "id": "columns_gap",
+      "label": "Khoảng cách hai cột (px)",
+      "min": 0, "max": 80, "step": 4,
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "inner_width_desktop",
+      "label": "Độ rộng card - Desktop (%)",
+      "min": 50, "max": 100, "step": 1,
+      "default": 90,
+      "info": "100% = full width, nhỏ hơn để lộ nền ngoài"
+    },
+    {
+      "type": "range",
+      "id": "inner_width_mobile",
+      "label": "Độ rộng card - Mobile (%)",
+      "min": 50, "max": 100, "step": 1,
+      "default": 90,
+      "info": "Giảm xuống để lộ viền trắng 2 bên trên màn hình nhỏ"
+    },
+    {
+      "type": "range",
+      "id": "mobile_stack_gap",
+      "label": "Khoảng cách dọc trên mobile (px)",
+      "min": 0, "max": 60, "step": 4,
+      "default": 24
+    },
+    {
+      "type": "header",
+      "content": "Màu sắc & Nền"
+    },
+    {
+      "type": "color",
+      "id": "outer_bg_color",
+      "label": "Màu nền ngoài (section)",
+      "default": "#FFFFFF",
+      "info": "Màu bao quanh phía ngoài card"
+    },
+    {
+      "type": "color",
+      "id": "inner_bg_color",
+      "label": "Màu nền card bên trong",
+      "default": "#F0F0F0",
+      "info": "Màu nền của khối nội dung chính"
+    },
+    {
+      "type": "range",
+      "id": "inner_border_radius",
+      "label": "Bo tròn card bên trong (px)",
+      "min": 0, "max": 60, "step": 2,
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "section_padding_v_inner",
+      "label": "Padding trong card trên dưới (px)",
+      "min": 0, "max": 80, "step": 4,
+      "default": 40,
+      "info": "Khoảng cách từ nội dung tới viền card"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Màu chữ",
+      "default": "#444444"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Màu tiêu đề",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Màu accent (nút CTA)",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Màu đường kẻ ngang",
+      "default": "#DDDDDD"
+    },
+    {
+      "type": "color",
+      "id": "dot_color",
+      "label": "Màu dot",
+      "default": "#CCCCCC"
+    },
+    {
+      "type": "color",
+      "id": "dot_active_color",
+      "label": "Màu dot active",
+      "default": "#222222"
+    },
+    {
+      "type": "header",
+      "content": "Thương hiệu (cột trái)"
+    },
+    {
+      "type": "image_picker",
+      "id": "brand_logo",
+      "label": "Logo thương hiệu"
+    },
+    {
+      "type": "range",
+      "id": "logo_size",
+      "label": "Kích thước logo (px)",
+      "min": 40, "max": 160, "step": 4,
+      "default": 80,
+      "info": "Chiều rộng logo, chiều cao tự động"
+    },
+    {
+      "type": "textarea",
+      "id": "brand_name",
+      "label": "Tên thương hiệu (mỗi dòng = 1 hàng)",
+      "default": "WOMEN'S\nACTIVEWEAR"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "Heading tag",
+      "options": [
+        {"value": "h2", "label": "H2"},
+        {"value": "h3", "label": "H3"},
+        {"value": "h4", "label": "H4"}
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Tiêu đề chính",
+      "default": "ĐỊNH VỊ GIÁ TRỊ"
+    },
+    {
+      "type": "richtext",
+      "id": "richtext",
+      "label": "Nội dung / Bullet points",
+      "default": "<ul><li>Đi theo DNA thương hiệu: Chất lượng, giá cả hợp lý</li><li>Thiết kế tối giản và ứng dụng cao</li><li>Phù hợp với số đông người Việt</li></ul>"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Nhãn nút CTA (bỏ trống = ẩn)"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Link nút CTA"
+    },
+    {
+      "type": "header",
+      "content": "Slider ảnh (cột phải)"
+    },
+    {
+      "type": "range",
+      "id": "images_gap",
+      "label": "Khoảng cách giữa ảnh (px)",
+      "min": 0, "max": 40, "step": 2,
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Tỉ lệ ảnh",
+      "options": [
+        {"value": "auto",  "label": "Mặc định (theo tỉ lệ ảnh gốc)"},
+        {"value": "1/1",   "label": "Vuông 1:1"},
+        {"value": "4/5",   "label": "Dọc 4:5"},
+        {"value": "3/4",   "label": "Dọc 3:4"},
+        {"value": "2/3",   "label": "Dọc 2:3"},
+        {"value": "5/4",   "label": "Ngang 5:4"},
+        {"value": "4/3",   "label": "Ngang 4:3"},
+        {"value": "3/2",   "label": "Ngang 3:2"},
+        {"value": "16/9",  "label": "Ngang 16:9"},
+        {"value": "21/9",  "label": "Ngang siêu rộng 21:9"}
+      ],
+      "default": "3/4"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Bo góc ảnh (px)",
+      "min": 0, "max": 24, "step": 1,
+      "default": 8
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide_image",
+      "name": "Slide ảnh",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Ảnh"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link khi click vào ảnh",
+          "info": "Bỏ trống nếu không muốn gắn link"
+        },
+        {
+          "type": "checkbox",
+          "id": "link_new_tab",
+          "label": "Mở link trong tab mới",
+          "default": false
+        },
+        {
+          "type": "text",
+          "id": "alt",
+          "label": "Alt text (SEO)",
+          "info": "Mô tả ngắn về ảnh"
+        },
+        {
+          "type": "text",
+          "id": "caption",
+          "label": "Caption (tùy chọn, hiển thị trên ảnh)"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Brand Value Section",
+      "category": "Custom Sections",
+      "blocks": [
+        {"type": "slide_image"},
+        {"type": "slide_image"},
+        {"type": "slide_image"}
+      ]
+    }
+  ]
+}
+{% endschema %}

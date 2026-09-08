@@ -1,0 +1,227 @@
+{%- comment -%}
+This snippet structures the micro-data using JSON-LD specification. Starting from Impact 6, we are using
+the structured_data built-in filter to ensure that Shopify can keep it up to date without requiring theme upgrade. If
+you believe some information for products are missing, please reach Shopify support directly, as it is no longer
+managed at the theme level.
+{%- endcomment -%}
+
+{%- if request.page_type == 'product' -%}
+  {%- comment -%}
+    Fitme 27/07/2026 — schema merge fix.
+    1. structured_data emits @id as a relative URL (/products/x#product). Judge.me's
+       JSON-LD uses the absolute form of the same URL, so the two nodes never merged and
+       Google rendered the offers-only node (no stars). Rewriting @id to absolute makes
+       both nodes one entity.
+    2. aggregateRating is injected from the reviews metafields so the node carries stars
+       on its own, without depending on Judge.me being present.
+  {%- endcomment -%}
+  {%- capture fm_sd -%}{{ product | structured_data }}{%- endcapture -%}
+
+  {%- capture fm_id_abs -%}"@id":"{{ shop.url | replace: '/', '\/' }}\/{%- endcapture -%}
+  {%- assign fm_sd = fm_sd | replace: '"@id":"\/', fm_id_abs -%}
+  {%- capture fm_id_abs_plain -%}"@id":"{{ shop.url }}/{%- endcapture -%}
+  {%- assign fm_sd = fm_sd | replace: '"@id":"/', fm_id_abs_plain -%}
+
+  {%- comment -%}
+    Fitme 28/07/2026 — variant-level fixes on the same captured JSON.
+    3. GSC "Invalid GTIN": structured_data maps Shopify `barcode` to `gtin`, but Fitme
+       barcodes are internal codes (FM-BRTT01-DE-S). Drop the key unless the barcode is
+       a real GTIN (all digits, length 8/12/13/14). Kept conditional so it starts
+       emitting again by itself once real GTINs are entered.
+    4. GSC "Missing field description": the hasVariant Product nodes carry no description.
+       Reuse the parent ProductGroup description verbatim — it is already HTML-stripped
+       and JSON-escaped by Shopify, so re-deriving it from product.description would
+       risk a different (possibly invalid) escaping.
+  {%- endcomment -%}
+  {%- assign fm_digits = '0,1,2,3,4,5,6,7,8,9' | split: ',' -%}
+  {%- for fm_v in product.variants -%}
+    {%- assign fm_bc = fm_v.barcode | strip -%}
+    {%- if fm_bc != blank -%}
+      {%- assign fm_residue = fm_bc -%}
+      {%- for fm_d in fm_digits -%}
+        {%- assign fm_residue = fm_residue | remove: fm_d -%}
+      {%- endfor -%}
+      {%- assign fm_bc_len = fm_bc | size -%}
+      {%- assign fm_is_gtin = false -%}
+      {%- if fm_residue == blank -%}
+        {%- if fm_bc_len == 8 or fm_bc_len == 12 or fm_bc_len == 13 or fm_bc_len == 14 -%}
+          {%- assign fm_is_gtin = true -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- unless fm_is_gtin -%}
+        {%- assign fm_bc_esc = fm_bc | replace: '\', '\\' | replace: '"', '\"' | replace: '/', '\/' | replace: '&', '\u0026' -%}
+        {%- capture fm_gtin_key -%}"gtin":"{{ fm_bc_esc }}",{%- endcapture -%}
+        {%- assign fm_sd = fm_sd | remove: fm_gtin_key -%}
+      {%- endunless -%}
+    {%- endif -%}
+  {%- endfor -%}
+
+  {%- if fm_sd contains '"hasVariant":' and fm_sd contains '"description":"' -%}
+    {%- assign fm_desc_a = fm_sd | split: '"description":"' -%}
+    {%- assign fm_desc_b = fm_desc_a[1] | split: '","hasVariant":' -%}
+    {%- assign fm_desc = fm_desc_b[0] -%}
+    {%- if fm_desc != blank -%}
+      {%- capture fm_variant_desc -%}"@type":"Product","description":"{{ fm_desc }}",{%- endcapture -%}
+      {%- assign fm_sd = fm_sd | replace: '"@type":"Product",', fm_variant_desc -%}
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- assign fm_rating = product.metafields.reviews.rating -%}
+  {%- assign fm_count = product.metafields.reviews.rating_count -%}
+  {%- if fm_rating != blank and fm_count != blank and fm_count.value > 0 -%}
+    {%- capture fm_agg -%}{"aggregateRating":{"@type":"AggregateRating","ratingValue":{{ fm_rating.value.rating | json }},"bestRating":{{ fm_rating.value.scale_max | json }},"worstRating":{{ fm_rating.value.scale_min | json }},"reviewCount":{{ fm_count.value | json }}},"@context"{%- endcapture -%}
+    {%- assign fm_sd = fm_sd | replace_first: '{"@context"', fm_agg -%}
+  {%- endif -%}
+
+  <script type="application/ld+json">
+    {{- fm_sd -}}
+  </script>
+{%- elsif request.page_type == 'article' -%}
+  <script type="application/ld+json">
+    {{- article | structured_data -}}
+  </script>
+{%- endif -%}
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "name": {{ 'general.home' | t | json }},
+        "item": "{{ shop.url }}"
+      }
+
+      {%- if request.page_type == 'product' -%}
+        {%- if collection -%}
+          ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": {{ collection.title | json }},
+            "item": "{{ shop.url }}{{ collection.url }}"
+          }, {
+            "@type": "ListItem",
+            "position": 3,
+            "name": {{ product.title | json }},
+            "item": "{{ shop.url }}{{ product.url }}"
+          }
+        {%- else -%}
+          ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": {{ product.title | json }},
+            "item": "{{ shop.url }}{{ product.url }}"
+          }
+        {%- endif -%}
+      {%- elsif request.page_type == 'collection' -%}
+          ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": {{ collection.title | json }},
+            "item": "{{ shop.url }}{{ collection.url }}"
+          }
+      {%- elsif request.page_type == 'blog' -%}
+          ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": {{ blog.title | json }},
+            "item": "{{ shop.url }}{{ blog.url }}"
+          }
+      {%- elsif request.page_type == 'article' -%}
+          ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": {{ blog.title | json }},
+            "item": "{{ shop.url }}{{ blog.url }}"
+          }, {
+            "@type": "ListItem",
+            "position": 3,
+            "name": {{ article.title | json }},
+            "item": "{{ shop.url }}{{ article.url }}"
+          }
+      {%- elsif request.page_type == 'page' -%}
+        ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": {{ page.title | json }},
+            "item": "{{ shop.url }}{{ page.url }}"
+          }
+      {%- endif -%}
+    ]
+  }
+</script>
+
+{%- comment -%}
+  Fitme 27/07/2026 — ItemList for the money collections so the category page is machine
+  readable (AI overviews / rich results). Only products actually rendered are listed.
+{%- endcomment -%}
+{%- if request.page_type == 'collection' -%}
+  {%- assign fm_itemlist_handles = 'quan-legging-nu,ao-bra-the-thao-nu,do-tap-gym-yoga-nu' | split: ',' -%}
+  {%- if fm_itemlist_handles contains collection.handle and collection.products.size > 0 -%}
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": {{ collection.title | json }},
+        "url": "{{ shop.url }}{{ collection.url }}",
+        "mainEntity": {
+          "@type": "ItemList",
+          "numberOfItems": {{ collection.products_count }},
+          "itemListElement": [
+            {%- for fm_product in collection.products limit: 24 -%}
+              {
+                "@type": "ListItem",
+                "position": {{ forloop.index }},
+                "name": {{ fm_product.title | json }},
+                "url": "{{ shop.url }}{{ fm_product.url }}"
+              }{%- unless forloop.last -%},{%- endunless -%}
+            {%- endfor -%}
+          ]
+        }
+      }
+    </script>
+  {%- endif -%}
+{%- endif -%}
+
+{%- if request.page_type == 'index' -%}
+  {%- assign potential_action_target = request.origin | append: routes.search_url | append: "?q={search_term_string}" -%}
+
+  <script type="application/ld+json">
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": {{ shop.name | json }},
+      "url": {{ shop.url | append: page.url | json }},
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {{ potential_action_target | json }},
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": {{ shop.name | json }},
+      {%- if shop.brand.logo -%}
+        "logo": {{ shop.brand.logo | image_url: width: shop.brand.logo.width | prepend: "https:" | json }},
+      {%- endif -%}
+      {%- if shop.brand.short_description -%}
+        "description": {{ shop.brand.short_description | json }},
+      {%- endif -%}
+      {%- if shop.brand.slogan -%}
+        "slogan": {{ shop.brand.slogan | json }},
+      {%- endif -%}
+      {%- if shop.brand.metafields.social_links.size > 0 -%}
+        "sameAs": [
+          {%- for social_link in shop.brand.metafields.social_links -%}
+            {{- social_link.last.value | json -}}{%- unless forloop.last -%},{%- endunless -%}
+          {%- endfor -%}
+        ],
+      {%- endif -%}
+      "url": {{ shop.url | append: page.url | json }}
+    }
+  ]
+  </script>
+{%- endif -%}

@@ -1,0 +1,698 @@
+{% schema %}
+{
+  "name": "Custom Grid Layout",
+  "class": "custom-grid-layout",
+  "settings": [
+    {
+      "type": "range",
+      "id": "section_width",
+      "label": "Độ rộng section (%)",
+      "min": 50,
+      "max": 100,
+      "step": 1,
+      "default": 90
+    },
+    {
+      "type": "header",
+      "content": "Thiết lập chung"
+    },
+    {
+      "type": "color",
+      "id": "section_bg_color",
+      "label": "Màu nền section",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "select",
+      "id": "title_alignment",
+      "label": "Căn lề tiêu đề",
+      "options": [
+        { "value": "left", "label": "Trái" },
+        { "value": "center", "label": "Giữa" },
+        { "value": "right", "label": "Phải" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Căn lề đoạn văn",
+      "options": [
+        { "value": "left", "label": "Trái" },
+        { "value": "center", "label": "Giữa" },
+        { "value": "right", "label": "Phải" },
+        { "value": "justify", "label": "Đều hai bên" }
+      ],
+      "default": "justify"
+    },
+    {
+      "type": "range",
+      "id": "image_height",
+      "label": "Chiều cao hình ảnh (px)",
+      "min": 100,
+      "max": 600,
+      "step": 10,
+      "default": 250
+    },
+    {
+      "type": "range",
+      "id": "image_radius",
+      "label": "Bo góc hình ảnh (px)",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "title_height",
+      "label": "Chiều cao khu vực tiêu đề (px)",
+      "min": 30,
+      "max": 100,
+      "step": 5,
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "title_description_spacing",
+      "label": "Khoảng cách giữa tiêu đề và đoạn văn (px)",
+      "min": -50,
+      "max": 50,
+      "step": 5,
+      "default": 0,
+      "info": "Giá trị âm sẽ giảm khoảng cách, giá trị dương sẽ tăng khoảng cách"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "label": "Khoảng cách giữa các block (px)",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "Số cột trên desktop",
+      "options": [
+        { "value": "1", "label": "1 cột" },
+        { "value": "2", "label": "2 cột" },
+        { "value": "3", "label": "3 cột" },
+        { "value": "4", "label": "4 cột" }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "header",
+      "content": "Cài đặt Mobile Slider"
+    },
+    {
+      "type": "select",
+      "id": "mobile_slides_per_view",
+      "label": "Số block hiển thị trên mobile",
+      "options": [
+        { "value": "1", "label": "1 block" },
+        { "value": "1.5", "label": "1.5 block (hé lộ block tiếp theo)" },
+        { "value": "2", "label": "2 block" }
+      ],
+      "default": "1",
+      "info": "Chế độ 1.5 sẽ hé lộ một phần block tiếp theo để người dùng biết còn nội dung để vuốt"
+    },
+    {
+      "type": "color",
+      "id": "dot_color",
+      "label": "Màu dot chỉ vị trí",
+      "default": "#CCCCCC"
+    },
+    {
+      "type": "color",
+      "id": "dot_active_color",
+      "label": "Màu dot đang active",
+      "default": "#333333"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "grid_block",
+      "name": "Grid Block",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Chọn ảnh"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Tiêu đề",
+          "default": "Tiêu đề block"
+        },
+        {
+          "type": "color",
+          "id": "title_color",
+          "label": "Màu tiêu đề",
+          "default": "#000000"
+        },
+        {
+          "type": "color",
+          "id": "title_bg",
+          "label": "Màu nền tiêu đề",
+          "default": "#FFFFFF"
+        },
+        {
+          "type": "range",
+          "id": "title_description_spacing",
+          "label": "Khoảng cách tiêu đề và đoạn văn (px)",
+          "min": -50,
+          "max": 50,
+          "step": 5,
+          "default": 0,
+          "info": "Điều chỉnh riêng cho block này, ưu tiên hơn cài đặt section"
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Đoạn văn",
+          "default": "Mô tả chi tiết cho từng block."
+        },
+        {
+          "type": "color",
+          "id": "description_color",
+          "label": "Màu đoạn văn",
+          "default": "#333333"
+        },
+        {
+          "type": "color",
+          "id": "description_bg",
+          "label": "Màu nền đoạn văn",
+          "default": "#FFFFFF"
+        },
+        {
+          "type": "color",
+          "id": "block_bg",
+          "label": "Màu nền block",
+          "default": "#FFFFFF"
+        },
+        {
+          "type": "range",
+          "id": "border_width",
+          "label": "Độ dày viền (px)",
+          "min": 0,
+          "max": 10,
+          "step": 1,
+          "default": 1
+        },
+        {
+          "type": "color",
+          "id": "border_color",
+          "label": "Màu viền",
+          "default": "#E0E0E0"
+        }
+      ]
+    },
+    {
+      "type": "text_only_block",
+      "name": "Block chỉ có text",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "text_content",
+          "label": "Nội dung",
+          "default": "Fitme tự hào mang đến cho bạn những sản phẩm chất lượng cao trực tiếp từ nhà máy của chúng tôi tại Việt Nam."
+        },
+        {
+          "type": "select",
+          "id": "font_size",
+          "label": "Cỡ chữ",
+          "options": [
+            {"value": "small", "label": "Nhỏ"},
+            {"value": "medium", "label": "Vừa"},
+            {"value": "large", "label": "Lớn"}
+          ],
+          "default": "medium"
+        },
+        {
+          "type": "select",
+          "id": "text_alignment",
+          "label": "Căn lề",
+          "options": [
+            {"value": "left", "label": "Trái"},
+            {"value": "center", "label": "Giữa"},
+            {"value": "right", "label": "Phải"},
+            {"value": "justify", "label": "Đều hai bên"}
+          ],
+          "default": "left"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Màu chữ",
+          "default": "#000000"
+        },
+        {
+          "type": "color",
+          "id": "background_color",
+          "label": "Màu nền",
+          "default": "#F5F5F5"
+        },
+        {
+          "type": "range",
+          "id": "padding",
+          "min": 10,
+          "max": 100,
+          "step": 5,
+          "unit": "px",
+          "label": "Padding bên trong",
+          "default": 30
+        },
+        {
+          "type": "range",
+          "id": "border_radius",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "unit": "px",
+          "label": "Bo góc",
+          "default": 4
+        },
+        {
+          "type": "range",
+          "id": "border_width",
+          "min": 0,
+          "max": 10,
+          "step": 1,
+          "unit": "px",
+          "label": "Độ dày viền",
+          "default": 1
+        },
+        {
+          "type": "color",
+          "id": "border_color",
+          "label": "Màu viền",
+          "default": "#E0E0E0"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom Grid Layout",
+      "category": "Custom Sections",
+      "blocks": [
+        {
+          "type": "grid_block",
+          "settings": {
+            "title": "Ưu tiên chất lượng",
+            "description": "Mỗi sản phẩm đều được kiểm tra kỹ lưỡng ở từng giai đoạn sản xuất để đảm bảo đạt tiêu chuẩn chất lượng tốt nhất. Tại Fitme, chất lượng luôn là ưu tiên hàng đầu của chúng tôi."
+          }
+        },
+        {
+          "type": "grid_block",
+          "settings": {
+            "title": "Tác động xã hội",
+            "description": "Fitme tạo ra công ăn việc làm cho người dân địa phương, trả lương công bằng và chú trọng đào tạo. Chúng tôi tin rằng một ngày không xa ngành thời trang Việt Nam sẽ vươn tầm thế giới."
+          }
+        },
+        {
+          "type": "grid_block",
+          "settings": {
+            "title": "Tôn vinh người thợ",
+            "description": "Mỗi công nhân tại nhà máy may của Fitme đều được đối xử một cách tôn trọng, nhận lương công bằng và đảm bảo an toàn lao động trong quá trình làm việc."
+          }
+        },
+        {
+          "type": "text_only_block",
+          "settings": {
+            "text_content": "Fitme tự hào mang đến cho bạn những sản phẩm chất lượng cao trực tiếp từ nhà máy của chúng tôi tại Việt Nam."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{%- assign section_id = section.id -%}
+{%- assign total_blocks = section.blocks.size -%}
+{%- assign mobile_slides = section.settings.mobile_slides_per_view -%}
+
+<div class="custom-grid-layout-section cgl-{{ section_id }}"
+     style="width: {{ section.settings.section_width }}%; margin: 0 auto; background-color: {{ section.settings.section_bg_color }};">
+
+  <!-- Single DOM: CSS switches layout between grid (desktop) and slider (mobile) -->
+  <div class="cgl-track" id="cgl-slider-{{ section_id }}"
+       data-gap="{{ section.settings.grid_gap }}"
+       data-slides="{{ mobile_slides }}"
+       style="--cgl-columns: {{ section.settings.columns_desktop }};
+              --cgl-gap: {{ section.settings.grid_gap }}px;">
+
+    {% for block in section.blocks %}
+      <div class="cgl-slide" data-index="{{ forloop.index0 }}">
+        {% case block.type %}
+          {% when 'grid_block' %}
+            {%- assign spacing_value = section.settings.title_description_spacing -%}
+            {%- if block.settings.title_description_spacing != blank -%}
+              {%- assign spacing_value = block.settings.title_description_spacing -%}
+            {%- endif -%}
+            <div class="grid-block"
+                 style="background-color:{{ block.settings.block_bg }};
+                        border:{{ block.settings.border_width }}px solid {{ block.settings.border_color }};
+                        border-radius:4px;overflow:hidden;"
+                 {{ block.shopify_attributes }}>
+
+              <!-- Image: explicit width/height prevents CLS -->
+              <div class="image-container"
+                   style="height:{{ section.settings.image_height }}px;overflow:hidden;">
+                {% if block.settings.image %}
+                  {%- assign img = block.settings.image -%}
+                  <img src="{{ img | img_url: '400x' }}"
+                       srcset="{{ img | img_url: '400x' }} 400w,
+                               {{ img | img_url: '800x' }} 800w,
+                               {{ img | img_url: '1200x' }} 1200w"
+                       sizes="(max-width:768px) calc(100vw - 32px), calc(({{ section.settings.section_width }}vw - 32px) / {{ section.settings.columns_desktop }})"
+                       alt="{{ block.settings.title | escape }}"
+                       width="800"
+                       height="{{ section.settings.image_height }}"
+                       loading="lazy"
+                       decoding="async"
+                       style="width:100%;height:100%;object-fit:cover;border-radius:{{ section.settings.image_radius }}px;display:block;">
+                {% else %}
+                  <div style="width:100%;height:100%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;
+                              border-radius:{{ section.settings.image_radius }}px;">
+                    <span style="color:#999;">No image</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="title-container"
+                   style="height:{{ section.settings.title_height }}px;
+                          background-color:{{ block.settings.title_bg }};
+                          display:flex;align-items:center;
+                          justify-content:{{ section.settings.title_alignment }};
+                          padding:0 15px;">
+                <h3 style="color:{{ block.settings.title_color }};text-align:{{ section.settings.title_alignment }};
+                           width:100%;margin:0;font-size:18px;font-weight:bold;">
+                  {{ block.settings.title }}
+                </h3>
+              </div>
+
+              <div class="description-container"
+                   style="background-color:{{ block.settings.description_bg }};
+                          padding:15px;
+                          margin-top:{% if spacing_value >= 0 %}{{ spacing_value }}{% else %}0{% endif %}px;
+                          position:relative;
+                          top:{% if spacing_value < 0 %}{{ spacing_value }}{% else %}0{% endif %}px;">
+                <div style="color:{{ block.settings.description_color }};text-align:{{ section.settings.text_alignment }};">
+                  {{ block.settings.description }}
+                </div>
+              </div>
+            </div>
+
+          {% when 'text_only_block' %}
+            <div class="text-only-block"
+                 style="background-color:{{ block.settings.background_color }};
+                        color:{{ block.settings.text_color }};
+                        padding:{{ block.settings.padding }}px;
+                        border-radius:{{ block.settings.border_radius }}px;
+                        border:{{ block.settings.border_width }}px solid {{ block.settings.border_color }};
+                        text-align:{{ block.settings.text_alignment }};
+                        height:100%;box-sizing:border-box;"
+                 {{ block.shopify_attributes }}>
+              <div class="text-content {% if block.settings.font_size == 'small' %}text-sm{% elsif block.settings.font_size == 'large' %}text-lg{% else %}text-md{% endif %}">
+                {{ block.settings.text_content }}
+              </div>
+            </div>
+        {% endcase %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Navigation Dots + Arrows (mobile only, hidden via CSS on desktop) -->
+  {% if total_blocks > 1 %}
+    <div class="cgl-nav" id="cgl-dots-{{ section_id }}"
+         style="--dot-color: {{ section.settings.dot_color }}; --dot-active-color: {{ section.settings.dot_active_color }};">
+
+      <button class="cgl-arrow cgl-arrow--prev cgl-arrow--hidden"
+              id="cgl-prev-{{ section_id }}"
+              aria-label="Block trước">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
+          <path d="M7 1L1 7L7 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <div class="cgl-dots">
+        {% for block in section.blocks %}
+          <button class="cgl-dot {% if forloop.first %}cgl-dot--active{% endif %}"
+                  data-index="{{ forloop.index0 }}"
+                  aria-label="Tới block {{ forloop.index }}">
+          </button>
+        {% endfor %}
+      </div>
+
+      <button class="cgl-arrow cgl-arrow--next"
+              id="cgl-next-{{ section_id }}"
+              aria-label="Block tiếp theo">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true">
+          <path d="M1 1L7 7L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  /* ===== SHARED ===== */
+  .cgl-{{ section_id }} {
+    padding: 30px 0;
+    box-sizing: border-box;
+  }
+
+  .cgl-{{ section_id }} .grid-block {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .cgl-{{ section_id }} .text-only-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .cgl-{{ section_id }} .text-content { width: 100%; }
+  .cgl-{{ section_id }} .text-sm { font-size: 14px; line-height: 1.4; }
+  .cgl-{{ section_id }} .text-md { font-size: 16px; line-height: 1.5; }
+  .cgl-{{ section_id }} .text-lg { font-size: 20px; line-height: 1.5; font-weight: 500; }
+
+  /* ===== DESKTOP: CSS Grid ===== */
+  .cgl-{{ section_id }} .cgl-track {
+    display: grid;
+    grid-template-columns: repeat(var(--cgl-columns, 3), 1fr);
+    gap: var(--cgl-gap, 20px);
+  }
+
+  /* Nav hidden on desktop */
+  .cgl-{{ section_id }} .cgl-nav { display: none; }
+
+  /* ===== MOBILE: Horizontal scroll ===== */
+  @media screen and (max-width: 768px) {
+    .cgl-{{ section_id }} .cgl-track {
+      display: flex;
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      gap: 0; /* gap handled via JS margin */
+    }
+
+    .cgl-{{ section_id }} .cgl-track::-webkit-scrollbar { display: none; }
+
+    .cgl-{{ section_id }} .cgl-slide {
+      flex: 0 0 var(--slide-width, 100%);
+      scroll-snap-align: start;
+      box-sizing: border-box;
+    }
+
+    /* ===== NAV ===== */
+    .cgl-{{ section_id }} .cgl-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .cgl-{{ section_id }} .cgl-dots {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cgl-{{ section_id }} .cgl-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      background-color: var(--dot-color, #CCCCCC);
+      transition: background-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .cgl-{{ section_id }} .cgl-dot--active {
+      background-color: var(--dot-active-color, #333333);
+      transform: scale(1.4);
+    }
+
+    .cgl-{{ section_id }} .cgl-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--dot-active-color, #333333);
+      background: transparent;
+      color: var(--dot-active-color, #333333);
+      cursor: pointer;
+      padding: 0;
+      transition: opacity 0.2s ease, transform 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .cgl-{{ section_id }} .cgl-arrow:active { transform: scale(0.9); }
+
+    .cgl-{{ section_id }} .cgl-arrow--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .cgl-{{ section_id }} .text-sm { font-size: 13px; }
+    .cgl-{{ section_id }} .text-md { font-size: 15px; }
+    .cgl-{{ section_id }} .text-lg { font-size: 18px; }
+  }
+</style>
+
+<script>
+(function() {
+  function initSlider(sectionId) {
+    var slider = document.getElementById('cgl-slider-' + sectionId);
+    if (!slider) return;
+
+    var dotsWrapper = document.getElementById('cgl-dots-' + sectionId);
+    var dots = dotsWrapper ? Array.prototype.slice.call(dotsWrapper.querySelectorAll('.cgl-dot')) : [];
+    var slides = Array.prototype.slice.call(slider.querySelectorAll('.cgl-slide'));
+    var totalSlides = slides.length;
+    if (totalSlides === 0) return;
+
+    var slidesPerView = parseFloat(slider.getAttribute('data-slides')) || 1;
+    var gap = parseInt(slider.getAttribute('data-gap')) || 0;
+    var currentIdx = 0;
+    var prevBtn = document.getElementById('cgl-prev-' + sectionId);
+    var nextBtn = document.getElementById('cgl-next-' + sectionId);
+    var slideWidth = 0; /* cached after applySlideWidth */
+
+    function isMobile() { return window.innerWidth <= 768; }
+
+    /* ---- Apply slide widths (only on mobile) ---- */
+    function applySlideWidth() {
+      if (!isMobile()) return;
+      var pct = 100 / slidesPerView;
+      var gapComp = gap * (slidesPerView - 1) / slidesPerView;
+      var cssWidth = 'calc(' + pct + '% - ' + gapComp + 'px)';
+      slides.forEach(function(slide, i) {
+        slide.style.setProperty('--slide-width', cssWidth);
+        slide.style.marginRight = (i < totalSlides - 1) ? gap + 'px' : '0px';
+      });
+      /* Cache pixel width for scrollLeft math (avoids getBCR in scroll) */
+      slideWidth = slides[0].offsetWidth + gap;
+    }
+
+    /* ---- Arrow visibility ---- */
+    function updateArrows(idx) {
+      if (!prevBtn || !nextBtn) return;
+      prevBtn.classList.toggle('cgl-arrow--hidden', idx === 0);
+      nextBtn.classList.toggle('cgl-arrow--hidden', idx >= totalSlides - 1);
+    }
+
+    /* ---- Dot + arrow update ---- */
+    function setActiveDot(idx) {
+      currentIdx = idx;
+      dots.forEach(function(dot, i) {
+        dot.classList.toggle('cgl-dot--active', i === idx);
+      });
+      updateArrows(idx);
+    }
+
+    /* ---- Scroll → idx via scrollLeft (no layout thrashing) ---- */
+    slider.addEventListener('scroll', function() {
+      if (!isMobile() || slideWidth === 0) return;
+      var idx = Math.round(slider.scrollLeft / slideWidth);
+      idx = Math.max(0, Math.min(totalSlides - 1, idx));
+      if (idx !== currentIdx) setActiveDot(idx);
+    }, { passive: true });
+
+    /* ---- Scroll to slide ---- */
+    function scrollToSlide(idx) {
+      slider.scrollTo({ left: idx * slideWidth, behavior: 'smooth' });
+      setActiveDot(idx);
+    }
+
+    /* ---- Dot clicks ---- */
+    dots.forEach(function(dot, idx) {
+      dot.addEventListener('click', function() {
+        if (!isMobile()) return;
+        scrollToSlide(idx);
+      });
+    });
+
+    /* ---- Arrow clicks ---- */
+    if (prevBtn) prevBtn.addEventListener('click', function() {
+      if (!isMobile()) return;
+      scrollToSlide(Math.max(0, currentIdx - 1));
+    });
+    if (nextBtn) nextBtn.addEventListener('click', function() {
+      if (!isMobile()) return;
+      scrollToSlide(Math.min(totalSlides - 1, currentIdx + 1));
+    });
+
+    /* ---- Init + resize (with cleanup) ---- */
+    applySlideWidth();
+    setActiveDot(0);
+
+    var resizeTimer;
+    function onResize() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        applySlideWidth();
+        /* Re-snap to current slide after resize */
+        slider.scrollTo({ left: currentIdx * slideWidth, behavior: 'instant' });
+      }, 150);
+    }
+
+    window.addEventListener('resize', onResize);
+
+    /* Cleanup on section reload (theme editor) */
+    document.addEventListener('shopify:section:unload', function cleanup(e) {
+      if (e.detail && e.detail.sectionId === sectionId) {
+        window.removeEventListener('resize', onResize);
+        document.removeEventListener('shopify:section:unload', cleanup);
+      }
+    });
+  }
+
+  /* ---- Bootstrap ---- */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { initSlider('{{ section_id }}'); });
+  } else {
+    initSlider('{{ section_id }}');
+  }
+
+  document.addEventListener('shopify:section:load', function(e) {
+    if (e.detail && e.detail.sectionId === '{{ section_id }}') initSlider('{{ section_id }}');
+  });
+})();
+</script>

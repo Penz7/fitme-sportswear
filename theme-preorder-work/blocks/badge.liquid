@@ -1,0 +1,47 @@
+{%- if block.settings.text != blank -%}
+  {%- assign alignment = block.settings.alignment | replace: 'left', 'start' | replace: 'right', 'end' -%}
+
+  <div class="justify-items-{{ alignment }}" {{ block.shopify_attributes }}>
+    <span class="badge" style="background-color: {{ block.settings.background }}; color: {{ block.settings.text_color }};">
+      {{- block.settings.text -}}
+    </span>
+  </div>
+{%- endif -%}
+  
+{% schema %}
+{
+  "name": "Badge",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Text",
+      "default": "Text"
+    },
+    {
+      "type": "text_alignment",
+      "id": "alignment",
+      "label": "Badge alignment",
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Background",
+      "default": "#000000"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Badge"
+    }
+  ]
+}
+{% endschema %}

@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "db2f9a6a1c4eef8205a8692f3f6ef503d118f81d",
-    "indexed_at": "2026-09-03T10:06:40Z",
+    "commit": "901319bcb6a2bc5cd25247c541b94320efa076e7",
+    "indexed_at": "2026-09-08T06:52:31Z",
     "project": "root-fitme-sportswear",
-    "nodes": 9622,
-    "edges": 27250,
-    "original_size": 87162880,
-    "compressed_size": 2764186,
+    "nodes": 74149,
+    "edges": 107149,
+    "original_size": 168427520,
+    "compressed_size": 7980697,
     "compression_level": 9
 }

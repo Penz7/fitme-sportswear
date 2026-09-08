@@ -1,0 +1,34 @@
+{% comment %}
+  Customized robots.txt for SEO optimization
+  FITME 20/07/2026 (Claude/Carlos):
+    (1) Gỡ "Disallow: /vi/" — /vi/ là locale của trang đang rank #1 (đồ tập gym nữ, ~2.359 traffic/thg).
+        Để nguyên là quả mìn: nếu group Googlebot bên dưới bị gỡ, /vi/ sẽ bị chặn và mất trang kiếm tiền.
+    (2) Gỡ group "User-agent: Googlebot / Allow: /" — group này khiến Googlebot BỎ QUA toàn bộ Disallow
+        ở group * (Google chỉ theo group cụ thể nhất). Hệ quả cũ: faceted/param/cart/atom đều bị cào.
+        Sau khi gỡ, Googlebot tôn trọng lại các Disallow chuẩn; /vi/ và /collections/ vẫn crawl bình thường.
+  Ghi chú: chưa đụng canonical/hreflang (Shopify tự quản, đang đúng). Vụ dedup /vi/ vs /collections/
+  cần data GSC Pages trước khi xử tiếp — KHÔNG sửa mù.
+{% endcomment %}
+
+User-agent: *
+Disallow: /cart
+Disallow: /checkout
+Disallow: /search
+Disallow: /account
+Disallow: /orders
+Disallow: /policies
+Disallow: /collections/*?*
+Disallow: /collections/*&*
+Disallow: /collections/*/page*
+Disallow: /*?ref=
+Disallow: /collections/*sort_by*
+Disallow: /*?page=*
+Disallow: /*&page=*
+Disallow: /*.atom$
+Disallow: /blogs/chuong-trinh-su-kien.atom
+
+Sitemap: https://fitme.vn/sitemap.xml
+
+# Cho phép Googlebot-Image cào ảnh không giới hạn
+User-agent: Googlebot-Image
+Allow: /

@@ -1,0 +1,184 @@
+{
+  "sections": {
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "enable_parallax": false,
+        "show_collection_title": true,
+        "show_collection_description": true,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "imagegridcollection_VzxMnp": {
+      "type": "imagegridcollection",
+      "blocks": {
+        "image_block_48VVwh": {
+          "type": "image_block",
+          "settings": {
+            "image": "shopify://shop_images/IMG_0871.jpg",
+            "image_ratio": "aspect-auto",
+            "heading": "Chân váy Tennis & Pickleball",
+            "subheading": "Khi sự tinh tế gặp gỡ năng lượng thể thao",
+            "heading_color": "#000000",
+            "subheading_color": "#555555",
+            "button1_text": "Mua Chân váy",
+            "button1_link": "",
+            "button1_bg_color": "#d02545",
+            "button1_text_color": "#ffffff",
+            "button1_border_color": "#d02545",
+            "button2_text": "",
+            "button2_link": "",
+            "button2_bg_color": "#ffffff",
+            "button2_text_color": "#000000",
+            "button2_border_color": "#000000",
+            "hide_button2": false
+          }
+        },
+        "image_block_Xt8npd": {
+          "type": "image_block",
+          "settings": {
+            "image": "shopify://shop_images/Sony-5130.jpg",
+            "image_ratio": "aspect-auto",
+            "heading": "Váy Tennis & Pickleball",
+            "subheading": "Tối giản, thanh lịch, tự tin trong từng bước di chuyển",
+            "heading_color": "#000000",
+            "subheading_color": "#555555",
+            "button1_text": "mua váy",
+            "button1_link": "",
+            "button1_bg_color": "#d02545",
+            "button1_text_color": "#ffffff",
+            "button1_border_color": "#d02545",
+            "button2_text": "",
+            "button2_link": "",
+            "button2_bg_color": "#ffffff",
+            "button2_text_color": "#000000",
+            "button2_border_color": "#000000",
+            "hide_button2": false
+          }
+        }
+      },
+      "block_order": [
+        "image_block_48VVwh",
+        "image_block_Xt8npd"
+      ],
+      "settings": {
+        "heading": "",
+        "subheading": "",
+        "section_max_width": 1200,
+        "section_padding_top": 40,
+        "section_padding_bottom": 40,
+        "section_padding_horizontal": 20,
+        "grid_gap": 20,
+        "text_align": "text-center",
+        "bg_color": "#ffffff",
+        "heading_color": "#000000",
+        "subheading_color": "#555555",
+        "image_radius": 0,
+        "button_radius": 8,
+        "button_padding_x": 20,
+        "button_padding_y": 10
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "blocks": {
+        "promotion_video_UVVFpq": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 12,
+            "column_span": "1",
+            "video": "shopify://files/videos/thanh thư 3.mp4",
+            "external_video_url": "",
+            "title": "",
+            "content": "",
+            "link_url": "",
+            "link_text": "",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 0
+          }
+        },
+        "promotion_video_RGFp89": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 27,
+            "column_span": "1",
+            "video": "shopify://files/videos/thục san(2).mp4",
+            "external_video_url": "",
+            "title": "",
+            "content": "",
+            "link_url": "",
+            "link_text": "",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 0
+          }
+        },
+        "promotion_video_Rymkpx": {
+          "type": "promotion_video",
+          "settings": {
+            "position": 42,
+            "column_span": "1",
+            "video": "shopify://files/videos/_ 50% (1).mp4",
+            "external_video_url": "https://www.youtube.com/watch?v=_9VUPq3SxOc",
+            "title": "Promote a product or a temporary offer",
+            "content": "",
+            "link_url": "",
+            "link_text": "View all",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 30
+          }
+        }
+      },
+      "block_order": [
+        "promotion_video_UVVFpq",
+        "promotion_video_RGFp89",
+        "promotion_video_Rymkpx"
+      ],
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 50,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    },
+    "seo_content": {
+      "type": "collection-seo-content",
+      "settings": {}
+    }
+  },
+  "order": [
+    "banner",
+    "imagegridcollection_VzxMnp",
+    "main",
+    "seo_content"
+  ]
+}

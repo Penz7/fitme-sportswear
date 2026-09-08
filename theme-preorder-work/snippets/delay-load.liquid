@@ -1,0 +1,36 @@
+{%- comment -%}
+  Parameters
+  * urls
+  * snippets
+  * statements
+  * load_apps
+  * delay
+  * delay_load
+{%- endcomment -%}
+
+{%- assign urls_split = urls | split: '|' -%}
+
+<script>
+  (function() {
+    {%- if delay_load -%}
+      function delayLoad() {
+        var urls =  [...new Set(window.shopifyAppUrls)];
+        
+        for (var i = 0; i < urls.length; i++) {
+          var s = document.createElement('script');
+          s.type = 'text/javascript';
+          s.defer = true;
+          s.src = urls[i];
+          var x = document.getElementsByTagName('script')[0];
+          x.parentNode.insertBefore(s, x);
+        };
+        {{- on_delay_load -}}
+      };
+      window.addEventListener('scroll', delayLoad, { once: true, passive: true });
+      {{- snippets -}}
+    {%- else -%}
+      {{- snippets -}}
+      {{- on_delay_load -}}
+    {%- endif -%}
+  }());
+</script>

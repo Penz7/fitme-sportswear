@@ -1,0 +1,66 @@
+# Learn more about configuring your checkout UI extension:
+# https://shopify.dev/docs/api/checkout-ui-extensions/latest/configuration
+
+# The version of APIs your extension will receive. Learn more:
+# https://shopify.dev/docs/api/usage/versioning
+api_version = "2026-07"
+
+[[extensions]]
+name = "qr-payment-instructions"
+handle = "qr-payment-instructions"
+type = "ui_extension"
+uid = "4bc89f86-be92-28fb-331b-ad1a01e0fb939df9a499"
+
+# Controls where in Shopify your extension will be injected,
+# and the file that contains your extension’s source code. Learn more:
+# https://shopify.dev/docs/api/checkout-ui-extensions/latest/extension-targets-overview
+
+[[extensions.targeting]]
+module = "./src/Checkout.jsx"
+target = "purchase.thank-you.block.render"
+
+[extensions.settings]
+[extensions.capabilities]
+network_access = true
+
+[[extensions.settings.fields]]
+key = "heading"
+type = "single_line_text_field"
+name = "Tiêu đề QR"
+description = "Ví dụ: Thanh toán chuyển khoản"
+
+[[extensions.settings.fields]]
+key = "bank_name"
+type = "single_line_text_field"
+name = "Tên ngân hàng"
+description = "Ví dụ: BIDV"
+
+[[extensions.settings.fields]]
+key = "bank_bin"
+type = "single_line_text_field"
+name = "Mã BIN ngân hàng"
+description = "Mã ngân hàng gồm các chữ số dùng để tạo VietQR, ví dụ BIDV là 970418."
+
+[[extensions.settings.fields]]
+key = "account_number"
+type = "single_line_text_field"
+name = "Số tài khoản"
+description = "Số tài khoản nhận chuyển khoản."
+
+[[extensions.settings.fields]]
+key = "account_holder"
+type = "single_line_text_field"
+name = "Chủ tài khoản"
+description = "Tên hiển thị trên QR và hướng dẫn thanh toán."
+
+[[extensions.settings.fields]]
+key = "additional_instructions"
+type = "multi_line_text_field"
+name = "Hướng dẫn bổ sung"
+description = "Không bắt buộc. Số tiền và mã đơn vẫn được tạo tự động."
+
+[[extensions.settings.fields]]
+key = "show_qr_for_test_payment"
+type = "boolean"
+name = "Hiển thị QR khi test"
+description = "Chỉ bật trên development store để kiểm tra với Bogus Gateway. Luôn tắt ở shop thật."

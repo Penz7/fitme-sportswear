@@ -1,0 +1,43 @@
+{% if collection %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "{{ collection.title | escape }}",
+  "description": "{{ collection.description | strip_html | strip_newlines | escape }}",
+  "url": "{{ shop.url }}{{ collection.url }}",
+  "image": "{% if collection.image %}{{ collection.image | image_url: width: 1200 }}{% else %}https://cdn.shopify.com/s/files/1/0828/7676/0373/t/12/assets/default.jpg?v=1746261691{% endif %}",
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {% for product in collection.products %}
+        {
+          "@type": "Product",
+          "name": "{{ product.title | escape }}",
+          "image": [
+            {% for image in product.images %}
+              "{{ image | image_url: width: 800 }}"{% unless forloop.last %},{% endunless %}
+            {% endfor %}
+          ],
+          "offers": {
+            "@type": "Offer",
+            "priceCurrency": "{{ cart.currency.iso_code }}",
+            "price": "{{ product.price | money_without_currency | replace: ',', '' }}",
+            "availability": "{% if product.available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+            "url": "{{ shop.url }}{{ product.url }}"
+          }
+        }{% unless forloop.last %},{% endunless %}
+      {% endfor %}
+    ]
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "{{ shop.name }}",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ settings.favicon | image_url }}"
+    }
+  }
+}
+</script>
+{% endif %}

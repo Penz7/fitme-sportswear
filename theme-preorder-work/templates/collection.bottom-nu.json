@@ -1,0 +1,123 @@
+{
+  "sections": {
+    "collectiontitle_rMWykk": {
+      "type": "collectiontitle",
+      "blocks": {
+        "item_8MqbtV": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC00631-shopee.jpg",
+            "title": "Quần Legging Cạp Ngang",
+            "description": "",
+            "link": "shopify://collections/quan-legging-nu-cap-cao"
+          }
+        },
+        "item_37xqfX": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/quan-legging-dai-tap-gym-cap-cheo-cover23-xam-xanh_1.jpg",
+            "title": "Quần Legging Cạp Chéo",
+            "description": "",
+            "link": "shopify://products/quan-legging-phoi-xeo-cover23-qdcv-den"
+          }
+        },
+        "item_EtWie6": {
+          "type": "item",
+          "settings": {
+            "image": "shopify://shop_images/DSC06985.jpg",
+            "title": "Quần Thể Thao",
+            "description": "",
+            "link": ""
+          }
+        }
+      },
+      "block_order": [
+        "item_8MqbtV",
+        "item_37xqfX",
+        "item_EtWie6"
+      ],
+      "settings": {
+        "title": "",
+        "breadcrumbs": "",
+        "items_per_row_desktop": "3",
+        "items_per_row_mobile": "2",
+        "show_breadcrumbs": true,
+        "padding_top": 36,
+        "padding_bottom": 36,
+        "background_color": "#FFFFFF",
+        "heading_color": "#000000",
+        "title_color": "#000000",
+        "description_color": "#666666",
+        "heading_size": 24,
+        "item_title_size": 16,
+        "item_description_size": 14,
+        "scrolling_style": "smooth"
+      }
+    },
+    "banner": {
+      "type": "collection-banner",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": false,
+        "enable_parallax": false,
+        "show_collection_title": false,
+        "show_collection_description": false,
+        "show_collection_image": true,
+        "collection_title_size": "h1",
+        "image_size": "auto",
+        "mobile_text_position": "place-self-center text-center",
+        "desktop_text_position": "sm:place-self-center-start sm:text-start",
+        "featured_product": "",
+        "featured_product_heading": "Featured product",
+        "text_color": "#ffffff",
+        "overlay_color": "#000000",
+        "overlay_opacity": 0
+      }
+    },
+    "main": {
+      "type": "main-collection",
+      "blocks": {
+        "promotion_image_zrC6wi": {
+          "type": "promotion_image",
+          "settings": {
+            "position": 4,
+            "column_span": "2",
+            "title": "",
+            "content": "",
+            "link_url": "",
+            "link_text": "",
+            "heading_tag": "h4",
+            "text_position": "place-self-end-start text-start",
+            "text_color": "#ffffff",
+            "overlay_color": "#000000",
+            "overlay_opacity": 30
+          }
+        }
+      },
+      "block_order": [
+        "promotion_image_zrC6wi"
+      ],
+      "custom_css": [
+        ".bold {font-size: 15px;}"
+      ],
+      "settings": {
+        "products_per_page": 24,
+        "products_per_row_mobile": "2",
+        "products_per_row_desktop": 4,
+        "filter_layout": "drawer",
+        "show_sort_by": true,
+        "show_filters": true,
+        "show_filter_group_name": false,
+        "show_filter_values_count": true,
+        "open_first_filter_group": false
+      }
+    }
+  },
+  "order": [
+    "collectiontitle_rMWykk",
+    "banner",
+    "main"
+  ]
+}

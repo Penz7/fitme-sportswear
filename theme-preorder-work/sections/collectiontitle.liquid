@@ -1,0 +1,674 @@
+{% schema %}
+{
+  "name": "Collection Title",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Section Title",
+      "default": "Women's Leggings"
+    },
+    {
+      "type": "text",
+      "id": "breadcrumbs",
+      "label": "Breadcrumbs",
+      "default": "Women's Clothes / Pants / Leggings"
+    },
+    {
+      "type": "select",
+      "id": "items_per_row_desktop",
+      "label": "Items per row (desktop)",
+      "options": [
+        {
+          "value": "3",
+          "label": "3 items"
+        },
+        {
+          "value": "4",
+          "label": "4 items"
+        },
+        {
+          "value": "5",
+          "label": "5 items"
+        }
+      ],
+      "default": "5"
+    },
+    {
+      "type": "select",
+      "id": "items_per_row_mobile",
+      "label": "Items per row (mobile)",
+      "options": [
+        {
+          "value": "1",
+          "label": "1 item"
+        },
+        {
+          "value": "2",
+          "label": "2 items"
+        }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_breadcrumbs",
+      "label": "Show breadcrumbs",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 36
+    },
+    {
+      "type": "header",
+      "content": "Color Settings"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background Color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading Color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Item Title Color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "description_color",
+      "label": "Description Color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Typography Settings"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 16,
+      "max": 36,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading Size",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "item_title_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Item Title Size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "item_description_size",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "label": "Description Size",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Mobile Scrolling"
+    },
+    {
+      "type": "select",
+      "id": "scrolling_style",
+      "label": "Mobile Scrolling Style",
+      "options": [
+        {
+          "value": "snap",
+          "label": "Snap to items"
+        },
+        {
+          "value": "smooth",
+          "label": "Smooth scroll"
+        },
+        {
+          "value": "paged",
+          "label": "Page by page"
+        }
+      ],
+      "default": "smooth"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Item",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Item Title"
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Description",
+          "default": "Short description text"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Custom Link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collection Title",
+      "blocks": [
+        {
+          "type": "item"
+        },
+        {
+          "type": "item"
+        },
+        {
+          "type": "item"
+        },
+        {
+          "type": "item"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<div class="collection-title" id="collection-title-{{ section.id }}" style="
+  padding-top: {{ section.settings.padding_top }}px; 
+  padding-bottom: {{ section.settings.padding_bottom }}px;
+  background-color: {{ section.settings.background_color }};">
+  <div class="container">
+    {% if section.settings.title != blank %}
+      <h1 class="collection-title__heading" style="
+        font-size: {{ section.settings.heading_size }}px;
+        color: {{ section.settings.heading_color }};">
+        {{ section.settings.title }}
+      </h1>
+    {% endif %}
+
+    {% if section.blocks.size > 0 %}
+      <div class="collection-title__slider" data-scroll-style="{{ section.settings.scrolling_style }}">
+        <div class="collection-title__slider-wrapper">
+          {% for block in section.blocks %}
+            <div class="collection-title__item" {{ block.shopify_attributes }}>
+              <div class="collection-title__item-inner">
+                {% if block.settings.link != blank %}
+                  <a href="{{ block.settings.link }}" class="collection-title__item-image-link">
+                {% else %}
+                  <div class="collection-title__item-image-link">
+                {% endif %}
+                
+                  <div class="collection-title__item-image-wrapper">
+                    {% if block.settings.image != blank %}
+                      {{ block.settings.image | img_url: '400x' | img_tag: block.settings.title, 'collection-title__item-image', 'loading: lazy' }}
+                    {% else %}
+                      {{ 'image' | placeholder_svg_tag: 'collection-title__item-image placeholder-svg' }}
+                    {% endif %}
+                  </div>
+                
+                {% if block.settings.link != blank %}
+                  </a>
+                {% else %}
+                  </div>
+                {% endif %}
+                
+                <div class="collection-title__item-content">
+                  <h3 class="collection-title__item-title" style="
+                    font-size: {{ section.settings.item_title_size }}px;
+                    color: {{ section.settings.title_color }};">
+                    {% if block.settings.link != blank %}
+                      <a href="{{ block.settings.link }}" style="color: {{ section.settings.title_color }};">
+                        {{ block.settings.title }}
+                      </a>
+                    {% else %}
+                      {{ block.settings.title }}
+                    {% endif %}
+                  </h3>
+                  
+                  {% if block.settings.description != blank %}
+                    <div class="collection-title__item-description" style="
+                      font-size: {{ section.settings.item_description_size }}px;
+                      color: {{ section.settings.description_color }};">
+                      {{ block.settings.description }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        
+        {% if section.blocks.size > 2 %}
+          <button type="button" class="collection-title__arrow collection-title__arrow--prev">
+            <span class="visually-hidden">Previous</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          
+          <button type="button" class="collection-title__arrow collection-title__arrow--next">
+            <span class="visually-hidden">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        {% endif %}
+        
+        <div class="collection-title__pagination">
+          {% assign total_pages = section.blocks.size | divided_by: section.settings.items_per_row_mobile | ceil %}
+          {% for i in (1..total_pages) %}
+            <button class="collection-title__pagination-dot {% if forloop.first %}active{% endif %}" data-index="{{ forloop.index0 }}"></button>
+          {% endfor %}
+        </div>
+      </div>
+    {% elsif request.design_mode %}
+      <div class="collection-title__placeholder">
+        <p>Add items to display content here</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .collection-title {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  .collection-title__breadcrumbs {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .collection-title__results-count {
+    display: none;
+  }
+  
+  .collection-title__heading {
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  
+  .collection-title__slider {
+    position: relative;
+  }
+  
+  .collection-title__slider-wrapper {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    margin: 0 -12px;
+  }
+  
+  .collection-title__slider-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .collection-title__item {
+    flex: 0 0 auto;
+    width: calc(100% / {{ section.settings.items_per_row_desktop }});
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+  
+  .collection-title__item-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .collection-title__item-image-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 130%;
+    overflow: hidden;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 15px;
+  }
+  
+  .collection-title__item-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  
+  .collection-title__item-image-link:hover .collection-title__item-image {
+    transform: scale(1.05);
+  }
+  
+  .collection-title__item-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .collection-title__item-title {
+    margin: 0 0 5px;
+    font-weight: 600;
+  }
+  
+  .collection-title__item-title a {
+    text-decoration: none;
+  }
+  
+  .collection-title__item-description {
+    line-height: 1.4;
+  }
+  
+  .collection-title__arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .collection-title__arrow:hover {
+    opacity: 0.9;
+  }
+  
+  .collection-title__arrow--prev {
+    left: 10px;
+  }
+  
+  .collection-title__arrow--next {
+    right: 10px;
+  }
+  
+  .collection-title__pagination {
+    display: none;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  .collection-title__pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ccc;
+    margin: 0 4px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .collection-title__pagination-dot.active {
+    background-color: #555;
+  }
+  
+  .collection-title__placeholder {
+    padding: 40px;
+    text-align: center;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  }
+  
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+  
+  /* Mobile-specific styles */
+  @media screen and (max-width: 767px) {
+    .collection-title__item {
+      width: calc(100% / {{ section.settings.items_per_row_mobile }});
+    }
+    
+    .collection-title__pagination {
+      display: flex;
+    }
+    
+    .collection-title__heading {
+      font-size: calc({{ section.settings.heading_size }}px - 4px) !important;
+    }
+    
+    /* Mobile scrolling styles */
+    .collection-title__slider-wrapper {
+      scroll-behavior: smooth;
+    }
+    
+    .collection-title__slider[data-scroll-style="snap"] .collection-title__slider-wrapper {
+      scroll-snap-type: x mandatory;
+    }
+    
+    .collection-title__slider[data-scroll-style="snap"] .collection-title__item {
+      scroll-snap-align: start;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.querySelector('#collection-title-{{ section.id }} .collection-title__slider-wrapper');
+    const sliderContainer = document.querySelector('#collection-title-{{ section.id }} .collection-title__slider');
+    const prevButton = document.querySelector('#collection-title-{{ section.id }} .collection-title__arrow--prev');
+    const nextButton = document.querySelector('#collection-title-{{ section.id }} .collection-title__arrow--next');
+    const dots = document.querySelectorAll('#collection-title-{{ section.id }} .collection-title__pagination-dot');
+    
+    if (!slider) return;
+    
+    const scrollStyle = sliderContainer ? sliderContainer.getAttribute('data-scroll-style') : 'smooth';
+    
+    let itemWidth = 0;
+    let itemsPerPage = window.innerWidth <= 767 ? 
+      parseInt('{{ section.settings.items_per_row_mobile }}') : 
+      parseInt('{{ section.settings.items_per_row_desktop }}');
+    
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let isDragging = false;
+    let startScrollPosition = 0;
+    
+    function updateItemWidth() {
+      const items = slider.querySelectorAll('.collection-title__item');
+      if (items.length > 0) {
+        itemWidth = items[0].offsetWidth;
+      }
+    }
+    
+    function scrollToPage(pageIndex, behavior = 'smooth') {
+      const position = pageIndex * itemWidth * itemsPerPage;
+      
+      slider.scrollTo({
+        left: position,
+        behavior: behavior
+      });
+      
+      // Update active dot
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === pageIndex);
+      });
+    }
+    
+    // Touch event handlers for mobile
+    function handleTouchStart(e) {
+      touchStartX = e.touches[0].clientX;
+      startScrollPosition = slider.scrollLeft;
+      isDragging = true;
+      
+      if (scrollStyle === 'paged') {
+        slider.style.scrollBehavior = 'auto';
+      }
+    }
+    
+    function handleTouchMove(e) {
+      if (!isDragging) return;
+      
+      const currentX = e.touches[0].clientX;
+      const diff = touchStartX - currentX;
+      
+      if (scrollStyle === 'paged') {
+        slider.scrollLeft = startScrollPosition + diff;
+      }
+    }
+    
+    function handleTouchEnd(e) {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      touchEndX = e.changedTouches[0].clientX;
+      
+      const diff = touchStartX - touchEndX;
+      
+      if (scrollStyle === 'smooth') {
+        slider.style.scrollBehavior = 'smooth';
+      } else if (scrollStyle === 'paged') {
+        slider.style.scrollBehavior = 'smooth';
+        
+        // Calculate current page
+        const currentPage = Math.round(slider.scrollLeft / (itemWidth * itemsPerPage));
+        
+        // Determine direction and navigate
+        if (diff > 50) { // Swipe left
+          scrollToPage(currentPage + 1);
+        } else if (diff < -50) { // Swipe right
+          scrollToPage(Math.max(0, currentPage - 1));
+        } else {
+          // Snap back to current page if small movement
+          scrollToPage(currentPage);
+        }
+      }
+      
+      // Update UI state after gesture
+      updateArrowState();
+    }
+    
+    if (prevButton) {
+      prevButton.addEventListener('click', function() {
+        const currentPosition = slider.scrollLeft;
+        const previousPage = Math.floor(currentPosition / (itemWidth * itemsPerPage)) - 1;
+        scrollToPage(Math.max(0, previousPage));
+      });
+    }
+    
+    if (nextButton) {
+      nextButton.addEventListener('click', function() {
+        const currentPosition = slider.scrollLeft;
+        const currentPage = Math.floor(currentPosition / (itemWidth * itemsPerPage));
+        const totalPages = Math.ceil(slider.scrollWidth / (itemWidth * itemsPerPage));
+        scrollToPage(Math.min(totalPages - 1, currentPage + 1));
+      });
+    }
+    
+    // Set up pagination dots
+    dots.forEach((dot, index) => {
+      dot.addEventListener('click', function() {
+        scrollToPage(index);
+      });
+    });
+    
+    // Update arrow visibility based on scroll position
+    function updateArrowState() {
+      if (prevButton && nextButton) {
+        if (slider.scrollLeft <= 10) {
+          prevButton.style.opacity = '0.5';
+        } else {
+          prevButton.style.opacity = '1';
+        }
+        
+        if (slider.scrollLeft + slider.clientWidth >= slider.scrollWidth - 10) {
+          nextButton.style.opacity = '0.5';
+        } else {
+          nextButton.style.opacity = '1';
+        }
+      }
+      
+      // Update active dot based on scroll position
+      if (dots.length > 0) {
+        const currentPage = Math.round(slider.scrollLeft / (itemWidth * itemsPerPage));
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === currentPage);
+        });
+      }
+    }
+    
+    // Add touch event listeners for mobile
+    slider.addEventListener('touchstart', handleTouchStart, { passive: true });
+    slider.addEventListener('touchmove', handleTouchMove, { passive: true });
+    slider.addEventListener('touchend', handleTouchEnd);
+    slider.addEventListener('scroll', updateArrowState);
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      itemsPerPage = window.innerWidth <= 767 ? 
+        parseInt('{{ section.settings.items_per_row_mobile }}') : 
+        parseInt('{{ section.settings.items_per_row_desktop }}');
+      updateItemWidth();
+      
+      // Ensure we're still on a valid page
+      const currentPage = Math.round(slider.scrollLeft / (itemWidth * itemsPerPage));
+      scrollToPage(currentPage, 'auto');
+      
+      updateArrowState();
+    });
+    
+    // Initial setup
+    updateItemWidth();
+    updateArrowState();
+  });
+</script>

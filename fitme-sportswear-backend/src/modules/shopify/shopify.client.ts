@@ -18,6 +18,7 @@ export interface ShopifyInventoryUpdateInput {
   variantId: string;
   available: number;
   retailPrice: number | null;
+  inventoryPolicy?: 'deny' | 'continue';
 }
 
 export interface ShopifyProductCreateInput {
@@ -38,6 +39,13 @@ export interface ShopifyFulfillmentInput {
   trackingNumber: string;
   notifyCustomer: boolean;
   lineItems: Array<{ id: string | number; quantity: number }>;
+}
+
+export interface ShopifyPreorderMetafieldInput {
+  variantId: string;
+  enabled: boolean;
+  status: 'BUY_NOW' | 'PREORDER' | 'SOLD_OUT';
+  expectedRestockDate: Date | null;
 }
 
 export interface ShopifyWebhookInput {
@@ -64,6 +72,7 @@ interface ShopifyVariantResponse {
     id: string;
     inventory_item_id: string;
     inventory_management: string | null;
+    inventory_policy: 'deny' | 'continue';
     price: string;
   };
 }
@@ -171,6 +180,15 @@ export class ShopifyClient {
     }
 
     if (
+      input.inventoryPolicy &&
+      variant.inventory_policy !== input.inventoryPolicy
+    ) {
+      await this.updateVariant(variant, {
+        inventoryPolicy: input.inventoryPolicy,
+      });
+    }
+
+    if (
       input.retailPrice !== null &&
       !this.samePrice(variant.price, input.retailPrice)
     ) {
@@ -196,6 +214,69 @@ export class ShopifyClient {
       const body = await this.safeResponseSnippet(response);
       throw new Error(
         `Shopify inventory level update failed with status ${response.status}${body}`,
+      );
+    }
+  }
+
+  async setPreorderMetafields(
+    input: ShopifyPreorderMetafieldInput,
+  ): Promise<void> {
+    const ownerId = `gid://shopify/ProductVariant/${input.variantId}`;
+    const status = input.status.toLowerCase();
+    const message =
+      input.enabled && input.status === 'PREORDER'
+        ? `Hàng đặt trước. Dự kiến có hàng từ ${this.vietnamDate(input.expectedRestockDate)}. Vui lòng thanh toán trước; COD không áp dụng.`
+        : '';
+    const metafields = [
+      {
+        ownerId,
+        namespace: 'custom',
+        key: 'preorder_enabled',
+        type: 'boolean',
+        value: input.enabled ? 'true' : 'false',
+      },
+      { ownerId, namespace: 'custom', key: 'preorder_status', type: 'single_line_text_field', value: status },
+      { ownerId, namespace: 'custom', key: 'preorder_message', type: 'multi_line_text_field', value: message },
+      ...(input.expectedRestockDate
+        ? [{
+            ownerId,
+            namespace: 'custom',
+            key: 'preorder_restock_date',
+            type: 'date',
+            value: input.expectedRestockDate.toISOString().slice(0, 10),
+          }]
+        : []),
+    ];
+    const response = await this.fetchWithRetry(
+      this.apiUrl('/graphql.json'),
+      {
+        method: 'POST',
+        headers: this.jsonHeaders(),
+        body: JSON.stringify({
+          query: `mutation SetPreorderMetafields($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              userErrors { field message code }
+            }
+          }`,
+          variables: { metafields },
+        }),
+      },
+      'Shopify preorder metafield update',
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Shopify preorder metafield update failed with status ${response.status}`,
+      );
+    }
+    const body = (await response.json()) as {
+      data?: { metafieldsSet?: { userErrors?: Array<{ message?: string }> } };
+    };
+    const errors = body.data?.metafieldsSet?.userErrors ?? [];
+    if (errors.length > 0) {
+      throw new Error(
+        `Shopify preorder metafield update failed: ${errors
+          .map((error) => error.message ?? 'unknown error')
+          .join('; ')}`,
       );
     }
   }
@@ -691,7 +772,11 @@ export class ShopifyClient {
 
   private async updateVariant(
     variant: ShopifyVariantResponse['variant'],
-    input: { inventoryManagement?: string; price?: number },
+    input: {
+      inventoryManagement?: string;
+      inventoryPolicy?: 'deny' | 'continue';
+      price?: number;
+    },
   ): Promise<void> {
     const response = await this.fetchWithRetry(
       this.apiUrl(`/variants/${variant.id}.json`),
@@ -703,6 +788,9 @@ export class ShopifyClient {
             id: variant.id,
             ...(input.inventoryManagement
               ? { inventory_management: input.inventoryManagement }
+              : {}),
+            ...(input.inventoryPolicy
+              ? { inventory_policy: input.inventoryPolicy }
               : {}),
             ...(input.price !== undefined ? { price: input.price } : {}),
           },
@@ -721,6 +809,18 @@ export class ShopifyClient {
   private samePrice(currentPrice: string | number | null, nextPrice: number): boolean {
     const current = Number(currentPrice);
     return Number.isFinite(current) && current === nextPrice;
+  }
+
+  private vietnamDate(value: Date | null): string {
+    if (!value) {
+      return 'khoảng 14 ngày';
+    }
+    return new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(value);
   }
 
   private integerQuantity(value: number): number {

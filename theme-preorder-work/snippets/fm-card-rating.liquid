@@ -1,0 +1,11 @@
+{%- comment -%} Fitme: 5 sao + "N Reviews" (kiểu CSB). Chỉ dùng ở product card. Không đụng product-rating.liquid (dùng cho PDP). {%- endcomment -%}
+{%- assign r_meta = product.metafields.reviews.rating.value -%}
+{%- assign r_count = product.metafields.reviews.rating_count.value | plus: 0 -%}
+{%- if r_meta != blank and r_count > 0 -%}
+  {%- assign r_val = r_meta.rating | plus: 0.0 -%}
+  {%- assign r_pct = r_val | divided_by: 5.0 | times: 100.0 -%}
+  <a href="{{ product.url }}#shopify-product-reviews" class="fm-rating {{ class }}" title="{{ r_val }}/5 · {{ r_count }}" data-instant>
+    <span class="fm-stars" aria-hidden="true"><span class="fm-stars__bg">★★★★★</span><span class="fm-stars__fg" style="width:{{ r_pct }}%">★★★★★</span></span>
+    <span class="fm-rating__count">{{ r_count }} {% if r_count == 1 %}Review{% else %}Reviews{% endif %}</span>
+  </a>
+{%- endif -%}

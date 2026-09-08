@@ -1,0 +1,42 @@
+{%- comment -%}
+----------------------------------------------------------------------------------------------------------------------
+PRODUCT BADGES COMPONENT
+----------------------------------------------------------------------------------------------------------------------
+
+This component is used in product listing and product page to render the badges of a given product
+
+********************************************
+Supported variables
+********************************************
+
+* product: the product to render the badges
+* types: the types of badge to output. Can be "custom", "sold_out" or "discount" (or a combination separated by comma). If nothing is set, all badges are outputted.
+* form_id: an optional form ID to use to update the badges when a given variant changes
+* block: an optional block to output theme editor attributes
+* class: an extra class added on the container
+{%- endcomment -%}
+
+{%- assign badge_types = settings.card_tags | split: ',' -%}
+{%- assign variant = product.selected_or_first_available_variant -%}
+
+{%- capture badges -%}
+  {%- for badge_type in badge_types -%}
+    {%- assign stripped_badge_type = badge_type | strip -%}
+    {% if badge_type contains "Hot" %}
+      {% assign badgeClass = 'badge--on-hot' %}
+    {% elsif badge_type contains "New" %}
+      {% assign badgeClass = 'badge--on-new' %}
+    {% endif %}
+    {% for tag in product.tags %}
+      {% if tag contains badge_type or badge_type contains tag %}
+        <span class="badge {{ badgeClass }}">{{ badge_type }}</span>
+      {% endif %}
+    {% endfor %}
+  {%- endfor -%}
+{%- endcapture -%}
+
+{%- if badges != blank -%}
+  <div class="{{ class }}" {{ block.shopify_attributes }}>
+    {{- badges -}}
+  </div>
+{%- endif -%}

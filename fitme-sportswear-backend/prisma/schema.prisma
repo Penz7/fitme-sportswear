@@ -21,6 +21,14 @@ enum SourcePlatform {
   internal
 }
 
+enum PreorderLineStatus {
+  PENDING
+  ALLOCATED
+  READY_TO_FULFILL
+  FULFILLED
+  CANCELLED
+}
+
 model SyncRun {
   id           String     @id @default(uuid())
   syncType     String
@@ -188,6 +196,42 @@ model OrderMapping {
   @@unique([shopifyOrderId])
   @@index([sapoOrderId])
   @@map("order_mappings")
+}
+
+model PreorderSku {
+  id                  String          @id @default(uuid())
+  sku                 String          @unique
+  shopifyProductId    String?
+  shopifyVariantId    String?
+  allowPreorder       Boolean         @default(false)
+  preorderLimit       Int?
+  expectedRestockDate DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  lines               PreorderLine[]
+
+  @@index([allowPreorder])
+  @@map("preorder_skus")
+}
+
+model PreorderLine {
+  id              String             @id @default(uuid())
+  preorderSkuId   String
+  shopifyOrderId  String
+  sapoOrderId     String?
+  sku             String
+  quantity        Int
+  allocatedQty    Int                @default(0)
+  status          PreorderLineStatus @default(PENDING)
+  paymentConfirmedAt DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  preorderSku     PreorderSku        @relation(fields: [preorderSkuId], references: [id], onDelete: Restrict)
+
+  @@unique([shopifyOrderId, sku])
+  @@index([preorderSkuId, status, createdAt])
+  @@index([sapoOrderId])
+  @@map("preorder_lines")
 }
 
 model SapoOrderTracking {

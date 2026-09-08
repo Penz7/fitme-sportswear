@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AddressModule } from '../address/address.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PancakeModule } from '../pancake/pancake.module';
+import { PreorderModule } from '../preorder/preorder.module';
 import { SapoModule } from '../sapo/sapo.module';
 import { ShopifyModule } from '../shopify/shopify.module';
 import { OrderInventoryImpactService } from './order-inventory-impact.service';
@@ -18,6 +19,7 @@ import { ShopifyOrderReconciliationService } from './shopify-order-reconciliatio
     AddressModule,
     NotificationsModule,
     PancakeModule,
+    PreorderModule,
     SapoModule,
     ShopifyModule,
   ],

@@ -1,0 +1,25 @@
+{%- comment -%} Fitme: chấm màu từ custom.variation_product (mỗi màu=1 product). Fail-safe. {%- endcomment -%}
+{%- assign fm_sibs = product.metafields.custom.variation_product.value -%}
+{%- if fm_sibs != blank and fm_sibs.size > 1 -%}
+  {%- assign fm_cfg = settings.color_swatch_config | newline_to_br | split: '<br />' -%}
+  <div class="fm-swatches">
+    {%- assign fm_shown = 0 -%}
+    {%- for fm_sib in fm_sibs -%}
+      {%- if fm_shown >= 5 -%}{%- break -%}{%- endif -%}
+      {%- assign fm_cname = fm_sib.metafields.custom.variation_value.value | default: '' -%}
+      {%- assign fm_hex = '' -%}
+      {%- if fm_cname != '' -%}
+        {%- assign fm_key = fm_cname | downcase | strip -%}
+        {%- for fm_line in fm_cfg -%}
+          {%- assign fm_kv = fm_line | split: ':' -%}
+          {%- assign fm_k = fm_kv[0] | downcase | strip -%}
+          {%- if fm_k == fm_key -%}{%- assign fm_hex = fm_kv[1] | strip -%}{%- break -%}{%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+      {%- if fm_hex == '' -%}{%- assign fm_hex = '#cccccc' -%}{%- endif -%}
+      <a href="{{ fm_sib.url }}" class="fm-swatch" style="background:{{ fm_hex }}" title="{{ fm_cname | escape }}" aria-label="{{ fm_cname | escape }}" data-instant></a>
+      {%- assign fm_shown = fm_shown | plus: 1 -%}
+    {%- endfor -%}
+    {%- if fm_sibs.size > 5 -%}<span class="fm-swatch-more">+{{ fm_sibs.size | minus: 5 }}</span>{%- endif -%}
+  </div>
+{%- endif -%}
