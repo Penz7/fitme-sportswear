@@ -15,6 +15,9 @@ export interface ShopifyOrderReconciliationResult {
 }
 
 const PREORDER_UNPAID_EXPIRY_MS = 45 * 60 * 1000;
+const BUSINESS_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+const BUSINESS_START_HOUR = 8;
+const BUSINESS_END_HOUR = 17;
 
 type OrderMappingLike = {
   id: string;
@@ -238,8 +241,75 @@ export class ShopifyOrderReconciliationService {
     const createdAt = new Date(order.created_at ?? order.createdAt ?? '');
     return (
       Number.isFinite(createdAt.getTime()) &&
-      Date.now() - createdAt.getTime() >= PREORDER_UNPAID_EXPIRY_MS
+      Date.now() >= this.unpaidPreorderExpiryAt(createdAt).getTime()
     );
+  }
+
+  /**
+   * The payment window never spans an off period. If fewer than 45 minutes
+   * remain before 17:00, the customer receives a fresh window from 08:00 on
+   * the next working day. Saturday and Sunday are both non-working days.
+   */
+  private unpaidPreorderExpiryAt(createdAt: Date): Date {
+    const local = this.vietnamDateParts(createdAt);
+    const localDate = new Date(Date.UTC(local.year, local.month - 1, local.day));
+    const businessStart = this.vietnamTime(local, BUSINESS_START_HOUR, 0);
+    const businessEnd = this.vietnamTime(local, BUSINESS_END_HOUR, 0);
+    const withinBusinessWindow =
+      this.isBusinessDay(localDate) &&
+      createdAt.getTime() >= businessStart.getTime() &&
+      createdAt.getTime() + PREORDER_UNPAID_EXPIRY_MS <= businessEnd.getTime();
+
+    if (withinBusinessWindow) {
+      return new Date(createdAt.getTime() + PREORDER_UNPAID_EXPIRY_MS);
+    }
+
+    const nextStartDate =
+      this.isBusinessDay(localDate) && createdAt.getTime() < businessStart.getTime()
+        ? localDate
+        : this.nextBusinessDay(localDate);
+    const nextLocal = {
+      year: nextStartDate.getUTCFullYear(),
+      month: nextStartDate.getUTCMonth() + 1,
+      day: nextStartDate.getUTCDate(),
+    };
+    return this.vietnamTime(nextLocal, BUSINESS_START_HOUR, 45);
+  }
+
+  private nextBusinessDay(date: Date): Date {
+    const candidate = new Date(date.getTime());
+    candidate.setUTCDate(candidate.getUTCDate() + 1);
+    while (!this.isBusinessDay(candidate)) {
+      candidate.setUTCDate(candidate.getUTCDate() + 1);
+    }
+    return candidate;
+  }
+
+  private isBusinessDay(date: Date): boolean {
+    const day = date.getUTCDay();
+    return day >= 1 && day <= 5;
+  }
+
+  private vietnamDateParts(value: Date): { year: number; month: number; day: number } {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: BUSINESS_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(value);
+    const part = (type: 'year' | 'month' | 'day') =>
+      Number(parts.find((item) => item.type === type)?.value ?? NaN);
+    return { year: part('year'), month: part('month'), day: part('day') };
+  }
+
+  private vietnamTime(
+    date: { year: number; month: number; day: number },
+    hour: number,
+    minute: number,
+  ): Date {
+    // Vietnam has a fixed UTC+7 offset and no DST, so this produces an
+    // unambiguous instant while all business-day calculations stay in ICT.
+    return new Date(Date.UTC(date.year, date.month - 1, date.day, hour - 7, minute));
   }
 
   private isFulfilled(order: Record<string, any>): boolean {

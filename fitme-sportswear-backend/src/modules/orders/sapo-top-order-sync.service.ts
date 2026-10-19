@@ -30,6 +30,7 @@ export interface SapoTopOrderSyncResult {
 export class SapoTopOrderSyncService {
   private readonly defaultPrefix = 'AUTO_PANCAKE';
   private readonly defaultLimit = 50;
+  private readonly shopifyRecoveryLimit = 50;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -89,16 +90,30 @@ export class SapoTopOrderSyncService {
     const newOrders = orders.filter((order) => !trackedIds.has(String(order.id)));
     const ordersToProcess =
       prefix === 'AUTO_SHOPIFY'
-        ? orders.filter(
-            (order) =>
-              !trackedIds.has(String(order.id)) ||
-              (mapping.key !== 'CANCELED' && this.sapoTrackingNumber(order) !== null),
+        ? await this.autoShopifyOrdersToProcess(
+            orders,
+            trackedIds,
+            mapping.key,
           )
         : newOrders;
+    const recoveryOrders =
+      prefix === 'AUTO_SHOPIFY' && mapping.key === 'SHIPPED'
+        ? await this.recoverOpenShopifyOrdersOutsideListing(ordersToProcess)
+        : [];
+    const ordersForProcessing = [
+      ...ordersToProcess,
+      ...recoveryOrders,
+    ];
     const results = [];
 
-    for (const order of ordersToProcess) {
-      results.push(await this.processOrderSafely(order, mapping.key, prefix));
+    for (const order of ordersForProcessing) {
+      const recoveredOrderType =
+        prefix === 'AUTO_SHOPIFY'
+          ? this.shopifyRecoveryOrderType(order) ?? mapping.key
+          : mapping.key;
+      results.push(
+        await this.processOrderSafely(order, recoveredOrderType, prefix),
+      );
     }
 
     await this.sapoOrderTracking.upsert({
@@ -118,7 +133,7 @@ export class SapoTopOrderSyncService {
       orderType: mapping.key,
       prefix,
       fetched: currentIds.length,
-      processed: ordersToProcess.length,
+      processed: ordersForProcessing.length,
       skippedTracked: currentIds.length - ordersToProcess.length,
       results,
     };
@@ -198,6 +213,7 @@ export class SapoTopOrderSyncService {
     }
 
     let updated = false;
+    let fulfilled = false;
     if (orderType === 'CANCELED') {
       if (!this.isShopifyCancelled(shopifyOrder)) {
         await this.shopifyClient.cancelOrder(shopifyOrderId, 'Cancelled by Sapo');
@@ -208,21 +224,48 @@ export class SapoTopOrderSyncService {
     }
 
     const trackingNumber = this.sapoTrackingNumber(order);
-    if (
-      trackingNumber &&
-      this.shouldCreateShopifyFulfillment(orderType, shopifyOrder, trackingNumber)
-    ) {
-      await this.shopifyClient.createFulfillment({
-        orderId: shopifyOrderId,
+    const fulfillmentIdToCorrect = trackingNumber
+      ? this.shopifyFulfillmentIdNeedingTrackingCorrection(
+          shopifyOrder,
+          trackingNumber,
+        )
+      : null;
+    if (fulfillmentIdToCorrect) {
+      await this.shopifyClient.updateFulfillmentTracking({
+        fulfillmentId: fulfillmentIdToCorrect,
         trackingCompany: this.configString(
           'shipping.viettelPost.trackingCompany',
           'Viettel',
         ),
-        trackingNumber,
-        notifyCustomer: true,
-        lineItems: this.shopifyLineItems(shopifyOrder),
+        trackingNumber: trackingNumber as string,
+        // The customer was already notified when the original fulfillment was
+        // created. Correct the record without sending a duplicate email.
+        notifyCustomer: false,
       });
       updated = true;
+      fulfilled = true;
+    } else if (
+      this.shouldCreateShopifyFulfillment(orderType, shopifyOrder, trackingNumber)
+    ) {
+      const fulfillmentCreated = await this.shopifyClient.createFulfillment({
+        orderId: shopifyOrderId,
+        ...(trackingNumber
+          ? {
+              trackingCompany: this.configString(
+                'shipping.viettelPost.trackingCompany',
+                'Viettel',
+              ),
+              trackingNumber,
+            }
+          : {}),
+        // A completed Sapo order without a shipment record must still be
+        // reflected as fulfilled, but must never trigger a misleading
+        // shipping notification with no real tracking number.
+        notifyCustomer: Boolean(trackingNumber),
+        lineItems: this.shopifyLineItems(shopifyOrder),
+      });
+      updated = fulfillmentCreated;
+      fulfilled = fulfillmentCreated;
     }
 
     if (
@@ -236,7 +279,9 @@ export class SapoTopOrderSyncService {
     await this.updateShopifyMapping(
       mapping.id,
       order,
-      this.shopifyStatusForOrderType(orderType, shopifyOrder),
+      fulfilled
+        ? 'FULFILLED'
+        : this.shopifyStatusForOrderType(orderType, shopifyOrder, order),
     );
 
     return this.shopifyResult(updated ? 'updated' : 'skipped', sapoOrderId);
@@ -252,6 +297,147 @@ export class SapoTopOrderSyncService {
     }
 
     return mapping;
+  }
+
+  /**
+   * The Sapo orders-list endpoint does not reliably include fulfillment and
+   * shipment details. For already tracked Shopify orders that still have not
+   * been fulfilled, fetch the individual Sapo order before deciding whether a
+   * completed Viettel Post tracking number is available.
+   */
+  private async autoShopifyOrdersToProcess(
+    orders: Record<string, any>[],
+    trackedIds: Set<string>,
+    orderType: string,
+  ): Promise<Record<string, any>[]> {
+    const newOrders = orders.filter((order) => !trackedIds.has(String(order.id)));
+    if (orderType === 'CANCELED') {
+      return newOrders;
+    }
+
+    const trackedOrdersWithShipment = orders.filter(
+      (order) =>
+        trackedIds.has(String(order.id)) &&
+        this.sapoTrackingNumber(order) !== null,
+    );
+    const trackedOrdersWithShipmentIds = new Set(
+      trackedOrdersWithShipment.map((order) => String(order.id)),
+    );
+
+    const orderIdsNeedingDetail = orders
+      .filter(
+        (order) =>
+          !trackedOrdersWithShipmentIds.has(String(order.id)),
+      )
+      .map((order) => String(order.id));
+    if (orderIdsNeedingDetail.length === 0) {
+      return [...newOrders, ...trackedOrdersWithShipment];
+    }
+
+    const mappings = await this.orderMapping.findMany({
+      where: {
+        sapoOrderId: { in: orderIdsNeedingDetail },
+        shopifyOrderId: { not: null },
+        OR: [
+          { shopifyStatus: null },
+          { shopifyStatus: { notIn: ['FULFILLED', 'CANCELLED'] } },
+        ],
+      },
+      select: { sapoOrderId: true },
+    });
+    const recoveryIds = new Set(
+      mappings
+        .map((mapping: { sapoOrderId?: string | null }) => mapping.sapoOrderId)
+        .filter((orderId: string | null | undefined): orderId is string =>
+          Boolean(orderId),
+        ),
+    );
+
+    const recoveredOrders: Record<string, any>[] = [];
+    for (const orderId of orderIdsNeedingDetail) {
+      if (!recoveryIds.has(orderId)) {
+        continue;
+      }
+
+      try {
+        const response = await this.sapoClient.fetchOrder(orderId);
+        if (response.order) {
+          recoveredOrders.push(response.order as Record<string, any>);
+        }
+      } catch {
+        // A transient detail-fetch failure must not turn a known order into a
+        // state update based on the incomplete list payload. It will retry on
+        // the next scheduled run.
+      }
+    }
+
+    const recoveredOrderIds = new Set(
+      recoveredOrders.map((order) => String(order.id)),
+    );
+    return [
+      ...newOrders.filter(
+        (order) => !recoveredOrderIds.has(String(order.id)),
+      ),
+      ...trackedOrdersWithShipment,
+      ...recoveredOrders,
+    ];
+  }
+
+  /**
+   * The Sapo list API is page based, whereas the scheduled top-order job only
+   * receives its newest page. Recover a bounded set of mapped Shopify orders
+   * that remain open directly by ID so a shipment cannot be lost merely
+   * because newer finalized Sapo orders pushed it off that page.
+   */
+  private async recoverOpenShopifyOrdersOutsideListing(
+    listedOrders: Record<string, any>[],
+  ): Promise<Record<string, any>[]> {
+    const listedIds = new Set(listedOrders.map((order) => String(order.id)));
+    const mappings = await this.orderMapping.findMany({
+      where: {
+        sapoOrderId: { not: null },
+        shopifyOrderId: { not: null },
+        OR: [
+          { shopifyStatus: null },
+          { shopifyStatus: { notIn: ['FULFILLED', 'CANCELLED', 'MISSING'] } },
+        ],
+      },
+      select: { sapoOrderId: true },
+      orderBy: { updatedAt: 'desc' },
+      take: this.shopifyRecoveryLimit,
+    });
+
+    const recoveredOrders: Record<string, any>[] = [];
+    for (const mapping of mappings) {
+      const sapoOrderId = this.stringOrNull(mapping.sapoOrderId);
+      if (!sapoOrderId || listedIds.has(sapoOrderId)) {
+        continue;
+      }
+
+      try {
+        const response = await this.sapoClient.fetchOrder(sapoOrderId);
+        if (response.order) {
+          recoveredOrders.push(response.order as Record<string, any>);
+        }
+      } catch {
+        // Keep the mapping open. The next one-minute recovery run retries it.
+      }
+    }
+
+    return recoveredOrders;
+  }
+
+  private shopifyRecoveryOrderType(order: Record<string, any>): string | null {
+    if (String(order.status ?? '').toLowerCase() === 'cancelled') {
+      return 'CANCELED';
+    }
+    if (String(order.status ?? '').toLowerCase() === 'completed') {
+      return 'COMPLETED';
+    }
+    if (String(order.fulfillment_status ?? '').toLowerCase() === 'shipped') {
+      return 'SHIPPED';
+    }
+    return null;
   }
 
   private matchesMapping(order: Record<string, any>, mapping: OrderTypeMapping): boolean {
@@ -281,7 +467,7 @@ export class SapoTopOrderSyncService {
     shopifyOrder: Record<string, any>,
     trackingNumber: string | null,
   ): boolean {
-    if (orderType === 'CANCELED' || !trackingNumber) {
+    if (orderType === 'CANCELED') {
       return false;
     }
 
@@ -292,7 +478,11 @@ export class SapoTopOrderSyncService {
     const fulfillmentStatus = String(
       shopifyOrder.fulfillment_status ?? shopifyOrder.fulfillmentStatus ?? '',
     ).toLowerCase();
-    return fulfillmentStatus !== 'fulfilled';
+    if (fulfillmentStatus === 'fulfilled') {
+      return false;
+    }
+
+    return Boolean(trackingNumber) || orderType === 'COMPLETED';
   }
 
   private shouldCloseShopifyOrder(
@@ -306,9 +496,45 @@ export class SapoTopOrderSyncService {
     return !this.firstString(shopifyOrder.closed_at, shopifyOrder.closedAt);
   }
 
+  private shopifyFulfillmentIdNeedingTrackingCorrection(
+    shopifyOrder: Record<string, any>,
+    trackingNumber: string,
+  ): string | null {
+    const fulfillmentStatus = String(
+      shopifyOrder.fulfillment_status ?? shopifyOrder.fulfillmentStatus ?? '',
+    ).toLowerCase();
+    if (fulfillmentStatus !== 'fulfilled') {
+      return null;
+    }
+
+    const fulfillments = this.arrayPayload(shopifyOrder.fulfillments);
+    if (
+      fulfillments.some((fulfillment) =>
+        this.arrayPayload(
+          fulfillment.tracking_numbers ?? fulfillment.trackingNumbers,
+        ).some((number) => String(number) === trackingNumber),
+      )
+    ) {
+      return null;
+    }
+
+    return this.stringOrNull(fulfillments.at(-1)?.id);
+  }
+
   private sapoTrackingNumber(order: Record<string, any>): string | null {
+    const orderFulfillmentStatus = String(
+      order.fulfillment_status ?? order.fulfillmentStatus ?? '',
+    ).toLowerCase();
+    if (orderFulfillmentStatus !== 'shipped') {
+      return null;
+    }
+
     return this.firstString(
       ...this.arrayPayload(order.fulfillments).map((fulfillment) => {
+        const fulfillmentStatus = String(fulfillment.status ?? '').toLowerCase();
+        if (['cancelled', 'canceled'].includes(fulfillmentStatus)) {
+          return null;
+        }
         const shipment = this.objectPayload(fulfillment.shipment);
         const pushingStatus = this.firstString(
           shipment.pushing_status,
@@ -343,9 +569,30 @@ export class SapoTopOrderSyncService {
   private shopifyStatusForOrderType(
     orderType: string,
     shopifyOrder: Record<string, any>,
+    sapoOrder: Record<string, any>,
   ): string {
     if (orderType === 'CANCELED' || this.isShopifyCancelled(shopifyOrder)) {
       return 'CANCELLED';
+    }
+
+    const fulfillmentStatus = String(
+      shopifyOrder.fulfillment_status ?? shopifyOrder.fulfillmentStatus ?? '',
+    ).toLowerCase();
+    if (fulfillmentStatus === 'fulfilled') {
+      return 'FULFILLED';
+    }
+
+    // The Sapo list can be briefly stale while an order moves between
+    // statuses. Never let a requested SHIPPED pass overwrite the current
+    // Sapo truth when it still says that stock has not left the warehouse.
+    const sapoFulfillmentStatus = String(
+      sapoOrder.fulfillment_status ?? sapoOrder.fulfillmentStatus ?? '',
+    ).toLowerCase();
+    if (sapoFulfillmentStatus === 'unshipped') {
+      return String(sapoOrder.packed_status ?? sapoOrder.packedStatus ?? '').toLowerCase() ===
+        'packed'
+        ? 'PACKED'
+        : 'OPEN';
     }
 
     if (['RECEIVED', 'COMPLETED'].includes(orderType)) {
@@ -353,7 +600,7 @@ export class SapoTopOrderSyncService {
     }
 
     if (orderType === 'SHIPPED') {
-      return 'FULFILLED';
+      return 'SHIPPED';
     }
 
     if (orderType === 'PAID') {

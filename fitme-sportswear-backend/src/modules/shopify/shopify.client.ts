@@ -35,10 +35,17 @@ export interface ShopifyProductCreateResult {
 
 export interface ShopifyFulfillmentInput {
   orderId: string;
+  trackingCompany?: string;
+  trackingNumber?: string;
+  notifyCustomer: boolean;
+  lineItems: Array<{ id: string | number; quantity: number }>;
+}
+
+export interface ShopifyFulfillmentTrackingUpdateInput {
+  fulfillmentId: string;
   trackingCompany: string;
   trackingNumber: string;
   notifyCustomer: boolean;
-  lineItems: Array<{ id: string | number; quantity: number }>;
 }
 
 export interface ShopifyPreorderMetafieldInput {
@@ -281,14 +288,14 @@ export class ShopifyClient {
     }
   }
 
-  async createFulfillment(input: ShopifyFulfillmentInput): Promise<void> {
+  async createFulfillment(input: ShopifyFulfillmentInput): Promise<boolean> {
     const fulfillmentOrders = await this.fetchFulfillmentOrders(input.orderId);
     const openFulfillmentOrders = fulfillmentOrders.filter((fulfillmentOrder) =>
       this.isFulfillableOrder(fulfillmentOrder),
     );
 
     if (openFulfillmentOrders.length === 0 && fulfillmentOrders.length > 0) {
-      return;
+      return this.isFulfillmentConfirmed(input);
     }
 
     const lineItemsByFulfillmentOrder = openFulfillmentOrders.map((fulfillmentOrder) => ({
@@ -311,22 +318,58 @@ export class ShopifyClient {
       body: JSON.stringify({
         fulfillment: {
           line_items_by_fulfillment_order: lineItemsByFulfillmentOrder,
-          tracking_info: {
-            company: input.trackingCompany,
-            number: input.trackingNumber,
-          },
+          ...(input.trackingNumber
+            ? {
+                tracking_info: {
+                  company: input.trackingCompany,
+                  number: input.trackingNumber,
+                },
+              }
+            : {}),
           notify_customer: input.notifyCustomer,
         },
       }),
     });
 
-    if (!response.ok) {
-      if (response.status === 422 && this.isFulfillmentAlreadyApplied(await response.text())) {
-        return;
-      }
+    if (response.ok) {
+      return true;
+    }
 
+    const body = await response.text();
+    if (response.status === 422 && this.isFulfillmentAlreadyApplied(body)) {
+      if (await this.isFulfillmentConfirmed(input)) {
+        return true;
+      }
+    }
+
+    throw new Error(
+      `Shopify fulfillment create failed with status ${response.status}: ${body}`,
+    );
+  }
+
+  async updateFulfillmentTracking(
+    input: ShopifyFulfillmentTrackingUpdateInput,
+  ): Promise<void> {
+    const response = await fetch(
+      this.apiUrl(`/fulfillments/${input.fulfillmentId}/update_tracking.json`),
+      {
+        method: 'POST',
+        headers: this.jsonHeaders(),
+        body: JSON.stringify({
+          fulfillment: {
+            notify_customer: input.notifyCustomer,
+            tracking_info: {
+              company: input.trackingCompany,
+              number: input.trackingNumber,
+            },
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
       throw new Error(
-        `Shopify fulfillment create failed with status ${response.status}`,
+        `Shopify fulfillment tracking update failed with status ${response.status}: ${await response.text()}`,
       );
     }
   }
@@ -872,6 +915,32 @@ export class ShopifyClient {
       normalized.includes('closed') ||
       normalized.includes('not fulfillable') ||
       normalized.includes('fulfilled')
+    );
+  }
+
+  private async isFulfillmentConfirmed(
+    input: ShopifyFulfillmentInput,
+  ): Promise<boolean> {
+    const order = await this.fetchOrder(input.orderId);
+    if (!order) {
+      return false;
+    }
+
+    if (
+      String(order.fulfillment_status ?? order.fulfillmentStatus ?? '').toLowerCase() ===
+      'fulfilled'
+    ) {
+      return true;
+    }
+
+    if (!input.trackingNumber) {
+      return false;
+    }
+
+    return this.arrayPayload(order.fulfillments).some((fulfillment) =>
+      this.arrayPayload(
+        fulfillment.tracking_numbers ?? fulfillment.trackingNumbers,
+      ).some((trackingNumber) => String(trackingNumber) === input.trackingNumber),
     );
   }
 

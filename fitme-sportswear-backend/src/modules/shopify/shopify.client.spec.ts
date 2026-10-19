@@ -462,13 +462,15 @@ describe('ShopifyClient', () => {
       )
       .mockResolvedValueOnce(jsonResponse({ fulfillment: { id: 'fulfillment-1' } }));
 
-    await createClient({ 'shopify.locationId': 'location-9' }).createFulfillment({
-      orderId: 'shopify-order-1',
-      trackingCompany: 'Viettel',
-      trackingNumber: 'VTP123',
-      notifyCustomer: true,
-      lineItems: [{ id: 'line-item-1', quantity: 2 }],
-    });
+    await expect(
+      createClient({ 'shopify.locationId': 'location-9' }).createFulfillment({
+        orderId: 'shopify-order-1',
+        trackingCompany: 'Viettel',
+        trackingNumber: 'VTP123',
+        notifyCustomer: true,
+        lineItems: [{ id: 'line-item-1', quantity: 2 }],
+      }),
+    ).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
@@ -510,15 +512,23 @@ describe('ShopifyClient', () => {
       jsonResponse({ fulfillment_orders: [{ id: 'fulfillment-order-1', status: 'closed' }] }),
     );
 
-    await createClient().createFulfillment({
-      orderId: 'shopify-order-1',
-      trackingCompany: 'Viettel',
-      trackingNumber: 'VTP123',
-      notifyCustomer: true,
-      lineItems: [{ id: 'line-item-1', quantity: 2 }],
-    });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        order: { id: 'shopify-order-1', fulfillment_status: 'fulfilled' },
+      }),
+    );
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await expect(
+      createClient().createFulfillment({
+        orderId: 'shopify-order-1',
+        trackingCompany: 'Viettel',
+        trackingNumber: 'VTP123',
+        notifyCustomer: true,
+        lineItems: [{ id: 'line-item-1', quantity: 2 }],
+      }),
+    ).resolves.toBe(true);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('cancels a Shopify order with the Sapo cancellation reason', async () => {

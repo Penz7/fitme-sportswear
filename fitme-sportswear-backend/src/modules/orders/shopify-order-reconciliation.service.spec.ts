@@ -254,4 +254,55 @@ describe('ShopifyOrderReconciliationService', () => {
       expect.objectContaining({ cancel_reason: 'other' }),
     );
   });
+
+  describe('unpaid preorder business-hours expiry', () => {
+    const service = () =>
+      new ShopifyOrderReconciliationService({} as any, {} as any, {} as any);
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('expires after 45 minutes when the full window fits before 17:00 ICT', () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-15T09:45:00+07:00'));
+
+      expect((service() as any).shouldExpireUnpaidPreorder({
+        financial_status: 'pending',
+        created_at: '2026-06-15T09:00:00+07:00',
+      })).toBe(true);
+    });
+
+    it('gives a fresh 45-minute window at 08:00 on the next business day after cutoff', () => {
+      const order = {
+        financial_status: 'pending',
+        created_at: '2026-06-15T16:16:00+07:00',
+      };
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-16T08:44:59+07:00'));
+      expect((service() as any).shouldExpireUnpaidPreorder(order)).toBe(false);
+
+      jest.setSystemTime(new Date('2026-06-16T08:45:00+07:00'));
+      expect((service() as any).shouldExpireUnpaidPreorder(order)).toBe(true);
+    });
+
+    it('skips Saturday and Sunday, expiring a Friday-after-cutoff order on Monday at 08:45 ICT', () => {
+      const order = {
+        financial_status: 'unpaid',
+        created_at: '2026-06-19T16:30:00+07:00',
+      };
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-22T08:44:59+07:00'));
+      expect((service() as any).shouldExpireUnpaidPreorder(order)).toBe(false);
+
+      jest.setSystemTime(new Date('2026-06-22T08:45:00+07:00'));
+      expect((service() as any).shouldExpireUnpaidPreorder(order)).toBe(true);
+    });
+
+    it('never expires an order already marked paid, including outside business hours', () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-21T12:00:00+07:00'));
+
+      expect((service() as any).shouldExpireUnpaidPreorder({
+        financial_status: 'paid',
+        created_at: '2026-06-19T16:30:00+07:00',
+      })).toBe(false);
+    });
+  });
 });

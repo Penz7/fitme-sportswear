@@ -108,9 +108,10 @@ function TransferQrInstructions() {
               thanh toán và tiến hành xử lý đơn hàng của anh/chị.
             </s-text>
             <s-text>
-              Vui lòng hoàn tất thanh toán trong vòng 30 phút kể từ khi đặt
-              hàng. Nếu quá thời hạn mà Fitme chưa nhận được thanh toán, đơn
-              hàng sẽ tự động bị hủy.
+              Vui lòng hoàn tất thanh toán trong vòng 45 phút làm việc. Fitme
+              làm việc từ Thứ Hai đến Thứ Sáu, 08:00–17:00. Đơn đặt khi còn
+              dưới 45 phút trước giờ nghỉ, ngoài giờ hoặc cuối tuần sẽ được
+              giữ đến 08:45 của ngày làm việc kế tiếp.
             </s-text>
           </s-stack>
         </s-banner>

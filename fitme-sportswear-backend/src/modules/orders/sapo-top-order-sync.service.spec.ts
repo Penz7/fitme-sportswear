@@ -9,6 +9,7 @@ describe('SapoTopOrderSyncService', () => {
       },
       orderMapping: {
         findFirst: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn().mockResolvedValue({}),
       },
     };
@@ -20,6 +21,7 @@ describe('SapoTopOrderSyncService', () => {
         ],
         metadata: { total: 2 },
       }),
+      fetchOrder: jest.fn(),
     };
     const orderSyncService = {
       syncSapoOrder: jest.fn().mockResolvedValue({
@@ -31,7 +33,8 @@ describe('SapoTopOrderSyncService', () => {
     const shopifyClient = {
       cancelOrder: jest.fn().mockResolvedValue(undefined),
       closeOrder: jest.fn().mockResolvedValue(undefined),
-      createFulfillment: jest.fn().mockResolvedValue(undefined),
+      createFulfillment: jest.fn().mockResolvedValue(true),
+      updateFulfillmentTracking: jest.fn().mockResolvedValue(undefined),
       fetchOrder: jest.fn().mockResolvedValue({
         id: 'shopify-order-1',
         line_items: [{ id: 'line-item-1', quantity: 1 }],
@@ -340,7 +343,92 @@ describe('SapoTopOrderSyncService', () => {
     });
   });
 
-  it('reconciles a tracked packed AUTO_SHOPIFY order once Sapo has completed VTP tracking', async () => {
+  it('keeps a shipped mapping retryable when Shopify does not confirm fulfillment creation', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [
+        {
+          id: 'sapo-order-1',
+          status: 'finalized',
+          fulfillment_status: 'shipped',
+          fulfillments: [
+            {
+              status: 'fulfilled',
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'VTP123',
+              },
+            },
+          ],
+        },
+      ],
+      metadata: { total: 1 },
+    });
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-1',
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+    shopifyClient.createFulfillment.mockResolvedValueOnce(false);
+
+    await service.syncOrderType({ orderType: 'SHIPPED', prefix: 'AUTO_SHOPIFY' });
+
+    expect(prisma.orderMapping.update).toHaveBeenCalledWith({
+      where: { id: 'mapping-1' },
+      data: expect.objectContaining({ shopifyStatus: 'SHIPPED' }),
+    });
+  });
+
+  it('recovers an open Shopify mapping that has fallen outside the newest Sapo list page', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [],
+      metadata: { total: 50 },
+    });
+    prisma.orderMapping.findMany.mockResolvedValueOnce([
+      { sapoOrderId: 'sapo-order-older' },
+    ]);
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-older',
+        status: 'finalized',
+        fulfillment_status: 'shipped',
+        fulfillments: [
+          {
+            status: 'fulfilled',
+            shipment: {
+              pushing_status: 'completed',
+              tracking_code: 'VTP-OLDER',
+            },
+          },
+        ],
+      },
+    });
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-older',
+      sapoOrderId: 'sapo-order-older',
+      shopifyOrderId: 'shopify-order-older',
+    });
+    shopifyClient.fetchOrder.mockResolvedValueOnce({
+      id: 'shopify-order-older',
+      line_items: [{ id: 'line-item-1', quantity: 1 }],
+    });
+
+    const result = await service.syncOrderType({
+      orderType: 'SHIPPED',
+      prefix: 'AUTO_SHOPIFY',
+    });
+
+    expect(sapoClient.fetchOrder).toHaveBeenCalledWith('sapo-order-older');
+    expect(shopifyClient.createFulfillment).toHaveBeenCalledWith(
+      expect.objectContaining({ trackingNumber: 'VTP-OLDER' }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({ processed: 1, skippedTracked: 0 }),
+    );
+  });
+
+  it('does not fulfill a packed AUTO_SHOPIFY order before Sapo marks it shipped', async () => {
     const { service, prisma, sapoClient, shopifyClient } = createService();
     sapoClient.fetchOrders.mockResolvedValueOnce({
       orders: [
@@ -376,15 +464,70 @@ describe('SapoTopOrderSyncService', () => {
       prefix: 'AUTO_SHOPIFY',
     });
 
-    expect(shopifyClient.createFulfillment).toHaveBeenCalledWith({
-      orderId: 'shopify-order-1',
-      trackingCompany: 'Viettel',
-      trackingNumber: 'VTP123',
-      notifyCustomer: true,
-      lineItems: [{ id: 'line-item-1', quantity: 1 }],
+    expect(shopifyClient.createFulfillment).not.toHaveBeenCalled();
+    expect(result.processed).toBe(0);
+    expect(result.skippedTracked).toBe(1);
+    expect(prisma.orderMapping.update).not.toHaveBeenCalled();
+  });
+
+  it('fetches Sapo order details for a tracked Shopify order when the list payload has no shipment', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [
+        {
+          id: 'sapo-order-1',
+          status: 'finalized',
+          packed_status: 'packed',
+          fulfillment_status: 'unshipped',
+        },
+      ],
+      metadata: { total: 1 },
     });
-    expect(result.processed).toBe(1);
-    expect(result.skippedTracked).toBe(0);
+    prisma.sapoOrderTracking.findUnique.mockResolvedValueOnce({
+      type: 'PACKED_AUTO_SHOPIFY',
+      orderIds: ['sapo-order-1'],
+    });
+    prisma.orderMapping.findMany.mockResolvedValueOnce([
+      { sapoOrderId: 'sapo-order-1' },
+    ]);
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-1',
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+    sapoClient.fetchOrder.mockResolvedValueOnce({
+      order: {
+        id: 'sapo-order-1',
+        status: 'finalized',
+        packed_status: 'packed',
+        fulfillment_status: 'shipped',
+        fulfillments: [
+          {
+            shipment: {
+              pushing_status: 'completed',
+              tracking_code: 'VTP123',
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await service.syncOrderType({
+      orderType: 'PACKED',
+      prefix: 'AUTO_SHOPIFY',
+    });
+
+    expect(sapoClient.fetchOrder).toHaveBeenCalledWith('sapo-order-1');
+    expect(shopifyClient.createFulfillment).toHaveBeenCalledWith(
+      expect.objectContaining({ trackingNumber: 'VTP123' }),
+    );
+    expect(prisma.orderMapping.update).toHaveBeenCalledWith({
+      where: { id: 'mapping-1' },
+      data: expect.objectContaining({ shopifyStatus: 'FULFILLED' }),
+    });
+    expect(result).toEqual(
+      expect.objectContaining({ processed: 1, skippedTracked: 0 }),
+    );
   });
 
   it('does not create Shopify fulfillment for shipped AUTO_SHOPIFY orders with uncompleted tracking', async () => {
@@ -426,6 +569,103 @@ describe('SapoTopOrderSyncService', () => {
     });
   });
 
+  it('ignores a cancelled Sapo fulfillment when a replacement shipment exists', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [
+        {
+          id: 'sapo-order-1',
+          status: 'completed',
+          fulfillment_status: 'shipped',
+          fulfillments: [
+            {
+              status: 'cancelled',
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'OLD-CANCELLED-CODE',
+              },
+            },
+            {
+              status: 'received',
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'NEW-ACTIVE-CODE',
+              },
+            },
+          ],
+        },
+      ],
+      metadata: { total: 1 },
+    });
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-1',
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+
+    await service.syncOrderType({
+      orderType: 'COMPLETED',
+      prefix: 'AUTO_SHOPIFY',
+    });
+
+    expect(shopifyClient.createFulfillment).toHaveBeenCalledWith(
+      expect.objectContaining({ trackingNumber: 'NEW-ACTIVE-CODE' }),
+    );
+  });
+
+  it('corrects an already fulfilled Shopify order with Sapo replacement tracking without another email', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [
+        {
+          id: 'sapo-order-1',
+          status: 'finalized',
+          fulfillment_status: 'shipped',
+          fulfillments: [
+            {
+              status: 'cancelled',
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'OLD-CANCELLED-CODE',
+              },
+            },
+            {
+              status: 'received',
+              shipment: {
+                pushing_status: 'completed',
+                tracking_code: 'NEW-ACTIVE-CODE',
+              },
+            },
+          ],
+        },
+      ],
+      metadata: { total: 1 },
+    });
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-1',
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+    shopifyClient.fetchOrder.mockResolvedValueOnce({
+      id: 'shopify-order-1',
+      fulfillment_status: 'fulfilled',
+      fulfillments: [{ id: 'fulfillment-1', tracking_numbers: ['OLD-CANCELLED-CODE'] }],
+    });
+
+    await service.syncOrderType({
+      orderType: 'SHIPPED',
+      prefix: 'AUTO_SHOPIFY',
+    });
+
+    expect(shopifyClient.updateFulfillmentTracking).toHaveBeenCalledWith({
+      fulfillmentId: 'fulfillment-1',
+      trackingCompany: 'Viettel',
+      trackingNumber: 'NEW-ACTIVE-CODE',
+      notifyCustomer: false,
+    });
+    expect(shopifyClient.createFulfillment).not.toHaveBeenCalled();
+  });
+
   it('closes Shopify order for completed AUTO_SHOPIFY Sapo orders', async () => {
     const { service, prisma, sapoClient, shopifyClient } = createService();
     sapoClient.fetchOrders.mockResolvedValueOnce({
@@ -453,9 +693,40 @@ describe('SapoTopOrderSyncService', () => {
     expect(prisma.orderMapping.update).toHaveBeenCalledWith({
       where: { id: 'mapping-1' },
       data: expect.objectContaining({
-        shopifyStatus: 'CLOSED',
+        shopifyStatus: 'FULFILLED',
         sapoStatus: 'completed',
       }),
+    });
+  });
+
+  it('fulfills a completed AUTO_SHOPIFY Sapo order without tracking but does not notify the customer', async () => {
+    const { service, prisma, sapoClient, shopifyClient } = createService();
+    sapoClient.fetchOrders.mockResolvedValueOnce({
+      orders: [
+        {
+          id: 'sapo-order-1',
+          status: 'completed',
+          fulfillment_status: 'shipped',
+          fulfillments: [{ status: 'received' }],
+        },
+      ],
+      metadata: { total: 1 },
+    });
+    prisma.orderMapping.findFirst.mockResolvedValueOnce({
+      id: 'mapping-1',
+      sapoOrderId: 'sapo-order-1',
+      shopifyOrderId: 'shopify-order-1',
+    });
+
+    await service.syncOrderType({
+      orderType: 'COMPLETED',
+      prefix: 'AUTO_SHOPIFY',
+    });
+
+    expect(shopifyClient.createFulfillment).toHaveBeenCalledWith({
+      orderId: 'shopify-order-1',
+      notifyCustomer: false,
+      lineItems: [{ id: 'line-item-1', quantity: 1 }],
     });
   });
 });
