@@ -5,6 +5,24 @@ import {
 } from './product-snapshot.mapper';
 
 describe('product snapshot mapper', () => {
+  it('only counts Fitme Sportswear inventory, even when other locations have stock', () => {
+    const result = mapSapoProductSnapshot({ variants: [{ sku: 'SKU-1', inventories: [
+      { location_id: 572310, available: 0, onHand: 0 },
+      { location_id: 782466, available: 2, onHand: 2 },
+      { location_id: 702124, available: 4, onHand: 4 },
+      { location_id: 791003, available: 8, onHand: 8 },
+    ] }] });
+    expect(result[0]).toMatchObject({ available: 0, remain: 0 });
+  });
+
+  it('accepts string camelCase Fitme location IDs and excludes unidentified inventory', () => {
+    const result = mapSapoProductSnapshot({ variants: [{ sku: 'SKU-1', inventories: [
+      { locationId: '572310', available: 3, onHand: 5 },
+      { available: 20, onHand: 20 },
+    ] }] });
+    expect(result[0]).toMatchObject({ available: 3, remain: 5 });
+  });
+
   it('maps Sapo variant and sums inventory availability with string ids', () => {
     const result = mapSapoProductSnapshot({
       id: 10,
@@ -15,13 +33,13 @@ describe('product snapshot mapper', () => {
           sku: ' sku-1 ',
           variantRetailPrice: 150000,
           inventories: [
-            { available: 2, onHand: 3 },
-            { available: 4, onHand: 5 },
+            { location_id: 572310, available: 2, onHand: 3 },
+            { location_id: 782466, available: 4, onHand: 5 },
           ],
         },
       ],
     });
-    expect(result).toEqual([{ platform: 'sapo', sku: 'sku-1', normalizedSku: 'SKU-1', productId: '10', variantId: '20', name: 'Áo chạy bộ', available: 6, remain: 8, retailPrice: 150000, warehouseId: null, warehouseCount: null, sourceCreatedAt: null, sourceUpdatedAt: null }]);
+    expect(result).toEqual([{ platform: 'sapo', sku: 'sku-1', normalizedSku: 'SKU-1', productId: '10', variantId: '20', name: 'Áo chạy bộ', available: 2, remain: 3, retailPrice: 150000, warehouseId: null, warehouseCount: null, sourceCreatedAt: null, sourceUpdatedAt: null }]);
     expect(result[0]?.productId).toBe('10');
     expect(result[0]?.variantId).toBe('20');
   });

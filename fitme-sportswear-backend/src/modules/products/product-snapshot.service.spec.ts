@@ -63,7 +63,7 @@ describe('ProductSnapshotService', () => {
               sku: 'SKU-REAL-1',
               variantRetailPrice: 100000,
               updated_at: '2026-06-01T10:00:00.000Z',
-              inventories: [{ available: 5, onHand: 6 }],
+              inventories: [{ location_id: 572310, available: 5, onHand: 6 }],
             },
           ],
         },

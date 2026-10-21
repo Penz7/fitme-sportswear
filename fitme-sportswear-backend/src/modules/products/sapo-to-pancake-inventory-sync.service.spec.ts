@@ -59,7 +59,7 @@ describe('SapoToPancakeInventorySyncService', () => {
               created_on: item.createdAt ?? item.updatedAt,
               updated_at: item.updatedAt,
               inventories: [
-                { available: item.sapoAvailable, onHand: item.sapoAvailable },
+                { location_id: 572310, available: item.sapoAvailable, onHand: item.sapoAvailable },
               ],
             },
           ],

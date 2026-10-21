@@ -2,6 +2,8 @@ import { PlatformProductSnapshot } from './types/platform-product-snapshot';
 import { normalizeSku } from './sku-normalizer';
 
 interface SapoInventoryInput {
+  location_id?: string | number | null;
+  locationId?: string | number | null;
   available?: number | null;
   onHand?: number | null;
 }
@@ -91,6 +93,11 @@ const toNullableNumber = (value: string | number | null | undefined): number | n
 const sumValues = <T>(items: T[] | null | undefined, getValue: (item: T) => number | null | undefined): number =>
   (items ?? []).reduce((sum, item) => sum + (getValue(item) ?? 0), 0);
 
+// Only Fitme Sportswear supplies inventory for synchronization.
+// Excluded: 782466 (Store Offline XVNT), 702124 (Kho chuyển hàng),
+// 791003 (Chi nhánh 4). Unknown locations are excluded as well.
+const SAPO_INVENTORY_LOCATION_IDS = new Set(['572310']);
+
 const toNullableDate = (...values: Array<string | null | undefined>): Date | null => {
   for (const value of values) {
     if (!value) {
@@ -125,6 +132,10 @@ export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProdu
         return null;
       }
 
+      const inventories = (variant.inventories ?? []).filter((inventory) =>
+        SAPO_INVENTORY_LOCATION_IDS.has(String(inventory.location_id ?? inventory.locationId ?? '')),
+      );
+
       return {
         platform: 'sapo',
         sku,
@@ -132,8 +143,8 @@ export const mapSapoProductSnapshot = (product: SapoProductInput): PlatformProdu
         productId: toNullableString(product.id),
         variantId: toNullableString(variant.id),
         name: product.name ?? null,
-        available: sumValues(variant.inventories, (inventory) => inventory.available),
-        remain: sumValues(variant.inventories, (inventory) => inventory.onHand),
+        available: sumValues(inventories, (inventory) => inventory.available),
+        remain: sumValues(inventories, (inventory) => inventory.onHand),
         retailPrice: variant.variantRetailPrice ?? null,
         warehouseId: null,
         warehouseCount: null,
