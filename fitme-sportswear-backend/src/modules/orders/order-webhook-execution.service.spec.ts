@@ -325,6 +325,80 @@ describe('OrderWebhookExecutionService', () => {
     );
   });
 
+  it.each(['pending', 'authorized', 'partially_paid', 'unpaid'])('holds a normal bank-transfer order with payment status %s before any Sapo write', async (financial_status) => {
+    const { service, sapoClient, prisma, preorderService } = createService();
+    await service.executePlan({ ...basePlan, platform: 'shopify', externalOrderId: 'bank-pending-1' }, {
+      financial_status, payment_gateway_names: ['Chuyển khoản'],
+      total_price: '150000', line_items: [{ sku: 'SKU-1', quantity: 1 }],
+    });
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+    expect(sapoClient.finalizeOrder).not.toHaveBeenCalled();
+    expect(sapoClient.prepayOrder).not.toHaveBeenCalled();
+    expect(prisma.orderMapping.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: { shopifyOrderId: 'bank-pending-1', shopifyStatus: 'BANK_TRANSFER_PENDING_PAYMENT' },
+    }));
+    expect(preorderService.confirmShopifyPayment).not.toHaveBeenCalled();
+    expect(preorderService.recordShopifyOrder).not.toHaveBeenCalled();
+  });
+
+  it.each(['Chuyen khoan', 'Bank Deposit', 'Bank Transfer', 'wire_transfer'])('holds unpaid bank transfers identified by the legacy gateway field (%s)', async (gateway) => {
+    const { service, sapoClient } = createService();
+    await service.executePlan({ ...basePlan, platform: 'shopify', externalOrderId: 'bank-legacy' }, {
+      financial_status: 'pending', gateway, line_items: [{ sku: 'SKU-1', quantity: 1 }],
+    });
+    expect(sapoClient.createOrder).not.toHaveBeenCalled();
+  });
+
+  it('blocks shipment updates for an existing unpaid bank-transfer order without cancelling it', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({ sapoOrderId: 'existing-sapo' });
+    await service.executePlan({ ...basePlan, platform: 'shopify', externalOrderId: 'bank-existing',
+      nextActions: ['update_sapo_order', 'create_sapo_fulfillment', 'deliver_sapo_order'] }, {
+      financial_status: 'pending', payment_gateway_names: ['Chuyển khoản'],
+    });
+    expect(sapoClient.updateOrder).not.toHaveBeenCalled();
+    expect(sapoClient.createFulfillment).not.toHaveBeenCalled();
+    expect(sapoClient.shipFulfillment).not.toHaveBeenCalled();
+    expect(sapoClient.cancelOrder).not.toHaveBeenCalled();
+  });
+
+  it('still propagates cancellation of a bank-transfer order to Sapo', async () => {
+    const { service, sapoClient, prisma } = createService();
+    prisma.orderMapping.findUnique.mockResolvedValue({ sapoOrderId: 'existing-sapo' });
+    await service.executePlan({ ...basePlan, platform: 'shopify', eventType: 'orders/cancelled',
+      externalOrderId: 'bank-cancelled', nextActions: ['cancel_sapo_order'] }, {
+      financial_status: 'pending', payment_gateway_names: ['Chuyển khoản'],
+      cancelled_at: '2026-10-23T00:00:00Z',
+    });
+    expect(sapoClient.cancelOrder).toHaveBeenCalled();
+  });
+
+  it('continues syncing a normal unpaid COD order immediately', async () => {
+    const { service, sapoClient } = createService();
+    await service.executePlan({ ...basePlan, platform: 'shopify', externalOrderId: 'cod-1' }, {
+      financial_status: 'pending', payment_gateway_names: ['Cash on Delivery (COD)'],
+      total_price: '150000', line_items: [{ sku: 'SKU-1', quantity: 1 }],
+    });
+    expect(sapoClient.createOrder).toHaveBeenCalledTimes(1);
+    expect(sapoClient.finalizeOrder).toHaveBeenCalledTimes(1);
+    expect(sapoClient.prepayOrder).not.toHaveBeenCalled();
+  });
+
+  it('records full payment on Sapo for a paid normal bank-transfer order and does not charge twice on replay', async () => {
+    const { service, sapoClient, prisma } = createService();
+    sapoClient.fetchOrder.mockResolvedValueOnce({ order: { payment_status: 'unpaid' } });
+    const plan: OrderWebhookProcessingPlan = { ...basePlan, platform: 'shopify', externalOrderId: 'bank-paid-1', nextActions: ['create_sapo_order_if_missing', 'finalize_sapo_order', 'upsert_order_mapping'] };
+    const payload = { financial_status: 'paid', payment_gateway_names: ['Chuyển khoản'], total_price: '150000', line_items: [{ sku: 'SKU-1', quantity: 1 }] };
+    await service.executePlan(plan, payload);
+    expect(sapoClient.prepayOrder).toHaveBeenCalledWith('sapo-order-1', {
+      prepayment: expect.objectContaining({ amount: 150000, paid_amount: 150000 }),
+    }, { locationId: '572310' });
+    prisma.orderMapping.findUnique.mockResolvedValue({ sapoOrderId: 'sapo-order-1' });
+    await service.executePlan(plan, payload);
+    expect(sapoClient.createOrder).toHaveBeenCalledTimes(1);
+    expect(sapoClient.prepayOrder).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps an unpaid Shopify preorder out of Sapo and out of reserved preorder quantity', async () => {
     const { service, sapoClient, preorderService, prisma } = createService();
     preorderService.findShopifyPreorderLines.mockResolvedValue([
@@ -1138,7 +1212,7 @@ describe('OrderWebhookExecutionService', () => {
     });
   });
 
-  it('uses legacy Shopify shipment values when creating a Sapo fulfillment', async () => {
+  it.each([false, true])('sets Shopify shipment COD according to whether payment is confirmed (paid=%s)', async (paid) => {
     const { service, sapoClient, prisma, addressMappingService } = createService();
     prisma.orderMapping.findUnique.mockResolvedValue({
       sapoOrderId: 'sapo-order-1',
@@ -1165,6 +1239,7 @@ describe('OrderWebhookExecutionService', () => {
       {
         id: 'shopify-order-1',
         order_number: 1862,
+        financial_status: paid ? 'paid' : 'pending',
         total_price: '300000',
         contact_email: 'customer@example.com',
         shipping_address: {
@@ -1198,7 +1273,7 @@ describe('OrderWebhookExecutionService', () => {
     );
     expect(detail).toEqual(
       expect.objectContaining({
-        cod_amount: 300000,
+        cod_amount: paid ? 0 : 300000,
         sender_phone: '0707121868',
         sender_province_id: 2,
         sender_district_id: 55,

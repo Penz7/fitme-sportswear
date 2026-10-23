@@ -10,6 +10,7 @@ export interface ShopifyOrderReconciliationResult {
   cancelledSapo: number;
   expiredUnpaidPreorders: number;
   activatedPreorders: number;
+  activatedBankTransfers: number;
   skipped: number;
   errors: Array<{ shopifyOrderId: string; sapoOrderId: string | null; message: string }>;
 }
@@ -45,6 +46,7 @@ export class ShopifyOrderReconciliationService {
       cancelledSapo: 0,
       expiredUnpaidPreorders: 0,
       activatedPreorders: 0,
+      activatedBankTransfers: 0,
       skipped: 0,
       errors: [],
     };
@@ -95,17 +97,17 @@ export class ShopifyOrderReconciliationService {
       await this.reconcileMapping(mapping, null, result);
     }
 
-    await this.reconcilePendingPreorders(limit, result);
+    await this.reconcilePendingPayments(limit, result);
 
     return result;
   }
 
   /**
-   * Webhooks normally promote a manual-payment PreOrder immediately after
-   * staff marks it paid. This small reconciliation pass is the safety net for
+   * Webhooks normally promote pending bank-transfer and PreOrder payments after
+   * staff marks them paid. This reconciliation pass is the safety net for
    * a delayed or lost orders/updated webhook.
    */
-  private async reconcilePendingPreorders(
+  private async reconcilePendingPayments(
     limit: number,
     result: ShopifyOrderReconciliationResult,
   ): Promise<void> {
@@ -115,7 +117,7 @@ export class ShopifyOrderReconciliationService {
 
     const pendingMappings = await (this.prisma as any).orderMapping.findMany({
       where: {
-        shopifyStatus: 'PREORDER_PENDING_PAYMENT',
+        shopifyStatus: { in: ['PREORDER_PENDING_PAYMENT', 'BANK_TRANSFER_PENDING_PAYMENT'] },
         shopifyOrderId: { not: null },
       },
       orderBy: { updatedAt: 'asc' },
@@ -128,9 +130,10 @@ export class ShopifyOrderReconciliationService {
       try {
         const order = await this.shopifyClient.fetchOrder(shopifyOrderId);
         if (!order) {
-          throw new Error(`Shopify pending preorder ${shopifyOrderId} was not found`);
+          throw new Error(`Shopify pending payment order ${shopifyOrderId} was not found`);
         }
-        if (this.shouldExpireUnpaidPreorder(order)) {
+        const isPreorder = mapping.shopifyStatus === 'PREORDER_PENDING_PAYMENT';
+        if (isPreorder && this.shouldExpireUnpaidPreorder(order)) {
           await this.shopifyClient.cancelOrder(shopifyOrderId, 'other');
           const cancelledOrder = {
             ...order,
@@ -154,8 +157,12 @@ export class ShopifyOrderReconciliationService {
           payload: order,
         });
         await this.orderWebhookExecutionService.executePlan(plan, order);
-        if (this.isPaid(order)) {
-          result.activatedPreorders += 1;
+        if (this.isPaid(order) && !this.isCancelled(order)) {
+          if (isPreorder) {
+            result.activatedPreorders += 1;
+          } else {
+            result.activatedBankTransfers += 1;
+          }
         } else {
           result.skipped += 1;
         }

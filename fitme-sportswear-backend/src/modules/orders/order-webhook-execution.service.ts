@@ -48,6 +48,18 @@ export class OrderWebhookExecutionService {
           )
         : [];
     if (
+      plan.platform === 'shopify' &&
+      preorderLines.length === 0 &&
+      this.isShopifyBankTransfer(orderPayload) &&
+      !this.shopifyPaymentConfirmed(orderPayload) &&
+      !this.isCancelledShopifyPlan(plan, orderPayload)
+    ) {
+      if (!sapoOrderId) {
+        await this.markShopifyPaymentPending(plan, 'BANK_TRANSFER_PENDING_PAYMENT');
+      }
+      return;
+    }
+    if (
       preorderLines.length > 0 &&
       !this.shopifyPaymentConfirmed(orderPayload) &&
       !this.isCancelledShopifyPlan(plan, orderPayload)
@@ -62,7 +74,7 @@ export class OrderWebhookExecutionService {
         false,
       );
       if (!sapoOrderId) {
-        await this.markPreorderPaymentPending(plan);
+        await this.markShopifyPaymentPending(plan);
       }
       return;
     }
@@ -125,7 +137,6 @@ export class OrderWebhookExecutionService {
               sapoOrderId,
               orderPayload,
               sapoLocationId,
-              preorderLines.length > 0,
             );
             sapoOrder = await this.fetchSapoOrder(sapoOrderId);
             await this.verifyPancakeSapoShippingAddress(
@@ -405,10 +416,8 @@ export class OrderWebhookExecutionService {
     sapoOrderId: string,
     payload: Record<string, any>,
     sapoLocationId: string,
-    isPreorder: boolean,
   ): Promise<void> {
     const paidByShopify =
-      isPreorder &&
       plan.platform === 'shopify' &&
       this.shopifyPaymentConfirmed(payload);
     if (paidByShopify) {
@@ -937,7 +946,9 @@ export class OrderWebhookExecutionService {
       ? 0
       : this.numberValue(payload.cod ?? payload.money_to_collect) ?? 0;
     const detailCodAmount = isShopifyOrder
-      ? this.numberValue(payload.total_price ?? payload.totalPrice) ?? 0
+      ? this.shopifyPaymentConfirmed(payload)
+        ? 0
+        : this.numberValue(payload.total_price ?? payload.totalPrice) ?? 0
       : shipmentCodAmount;
     const shipping = this.objectPayload(payload.shipping_address ?? payload.shippingAddress);
     const receiverAddress =
@@ -1190,6 +1201,18 @@ export class OrderWebhookExecutionService {
     return status === 'paid';
   }
 
+  private isShopifyBankTransfer(payload: Record<string, any>): boolean {
+    const methods = [
+      ...this.arrayPayload(payload.payment_gateway_names ?? payload.paymentGatewayNames),
+      payload.gateway,
+    ];
+    return methods.some((method) => {
+      const name = String(method ?? '').normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      return /chuyen[\s_-]*khoan|bank[\s_-]*(transfer|deposit)|wire[\s_-]*transfer/.test(name);
+    });
+  }
+
   private isCancelledShopifyPlan(
     plan: OrderWebhookProcessingPlan,
     payload: Record<string, any>,
@@ -1209,8 +1232,9 @@ export class OrderWebhookExecutionService {
     return status === 'paid';
   }
 
-  private async markPreorderPaymentPending(
+  private async markShopifyPaymentPending(
     plan: OrderWebhookProcessingPlan,
+    status = 'PREORDER_PENDING_PAYMENT',
   ): Promise<void> {
     if (plan.platform !== 'shopify' || !plan.externalOrderId) {
       return;
@@ -1219,9 +1243,9 @@ export class OrderWebhookExecutionService {
       where: { shopifyOrderId: plan.externalOrderId },
       create: {
         shopifyOrderId: plan.externalOrderId,
-        shopifyStatus: 'PREORDER_PENDING_PAYMENT',
+        shopifyStatus: status,
       },
-      update: { shopifyStatus: 'PREORDER_PENDING_PAYMENT' },
+      update: { shopifyStatus: status },
     } as any);
   }
 

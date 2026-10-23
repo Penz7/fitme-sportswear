@@ -1,6 +1,37 @@
 import { ShopifyOrderReconciliationService } from './shopify-order-reconciliation.service';
 
 describe('ShopifyOrderReconciliationService', () => {
+  it.each(['pending', 'paid', 'cancelled'])('reconciles normal bank-transfer orders (%s) without applying preorder auto-cancellation', async (state) => {
+    const order = {
+      id: 'bank-order-1', payment_gateway_names: ['Chuyển khoản'],
+      financial_status: state === 'paid' ? 'paid' : 'pending',
+      created_at: '2020-01-01T00:00:00Z',
+      ...(state === 'cancelled' ? { cancelled_at: '2026-10-23T00:00:00Z' } : {}),
+    };
+    const prisma = { orderMapping: { findMany: jest.fn()
+      .mockResolvedValueOnce([]).mockResolvedValueOnce([{
+        id: 'mapping-bank', shopifyOrderId: order.id, sapoOrderId: null,
+        shopifyStatus: 'BANK_TRANSFER_PENDING_PAYMENT',
+      }]) } };
+    const shopify = { fetchRecentOrders: jest.fn().mockResolvedValue([]),
+      fetchOrder: jest.fn().mockResolvedValue(order), cancelOrder: jest.fn() };
+    const processing = { buildProcessingPlan: jest.fn().mockReturnValue({ nextActions: [] }) };
+    const execution = { executePlan: jest.fn().mockResolvedValue(undefined) };
+    const service = new ShopifyOrderReconciliationService(prisma as any, shopify as any, {} as any, processing as any, execution as any);
+    const result = await service.reconcile();
+    expect(shopify.cancelOrder).not.toHaveBeenCalled();
+    expect(processing.buildProcessingPlan).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: state === 'cancelled' ? 'orders/cancelled' : 'orders/updated', payload: order,
+    }));
+    expect(execution.executePlan).toHaveBeenCalledWith({ nextActions: [] }, order);
+    expect(result.expiredUnpaidPreorders).toBe(0);
+    expect(result.activatedPreorders).toBe(0);
+    expect(result.activatedBankTransfers).toBe(state === 'paid' ? 1 : 0);
+    expect(prisma.orderMapping.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ shopifyStatus: { in: ['PREORDER_PENDING_PAYMENT', 'BANK_TRANSFER_PENDING_PAYMENT'] } }),
+    }));
+  });
+
   it('cancels mapped Sapo orders when Shopify order is cancelled', async () => {
     const prisma = {
       orderMapping: {
@@ -41,6 +72,7 @@ describe('ShopifyOrderReconciliationService', () => {
       cancelledSapo: 1,
       expiredUnpaidPreorders: 0,
       activatedPreorders: 0,
+      activatedBankTransfers: 0,
       skipped: 0,
       errors: [],
     });
@@ -125,6 +157,7 @@ describe('ShopifyOrderReconciliationService', () => {
       cancelledSapo: 1,
       expiredUnpaidPreorders: 0,
       activatedPreorders: 0,
+      activatedBankTransfers: 0,
       skipped: 1,
       errors: [],
     });
@@ -181,6 +214,7 @@ describe('ShopifyOrderReconciliationService', () => {
       cancelledSapo: 0,
       expiredUnpaidPreorders: 0,
       activatedPreorders: 1,
+      activatedBankTransfers: 0,
       skipped: 0,
       errors: [],
     });
@@ -242,6 +276,7 @@ describe('ShopifyOrderReconciliationService', () => {
       cancelledSapo: 0,
       expiredUnpaidPreorders: 1,
       activatedPreorders: 0,
+      activatedBankTransfers: 0,
       skipped: 0,
       errors: [],
     });
